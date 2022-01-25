@@ -1,0 +1,45 @@
+---
+- hosts: all
+
+  collections:
+    - community.sap_launchpad
+
+#  pre_tasks:
+
+# Prompt for Ansible Variables
+  vars_prompt:
+    - name: suser_id
+      prompt: Please enter S-User
+      private: no
+    - name: suser_password
+      prompt: Please enter Password
+      private: yes
+    - name: mp_transaction_name
+      prompt: Please enter MP transaction name
+      private: no
+
+# Define Ansible Variables
+  vars:
+    ansible_python_interpreter: python3
+
+# Use task block to call Ansible Module
+  tasks:   
+  - name: Execute Ansible Module 'maintenance_planner' to get files from MP
+    community.sap_launchpad.maintenance_planner:
+      suser_id: "{{ suser_id }}"
+      suser_password: "{{ suser_password }}"
+      transaction_name: "{{ mp_transaction_name }}"
+    register: sap_maintenance_planner_basket_register
+
+  # - debug:
+  #     msg:
+  #       - "{{ sap_maintenance_planner_basket_register.download_basket }}"
+
+  - name: Execute Ansible Module 'software_center_download' to download files
+    community.sap_launchpad.software_center_download:
+      suser_id: "{{ suser_id }}"
+      suser_password: "{{ suser_password }}"
+      download_link: "{{ item.DirectLink }}"
+      download_filename: "{{ item.Filename }}"
+      dest: "/tmp/test"
+    loop: "{{ sap_maintenance_planner_basket_register.download_basket }}"

@@ -1,0 +1,44 @@
+---
+- hosts: all
+
+  collections:
+    - community.sap_launchpad
+
+  pre_tasks:
+    - name: Install Python package manager pip3 to system Python
+      ansible.builtin.package:
+        name: python3-pip
+        state: present
+    - name: Install Python dependencies for Ansible Modules to system Python
+      ansible.builtin.pip:
+        name:
+          - urllib3
+          - requests
+          - beautifulsoup4
+          - lxml
+
+# Prompt for Ansible Variables
+  vars_prompt:
+    - name: suser_id
+      prompt: Please enter S-User
+      private: no
+    - name: suser_password
+      prompt: Please enter Password
+      private: yes
+
+# Define Ansible Variables
+  vars:
+    ansible_python_interpreter: python3
+    softwarecenter_search_list: 
+      - 'SAPCAR_1324-80000936.EXE'
+      - 'HCMT_057_0-80003261.SAR'
+
+# Use task block to call Ansible Module
+  tasks:   
+  - name: Execute Ansible Module to download SAP software
+    community.sap_launchpad.software_center_download:
+      suser_id: "{{ suser_id }}"
+      suser_password: "{{ suser_password }}"
+      softwarecenter_search_query: "{{ item }}"
+      dest: "/tmp/"
+    with_items: "{{ softwarecenter_search_list }}"
