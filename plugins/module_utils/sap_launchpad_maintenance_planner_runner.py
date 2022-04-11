@@ -212,6 +212,18 @@ def get_transaction_id_by_display_id(display_id):
     transaction = _get_transaction('trans_display_id', display_id)
     return transaction['trans_id']
 
+def get_transaction_filename_url(trans_id):
+    xml = get_download_files_xml(trans_id)
+    e = etree.fromstring(xml.encode('utf-16'))
+    stack_files = e.xpath(
+        '//mnp:entity[@id="stack_files"]/mnp:entity',
+        namespaces={'mnp': 'http://xml.sap.com/2012/01/mnp'})
+    files = []
+    for f in stack_files:
+        file_id = C.URL_SOFTWARE_DOWNLOAD + '/file/' + f.get('id')
+        file_name = f.get('label')
+        files.append((file_id, file_name))
+    return files
 
 def fetch_download_files(display_id):
     params = {

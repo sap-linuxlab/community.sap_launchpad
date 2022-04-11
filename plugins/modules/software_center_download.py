@@ -86,7 +86,7 @@ from ..module_utils.sap_launchpad_software_center_download_runner import *
 
 
 def run_module():
-      
+
     # Define available arguments/parameters a user can pass to the module
     module_args = dict(
         suser_id=dict(type='str', required=True),
@@ -94,9 +94,10 @@ def run_module():
         softwarecenter_search_query=dict(type='str', required=False, default=''),
         download_link=dict(type='str', required=False, default=''),
         download_filename=dict(type='str', required=False, default=''),
-        dest=dict(type='str', required=True)
+        dest=dict(type='str', required=True),
+        dry_run=dict(type='bool', required=False, default=False)
     )
-    
+
     # Define result dictionary objects to be passed back to Ansible
     result = dict(
         changed=False,
@@ -120,25 +121,32 @@ def run_module():
     download_link= module.params.get('download_link')
     download_filename= module.params.get('download_filename')
     dest = module.params.get('dest')
-    
+    dry_run = module.params.get('dry_run')
+
     # Main run
-    
+
     try:
-        # EXEC: Retrieve login session, using Py Function from imported module in directory module_utils
-        session = sap_sso_login(username, password)
-        
-        # EXEC: no query
-        # execute download_software with directlink and filename
-        if query == '':
-          download_software(download_link, download_filename, dest)
-        
+        filename = query if query else download_filename
+        if os.path.exists(os.path.join(dest, filename)):
+            module.exit_json(skipped=True, msg="file {} already exists".format(filename))
+
+        sap_sso_login(username, password)
+
         # EXEC: query
         # execute search_software_filename first to get download link and filename
-        # execute download_software based on query result
-        if query != '':
-          query_result = search_software_filename(query)
-          download_software(*query_result, dest)
-        
+        if query:
+            download_link, download_filename = search_software_filename(query)
+
+        # execute download_software
+        if dry_run:
+            available = is_download_link_available(download_link)
+            if available:
+                module.exit_json(changed=False, msg="download link {} is available".format(download_link))
+            else:
+                module.fail_json(msg="download link {} is not available".format(download_link))
+
+        download_software(download_link, download_filename, dest)
+
         # Process return dictionary for Ansible
         result['changed'] = True
         result['msg'] = "SAP software download successful"

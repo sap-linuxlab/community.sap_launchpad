@@ -86,7 +86,7 @@ https_session = SessionAllowBasicAuthRedirects()
 retries = urllib3.Retry(connect=3,
                         read=3,
                         status=3,
-                        status_forcelist=[500, 502, 503, 504],
+                        status_forcelist=[413, 429, 500, 502, 503, 504, 509],
                         backoff_factor=1)
 allowed_methods = frozenset(
     ['HEAD', 'GET', 'PUT', 'POST', 'DELETE', 'OPTIONS', 'TRACE'])
