@@ -47,6 +47,7 @@ def _get_sso_endpoint_meta(url, **kwargs):
 
 
 def sap_sso_login(username, password):
+    https_session.cookies.clear()
     if not re.match(r'^[sS]\d+$', username):
         raise ValueError('Please login with SID (like `S1234567890`)')
 

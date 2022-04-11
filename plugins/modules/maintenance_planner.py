@@ -1,4 +1,3 @@
-
 #!/usr/bin/python
 
 # SAP maintenance planner xml stack file download
@@ -37,7 +36,7 @@ author:
 '''
 
 EXAMPLES = r'''
-- name: Execute Ansible Module 'maintenance_planner' to get files from MP 
+- name: Execute Ansible Module 'maintenance_planner' to get files from MP
   community.sap_launchpad.sap_launchpad_software_center_download:
     suser_id: 'SXXXXXXXX'
     suser_password: 'password'
@@ -68,16 +67,20 @@ from ansible.module_utils.basic import AnsibleModule
 
 # Import runner
 from ..module_utils.sap_launchpad_maintenance_planner_runner import *
+from ..module_utils.sap_launchpad_software_center_download_runner import \
+    is_download_link_available
+
 
 def run_module():
-      
+
     # Define available arguments/parameters a user can pass to the module
     module_args = dict(
         suser_id=dict(type='str', required=True),
         suser_password=dict(type='str', required=True, no_log=True),
-        transaction_name=dict(type='str', required=True)
+        transaction_name=dict(type='str', required=True),
+        validate_url=dict(type='bool', required=False, default=False)
     )
-    
+
     # Define result dictionary objects to be passed back to Ansible
     result = dict(
         download_basket={},
@@ -99,6 +102,7 @@ def run_module():
     username = module.params.get('suser_id')
     password = module.params.get('suser_password')
     transaction_name = module.params.get('transaction_name')
+    validate_url = module.params.get('validate_url')
 
     # Main run
 
@@ -112,14 +116,14 @@ def run_module():
         # EXEC: Get MP stack transaction id from transaction name
         transaction_id = get_transaction_id_by_name(transaction_name)
 
-        # EXEC: Clear download basket of any existing download files (to avoid conflicts and duplicates)
-        clear_download_basket()
-
-        # EXEC: Add all software from MP stack to download basket
-        add_stack_download_files_to_basket(transaction_id)
-
         # EXEC: Get a json list of download_links and download_filenames
-        download_basket_details = get_download_basket_url_filename()
+        download_basket_details = get_transaction_filename_url(transaction_id)
+
+        if validate_url:
+            for pair in download_basket_details:
+                url = pair[0]
+                if not is_download_link_available(url):
+                    module.fail_json(failed=True, msg='Download link is not available: {}'.format(url))
 
         # Process return dictionary for Ansible
         result['download_basket'] = [{'DirectLink': i[0], 'Filename': i[1]} for i in download_basket_details]

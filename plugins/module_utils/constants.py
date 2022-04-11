@@ -5,7 +5,7 @@ URL_SOFTWARE_CATALOG = 'https://launchpad.support.sap.com/applications/softwarec
 URL_ACCOUNT_ATTRIBUTES = 'https://launchpad.support.sap.com/services/account/attributes'
 URL_SERVICE_INCIDENT = 'https://launchpad.support.sap.com/services/odata/incidentws'
 URL_SERVICE_USER_ADMIN = 'https://launchpad.support.sap.com/services/odata/useradminsrv'
-
+URL_SOFTWARE_DOWNLOAD = 'https://softwaredownloads.sap.com'
 # Maintainance Planner
 URL_MAINTAINANCE_PLANNER = 'https://maintenanceplanner.cfapps.eu10.hana.ondemand.com'
 URL_USERAPPS = 'https://userapps.support.sap.com/sap/support/mp/index.html'
