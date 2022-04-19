@@ -159,6 +159,9 @@ def _download_file(url, filepath, retry=0, **kwargs):
     except ConnectionError:
         # builtin Connection Error is not handled by requests.
         if retry >= MAX_RETRY_TIMES:
+            # Remove partial file if exists.
+            if os.path.exists(filepath):
+                os.remove(filepath)
             raise
         time.sleep(60*(retry+1))
         return _download_file(url, filepath, retry+1, **kwargs)
@@ -172,6 +175,9 @@ def _download_file(url, filepath, retry=0, **kwargs):
         return
     logger.warning("checksum mismatch: %s: %s", filepath, checksum)
     if retry >= MAX_RETRY_TIMES:
+        # Remove partial file if exists.
+        if os.path.exists(filepath):
+            os.remove(filepath)
         raise RuntimeError(f'failed to download {url}: md5 mismatch')
     return _download_file(url, filepath, retry+1, **kwargs)
 
