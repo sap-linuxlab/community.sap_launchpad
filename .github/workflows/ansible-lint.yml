@@ -10,8 +10,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Lint Ansible Playbook
-      uses: ansible/ansible-lint-action@master
+    - name: Ansible Lint Action
+      uses: ansible-community/ansible-lint-action@main
       with:
         targets: |
           ./
