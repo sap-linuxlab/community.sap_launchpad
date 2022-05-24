@@ -1,4 +1,4 @@
-# community.sap_launchpad Ansible Collection ![Ansible Lint](https://github.com/infrasap/community.sap_launchpad/workflows/Ansible%20Lint/badge.svg?branch=main)
+# community.sap_launchpad Ansible Collection ![Ansible Lint](https://github.com/sap-linuxlab/community.sap_launchpad/actions/workflows/ansible-lint.yml/badge.svg?branch=main)
 
 This Ansible Collection executes basic SAP.com Support operations tasks.
 
