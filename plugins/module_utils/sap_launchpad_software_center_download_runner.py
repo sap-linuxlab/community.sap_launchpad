@@ -86,16 +86,33 @@ def download_software(download_link, filename, output_dir, retry=0):
 
 
 def is_download_link_available(url):
+    """Verify the DownloadDirectLink
+    """
+    # User might not have authorization to download software.
+    if not _has_download_authorization():
+        raise UserWarning(
+            'You do not have proper authorization to download software, '
+            'please check: '
+            'https://launchpad.support.sap.com/#/user/authorizations')
+
     try:
-        # use stream to prevent it from reading the whole body
-        res = _request(url, stream=True)
-        if 'tokengen' in res.url:
-            # If the response is redirected to and stopped at tokengen,
-            # then we are in the middle of SAML authentication.
+        # if SESSIONID is in the cookie list and it's valid,
+        # then we can download file without SAML authentication
+        if not https_session.cookies.get('SESSIONID',
+                                             domain='.softwaredownloads.sap.com'):
             meta = {}
-            while 'SAMLResponse' not in meta:
+            while ('SAMLResponse' not in meta):
                 url, meta = _get_sso_endpoint_meta(url, data=meta)
             res = _request(url, stream=True, data=meta)
+        else:
+            res = _request(url, stream=True)
+            if 'tokengen' in res.url:
+                # If the response is redirected to and stopped at tokengen,
+                # then we are in the middle of SAML authentication.
+                meta = {}
+                while 'SAMLResponse' not in meta:
+                    url, meta = _get_sso_endpoint_meta(url, data=meta)
+                res = _request(url, stream=True, data=meta)
     except HTTPError as e:
         if e.response.status_code not in [401, 403, 404]:
             logger.warning('Unexpected HTTP error: %s', e)
