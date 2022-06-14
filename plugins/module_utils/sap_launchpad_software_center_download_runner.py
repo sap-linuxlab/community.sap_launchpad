@@ -119,8 +119,9 @@ def is_download_link_available(url):
         return False
     finally:
         _clear_download_key_cookie()
-        # close explicitly is required for steam request.
-        res.close()
+
+    # close explicitly is required for stream request.
+    res.close()
 
     # test if we have a file download request in the end.
     content_header = res.headers.get('Content-Disposition')
