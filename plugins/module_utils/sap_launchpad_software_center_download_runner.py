@@ -85,7 +85,7 @@ def download_software(download_link, filename, output_dir, retry=0):
     _download_file(endpoint, filepath)
 
 
-def is_download_link_available(url):
+def is_download_link_available(url, retry=0):
     """Verify the DownloadDirectLink
     """
     # User might not have authorization to download software.
@@ -99,24 +99,31 @@ def is_download_link_available(url):
         # if SESSIONID is in the cookie list and it's valid,
         # then we can download file without SAML authentication
         if not https_session.cookies.get('SESSIONID',
-                                             domain='.softwaredownloads.sap.com'):
+                                         domain='.softwaredownloads.sap.com'):
             meta = {}
             while ('SAMLResponse' not in meta):
                 url, meta = _get_sso_endpoint_meta(url, data=meta)
             res = _request(url, stream=True, data=meta)
         else:
             res = _request(url, stream=True)
-            if 'tokengen' in res.url:
-                # If the response is redirected to and stopped at tokengen,
-                # then we are in the middle of SAML authentication.
-                meta = {}
-                while 'SAMLResponse' not in meta:
-                    url, meta = _get_sso_endpoint_meta(url, data=meta)
-                res = _request(url, stream=True, data=meta)
     except HTTPError as e:
-        if e.response.status_code not in [401, 403, 404]:
-            logger.warning('Unexpected HTTP error: %s', e)
-        return False
+        # clear cookies including SESSIONID because we are not authed
+        https_session.cookies.clear('.softwaredownloads.sap.com')
+        if e.response.status_code == 404:
+            return False
+        if e.response.status_code != 403 or retry >= MAX_RETRY_TIMES:
+            raise
+        logger.warning('[403] Retry %d time(s) for %s',
+                       retry+1, e.request.url)
+        time.sleep(60*(retry+1))
+        return is_download_link_available(url, retry+1)
+    except ConnectionError as e:
+        # builtin Connection Error is not handled by requests.
+        if retry >= MAX_RETRY_TIMES:
+            raise
+        logger.warning('[ConnectionError] Retry %d time(s): %s', retry+1, e)
+        time.sleep(60*(retry+1))
+        return is_download_link_available(url, retry+1)
     finally:
         _clear_download_key_cookie()
 
