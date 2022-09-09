@@ -215,8 +215,9 @@ def _has_download_authorization():
 
         url = C.URL_SERVICE_USER_ADMIN + f"/UserSet('{sid}')/UserExistingAuthorizationsSet"
         j = _request(url, headers={'Accept': 'application/json'}).json()
+        authorization_objs = [r['ObjectId'] for r in j['d']['results']]
         authorization_descs = [r['ObjectDesc'] for r in j['d']['results']]
-        _HAS_DOWNLOAD_AUTHORIZATION = "Software Download" in authorization_descs
+        _HAS_DOWNLOAD_AUTHORIZATION = "Software Download" in authorization_descs or (True for x in ["SWDOWNLOAD", "G_SOFTDOWN"] if x in authorization_objs)
     return _HAS_DOWNLOAD_AUTHORIZATION
 
 
