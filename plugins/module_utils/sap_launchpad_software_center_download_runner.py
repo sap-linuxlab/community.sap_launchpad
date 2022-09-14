@@ -24,7 +24,7 @@ def search_software_filename(name):
     """Return a single software that matched the filename
     """
     search_results = _search_software(name)
-    softwares = [r for r in search_results if r['Title'] == name]
+    softwares = [r for r in search_results if r['Title'] == name or r['Description'] == name]
     if len(softwares) == 0:
         raise ValueError(f'no result found for {name}')
     if len(softwares) > 1:
@@ -32,7 +32,7 @@ def search_software_filename(name):
         raise ValueError('more than one results were found: %s. '
                          'please use the correct full filename' % names)
     software = softwares[0]
-    download_link, filename = software['DownloadDirectLink'], software['Title']
+    download_link, filename = software['DownloadDirectLink'], name
     return (download_link, filename)
 
 
