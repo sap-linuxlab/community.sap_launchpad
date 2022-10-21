@@ -46,6 +46,11 @@ options:
       - Destination folder.
     required: true
     type: str
+  dedup:
+    description:
+      - How to handle multiple search results.
+    required: false
+    type: str
 author:
     - Lab for SAP Solutions
 
@@ -95,7 +100,8 @@ def run_module():
         download_link=dict(type='str', required=False, default=''),
         download_filename=dict(type='str', required=False, default=''),
         dest=dict(type='str', required=True),
-        dry_run=dict(type='bool', required=False, default=False)
+        dry_run=dict(type='bool', required=False, default=False),
+        dedup=dict(type='str', required=False, default='')
     )
 
     # Define result dictionary objects to be passed back to Ansible
@@ -122,6 +128,7 @@ def run_module():
     download_filename= module.params.get('download_filename')
     dest = module.params.get('dest')
     dry_run = module.params.get('dry_run')
+    dedup = module.params.get('dedup')
 
     # Main run
 
@@ -135,7 +142,7 @@ def run_module():
         # EXEC: query
         # execute search_software_filename first to get download link and filename
         if query:
-            download_link, download_filename = search_software_filename(query)
+            download_link, download_filename = search_software_filename(query,dedup)
 
         # execute download_software
         if dry_run:
