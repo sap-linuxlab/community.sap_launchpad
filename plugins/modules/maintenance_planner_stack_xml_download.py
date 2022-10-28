@@ -68,9 +68,7 @@ import requests
 from ansible.module_utils.basic import AnsibleModule
 
 # Import runner
-from .community.sap_launchpad.plugins.module_utils.sap_launchpad_maintenance_planner_runner import *
-from .community.sap_launchpad.plugins.module_utils.sap_launchpad_software_center_download_runner import \
-    is_download_link_available
+from ..module_utils.sap_launchpad_maintenance_planner_runner import *
 
 
 def run_module():
