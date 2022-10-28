@@ -105,11 +105,11 @@ def get_transaction_stack_xml(trans_id, output_dir=None):
         'session_id': trans_id,
     }
 
+    # Returns XML file with XML Element values using appropriate special character predefined entities (e.g. &amp; instead of &)
     res = _mp_request(params=params)
-    xml = unescape(res.text.replace('\ufeff', ''))
 
     if output_dir is None:
-        return xml
+        return res.text
 
     dest = pathlib.Path(output_dir)
     # content-disposition: attachment; filename=MP_XX_STACK.xml
@@ -117,7 +117,7 @@ def get_transaction_stack_xml(trans_id, output_dir=None):
     dest = dest.joinpath(name)
 
     with open(dest, 'w') as f:
-        f.write(xml)
+        f.write(res.text)
 
 
 def get_stack_files_xml(trans_id):

@@ -1,4 +1,3 @@
-
 #!/usr/bin/python
 
 # SAP software download module
