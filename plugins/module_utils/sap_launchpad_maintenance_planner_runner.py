@@ -109,7 +109,7 @@ def get_transaction_stack_xml(trans_id, output_dir=None):
     res = _mp_request(params=params)
 
     if output_dir is None:
-        return xml
+        return res
 
     dest = pathlib.Path(output_dir)
     # content-disposition: attachment; filename=MP_XX_STACK.xml
@@ -117,7 +117,7 @@ def get_transaction_stack_xml(trans_id, output_dir=None):
     dest = dest.joinpath(name)
 
     with open(dest, 'w') as f:
-        f.write(xml)
+        f.write(res)
 
 
 def get_stack_files_xml(trans_id):
