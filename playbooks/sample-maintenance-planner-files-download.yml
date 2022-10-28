@@ -24,8 +24,8 @@
 
 # Use task block to call Ansible Module
   tasks:   
-  - name: Execute Ansible Module 'maintenance_planner' to get files from MP
-    community.sap_launchpad.maintenance_planner:
+  - name: Execute Ansible Module 'maintenance_planner_files' to get files from MP
+    community.sap_launchpad.maintenance_planner_files:
       suser_id: "{{ suser_id }}"
       suser_password: "{{ suser_password }}"
       transaction_name: "{{ mp_transaction_name }}"

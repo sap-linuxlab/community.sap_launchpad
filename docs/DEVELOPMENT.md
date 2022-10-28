@@ -15,7 +15,7 @@ collection/
 │   │   ├── users.py
 │   │   ├── software_center_download.py
 │   │   ├── software_center_catalog.py
-│   │   ├── maintenance_planner.py
+│   │   ├── maintenance_planner_files.py
 │   │   ├── licenses.py
 │   │   └── incidents.py
 │   └── module_utils/

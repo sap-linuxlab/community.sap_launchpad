@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# SAP maintenance planner xml stack file download
+# SAP Maintenance Planner files retrieval
 
 from __future__ import absolute_import, division, print_function
 
@@ -8,9 +8,9 @@ __metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
-module: maintenance_planner
+module: maintenance_planner_files
 
-short_description: SAP Maintenance Planner
+short_description: SAP Maintenance Planner files retrieval
 
 version_added: 1.0.0
 
@@ -36,7 +36,7 @@ author:
 '''
 
 EXAMPLES = r'''
-- name: Execute Ansible Module 'maintenance_planner' to get files from MP
+- name: Execute Ansible Module 'maintenance_planner_files' to get files from MP
   community.sap_launchpad.sap_launchpad_software_center_download:
     suser_id: 'SXXXXXXXX'
     suser_password: 'password'
