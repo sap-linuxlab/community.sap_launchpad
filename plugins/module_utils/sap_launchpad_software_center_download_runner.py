@@ -20,7 +20,7 @@ _HAS_DOWNLOAD_AUTHORIZATION = None
 MAX_RETRY_TIMES = 3
 
 
-def search_software_filename(name, dedup):
+def search_software_filename(name, deduplicate):
     """Return a single software that matched the filename
     """
     search_results = _search_software(name)
@@ -28,13 +28,13 @@ def search_software_filename(name, dedup):
     num_files=len(softwares)
     if num_files == 0:
         raise ValueError(f'no result found for {name}')
-    elif num_files > 1 and dedup == '':
+    elif num_files > 1 and deduplicate == '':
             names = [s['Title'] for s in softwares]
             raise ValueError('more than one results were found: %s. '
                              'please use the correct full filename' % names)
-    elif num_files > 1 and dedup == 'first':
+    elif num_files > 1 and deduplicate == 'first':
             software = softwares[0]
-    elif num_files > 1 and dedup == 'last':
+    elif num_files > 1 and deduplicate == 'last':
             software = softwares[num_files-1]
     else:
             software = softwares[0]

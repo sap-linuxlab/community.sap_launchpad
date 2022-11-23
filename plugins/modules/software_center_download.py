@@ -45,7 +45,7 @@ options:
       - Destination folder.
     required: true
     type: str
-  dedup:
+  deduplicate:
     description:
       - How to handle multiple search results.
     required: false
@@ -100,7 +100,7 @@ def run_module():
         download_filename=dict(type='str', required=False, default=''),
         dest=dict(type='str', required=True),
         dry_run=dict(type='bool', required=False, default=False),
-        dedup=dict(type='str', required=False, default='')
+        deduplicate=dict(type='str', required=False, default='')
     )
 
     # Define result dictionary objects to be passed back to Ansible
@@ -127,7 +127,7 @@ def run_module():
     download_filename= module.params.get('download_filename')
     dest = module.params.get('dest')
     dry_run = module.params.get('dry_run')
-    dedup = module.params.get('dedup')
+    deduplicate = module.params.get('deduplicate')
 
     # Main run
 
@@ -141,7 +141,7 @@ def run_module():
         # EXEC: query
         # execute search_software_filename first to get download link and filename
         if query:
-            download_link, download_filename = search_software_filename(query,dedup)
+            download_link, download_filename = search_software_filename(query,deduplicate)
 
         # execute download_software
         if dry_run:
