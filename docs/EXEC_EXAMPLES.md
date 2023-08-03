@@ -54,7 +54,7 @@
 
 ```shell
 # Install from local source directory for Ansible 2.11+
-ansible-galaxy collection install ./community.sap_launchpad
+ansible-galaxy collection install community.sap_launchpad
 
 # Workaround install from local source directory for Ansible 2.9.x
 # mv ./community.sap_launchpad ~/.ansible/collections/ansible_collections/community
@@ -108,14 +108,14 @@ ansible-playbook --timeout 60 ./community.sap_launchpad/playbooks/sample-downloa
 
 # Option 2: Use sequential parse/execution, by using include_role inside Task block
   tasks:
-  - name: Execute Ansible Role to download SAP software
-    include_role:
-      name: { role: community.sap_launchpad.software_center_download }
-    vars:
-        suser_id: "{{ suser_id }}"
-        suser_password: "{{ suser_password }}"
-        softwarecenter_search_query: "{{ item }}"
-      with_items: "{{ softwarecenter_search_list }}"  
+    - name: Execute Ansible Role to download SAP software
+      include_role:
+        name: { role: community.sap_launchpad.software_center_download }
+      vars:
+          suser_id: "{{ suser_id }}"
+          suser_password: "{{ suser_password }}"
+          softwarecenter_search_query: "{{ item }}"
+      loop: "{{ softwarecenter_search_list }}"  
 
 # Option 3: Use task block with import_roles
   tasks:
@@ -126,7 +126,7 @@ ansible-playbook --timeout 60 ./community.sap_launchpad/playbooks/sample-downloa
         suser_id: "{{ suser_id }}"
         suser_password: "{{ suser_password }}"
         softwarecenter_search_query: "{{ item }}"
-      with_items: "{{ softwarecenter_search_list }}"   
+      loop: "{{ softwarecenter_search_list }}"   
 
 ```
 
