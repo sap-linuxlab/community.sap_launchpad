@@ -45,7 +45,7 @@ When an SAP User ID (e.g. S-User) is enabled with and part of an SAP Universal I
 
 In addition, if a SAP Universal ID is used then the recommendation is to check and reset the SAP User ID ‘Account Password’ in the [SAP Universal ID Account Manager](https://account.sap.com/manage/accounts), which will help to avoid any potential conflicts.
 
-For further information regarding connection errors, please see the FAQ section [Errors with prefix 'SAP SSO authentication failed - '](#errors-with-prefix-sap-sso-authentication-failed---).
+For further information regarding connection errors, please see the FAQ section [Errors with prefix 'SAP SSO authentication failed - '](./docs/FAQ.md#errors-with-prefix-sap-sso-authentication-failed---).
 
 ### Execution examples
 
