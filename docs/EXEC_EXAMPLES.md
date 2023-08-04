@@ -41,13 +41,18 @@
 
 # Use task block to call Ansible Module
   tasks:   
-  - name: Execute Ansible Module to download SAP software
-    community.sap_launchpad.software_center_download:
-      suser_id: "{{ suser_id }}"
-      suser_password: "{{ suser_password }}"
-      softwarecenter_search_query: "{{ item }}"
-    dest: "/tmp/"
-    with_items: "{{ softwarecenter_search_list }}"
+    - name: Execute Ansible Module to download SAP software
+      community.sap_launchpad.software_center_download:
+        suser_id: "{{ suser_id }}"
+        suser_password: "{{ suser_password }}"
+        softwarecenter_search_query: "{{ item }}"
+      dest: "/tmp/"
+      loop: "{{ softwarecenter_search_list }}"
+      loop_control:
+        label: "{{ item }} : {{ download_task.msg }}"
+      register: download_task
+      retries: 1
+      until: download_task is not failed
 ```
 
 **Execution of Ansible Playbook, with in-line Ansible Inventory set as localhost**
@@ -115,7 +120,13 @@ ansible-playbook --timeout 60 ./community.sap_launchpad/playbooks/sample-downloa
           suser_id: "{{ suser_id }}"
           suser_password: "{{ suser_password }}"
           softwarecenter_search_query: "{{ item }}"
-      loop: "{{ softwarecenter_search_list }}"  
+      loop: "{{ softwarecenter_search_list }}"
+      loop_control:
+        label: "{{ item }} : {{ download_task.msg }}"
+      register: download_task
+      retries: 1
+      until: download_task is not failed
+
 
 # Option 3: Use task block with import_roles
   tasks:
@@ -126,7 +137,12 @@ ansible-playbook --timeout 60 ./community.sap_launchpad/playbooks/sample-downloa
         suser_id: "{{ suser_id }}"
         suser_password: "{{ suser_password }}"
         softwarecenter_search_query: "{{ item }}"
-      loop: "{{ softwarecenter_search_list }}"   
+      loop: "{{ softwarecenter_search_list }}"
+      loop_control:
+        label: "{{ item }} : {{ download_task.msg }}"
+      register: download_task
+      retries: 1
+      until: download_task is not failed
 
 ```
 

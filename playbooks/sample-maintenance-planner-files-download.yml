@@ -24,22 +24,27 @@
 
 # Use task block to call Ansible Module
   tasks:   
-  - name: Execute Ansible Module 'maintenance_planner_files' to get files from MP
-    community.sap_launchpad.maintenance_planner_files:
-      suser_id: "{{ suser_id }}"
-      suser_password: "{{ suser_password }}"
-      transaction_name: "{{ mp_transaction_name }}"
-    register: sap_maintenance_planner_basket_register
+    - name: Execute Ansible Module 'maintenance_planner_files' to get files from MP
+      community.sap_launchpad.maintenance_planner_files:
+        suser_id: "{{ suser_id }}"
+        suser_password: "{{ suser_password }}"
+        transaction_name: "{{ mp_transaction_name }}"
+      register: sap_maintenance_planner_basket_register
 
   # - debug:
   #     msg:
   #       - "{{ sap_maintenance_planner_basket_register.download_basket }}"
 
-  - name: Execute Ansible Module 'software_center_download' to download files
-    community.sap_launchpad.software_center_download:
-      suser_id: "{{ suser_id }}"
-      suser_password: "{{ suser_password }}"
-      download_link: "{{ item.DirectLink }}"
-      download_filename: "{{ item.Filename }}"
-      dest: "/tmp/test"
-    loop: "{{ sap_maintenance_planner_basket_register.download_basket }}"
+    - name: Execute Ansible Module 'software_center_download' to download files
+      community.sap_launchpad.software_center_download:
+        suser_id: "{{ suser_id }}"
+        suser_password: "{{ suser_password }}"
+        download_link: "{{ item.DirectLink }}"
+        download_filename: "{{ item.Filename }}"
+        dest: "/tmp/test"
+      loop: "{{ sap_maintenance_planner_basket_register.download_basket }}"
+      loop_control:
+        label: "{{ item }} : {{ download_task.msg }}"
+      register: download_task
+      retries: 1
+      until: download_task is not failed
