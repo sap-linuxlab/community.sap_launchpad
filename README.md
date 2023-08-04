@@ -31,19 +31,9 @@ Within this Ansible Collection, there are various Ansible Modules.
 | [sap_launchpad.maintenance_planner_files](./docs/module_maintenance_planner_files.md) | maintenance planner files retrieval |
 | [sap_launchpad.maintenance_planner_stack_xml_download](./docs/module_maintenance_planner_stack_xml_download.md) | maintenance planner stack xml download |
 
-## Execution examples
+## Execution
 
-There are various methods to execute the Ansible Collection, dependant on the use case. For more information, see [Execution examples with code samples](./docs/EXEC_EXAMPLES.md) and the summary below:
-
-| Execution Scenario | Use Case | Target |
-| --- | --- | --- |
-| Ansible Playbook <br/>-> source Ansible Collection <br/>-> execute Ansible Task <br/>--> run Ansible Module <br/>---> run Python/Bash Functions | Simple executions with a few activities | Localhost or Remote |
-| Ansible Playbook <br/>-> source Ansible Collection <br/>-> execute Ansible Task <br/>--> run Ansible Role <br/>---> run Ansible Module <br/>----> run Python/Bash Functions <br/>--> run Ansible Role<br/>---> ... | Complex executions with various interlinked activities;<br/> run in parallel or sequentially | Localhost or Remote |
-| Python/Bash Functions | Simple testing or non-Ansible use cases | Localhost |
-
-## Requirements, Dependencies and Testing
-
-### SAP User ID credentials
+### Credentials - SAP User ID
 
 SAP software installation media must be obtained from SAP directly, and requires valid license agreements with SAP in order to access these files.
 
@@ -54,6 +44,22 @@ When an SAP User ID (e.g. S-User) is enabled with and part of an SAP Universal I
 - the password for login with the SAP Universal ID
 
 In addition, if a SAP Universal ID is used then the recommendation is to check and reset the SAP User ID ‘Account Password’ in the [SAP Universal ID Account Manager](https://account.sap.com/manage/accounts), which will help to avoid any potential conflicts.
+
+For further information regarding connection errors, please see the FAQ section [Errors with prefix 'SAP SSO authentication failed - '](./docs/FAQ.md#errors-with-prefix-sap-sso-authentication-failed---).
+
+### Execution examples
+
+There are various methods to execute the Ansible Collection, dependant on the use case. For more information, see [Execution examples with code samples](./docs/EXEC_EXAMPLES.md) and the summary below:
+
+| Execution Scenario | Use Case | Target |
+| --- | --- | --- |
+| Ansible Playbook <br/>-> source Ansible Collection <br/>-> execute Ansible Task <br/>--> run Ansible Module <br/>---> run Python/Bash Functions | Simple executions with a few activities | Localhost or Remote |
+| Ansible Playbook <br/>-> source Ansible Collection <br/>-> execute Ansible Task <br/>--> run Ansible Role <br/>---> run Ansible Module <br/>----> run Python/Bash Functions <br/>--> run Ansible Role<br/>---> ... | Complex executions with various interlinked activities;<br/> run in parallel or sequentially | Localhost or Remote |
+| Python/Bash Functions | Simple testing or non-Ansible use cases | Localhost |
+
+---
+
+## Requirements, Dependencies and Testing
 
 ### Operating System requirements
 

@@ -83,6 +83,7 @@ msg:
 #########################
 
 import requests
+import glob
 from ansible.module_utils.basic import AnsibleModule
 
 # Import runner
@@ -132,10 +133,15 @@ def run_module():
     # Main run
 
     try:
-        filename = query if query else download_filename
-        if os.path.exists(os.path.join(dest, filename)):
-            module.exit_json(skipped=True, msg="file {} already exists".format(filename))
 
+        # Search directory and subdirectories for filename without file extension
+        filename = query if query else download_filename
+        pattern = dest + '/**/' + os.path.splitext(filename)[0] + '*'
+        for file in glob.glob(pattern, recursive=True):
+            if os.path.exists(file):
+                module.exit_json(skipped=True, msg="file {} already exists".format(file))
+
+        # Initiate login with given credentials
         sap_sso_login(username, password)
 
         # EXEC: query
