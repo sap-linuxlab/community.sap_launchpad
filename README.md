@@ -27,7 +27,6 @@ Within this Ansible Collection, there are various Ansible Modules.
 | Name &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; | Summary |
 | :-- | :-- |
 | [sap_launchpad.software_center_download](./docs/module_software_center_download.md) | search for files and download |
-| [sap_launchpad.software_center_catalog](./docs/module_software_center_download.md) | catalog extraction and search |
 | [sap_launchpad.maintenance_planner_files](./docs/module_maintenance_planner_files.md) | maintenance planner files retrieval |
 | [sap_launchpad.maintenance_planner_stack_xml_download](./docs/module_maintenance_planner_stack_xml_download.md) | maintenance planner stack xml download |
 
