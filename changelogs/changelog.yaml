@@ -1,0 +1,12 @@
+ancestor: null
+releases:
+  1.0.0:
+    changes:
+      release_summary: '| Release Date: 2023-08-22
+
+        | Initial Release on Galaxy
+
+        '
+    fragments:
+      - v1.0.0_summary.yaml
+    release_date: '2023-08-22'
