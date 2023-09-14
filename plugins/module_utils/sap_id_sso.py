@@ -59,6 +59,8 @@ def sap_sso_login(username, password):
         if 'j_username' in meta:
             meta['j_username'] = username
             meta['j_password'] = password
+        if 'changePassword' in endpoint:
+            raise ValueError('SAP ID Service has requested `Change Your Password`, possibly the password is too old. Please reset manually and try again.')
 
     if 'authn' in endpoint:
         support_endpoint, support_meta = _get_sso_endpoint_meta(endpoint,
