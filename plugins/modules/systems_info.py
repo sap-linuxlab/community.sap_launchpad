@@ -27,10 +27,6 @@ def run_module():
         supports_check_mode=False
     )
 
-    # Check mode
-    if module.check_mode:
-        module.exit_json(**result)
-
     username = module.params.get('suser_id')
     password = module.params.get('suser_password')
     filter = module.params.get('filter')
