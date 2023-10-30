@@ -83,6 +83,47 @@ def get_version(version_name, product_id, installation_nr, username):
 
 
 def validate_system_data(data, version_id, system_nr, installation_nr, username):
+    """Validate that the user-provided system data (SID, OS, etc.) is valid according to the SAP API.
+
+    In order to validate the data, the SAP API offers two endpoints:
+    - /SystData: returns the supported fields of a given product version and its supported values. Example:
+    {
+    "d": {
+        "results": [
+            {
+                "__metadata": {...},
+                ...
+                "Output": "[
+                { ...
+                  \"FIELD\":\"sysid\",
+                  \"VALUE\":\"System ID\",
+                  \"REQUIRED\":\"X\"
+                  \"DATA\":[]
+                },
+                ...
+                { ...
+                  \"FIELD\":\"sysname\",
+                  \"VALUE\":\"System Name\",
+                  \"REQUIRED\":\"\",
+                },
+                { ...
+                  \"FIELD\":\"systype\",
+                  \"VALUE\":\"System Type\",
+                  \"REQUIRED\":\"X\",
+                  \"DATA\": [
+                    {\"NAME\":\"ARCHIVE\",\"VALUE\":\"Archive System\"},
+                    {\"NAME\":\"BACKUP\",\"VALUE\":\"Backup system\"},
+                    {\"NAME\":\"DEMO\",\"VALUE\":\"Demo system\"},
+                    ...
+                  ]
+                },
+    So to ensure the user provided valid system data values,
+    we fetch these fields and ensure all the required fields are set and contain valid options.
+
+    - Afterward, the validated data is sent to /SystemDataCheck to verify the data is accepted by the SAP API.
+      This endpoint might optionally return warnings (i.e. if the SID is used in more than one system), which are passed on to the user.
+    """
+    
     query_path = f"SystData?$filter=Pvnr eq '{version_id}' and Insnr eq '{installation_nr}'"
     results = _request(_url(query_path), headers=_headers({})).json()['d']['results'][0]
     possible_fields = json.loads(results['Output'])
@@ -112,6 +153,30 @@ class LicenseTypeInvalidError(Exception):
 
 
 def validate_licenses(licenses, version_id, installation_nr, username):
+    """Validate that the user-provided licenses (license type and data like hardware key, expiry time) are valid
+    according to the SAP API.
+
+    In order to validate the data, this function makes use of the /LicenseType API endpoint which provides the supported
+    license data for a given product version. Example for S4HANA2022:
+    {
+        "d": {
+            "results": [
+                {
+                    "__metadata": {...},
+                    "INSNR": "123456789",
+                    "PRODUCT": "73554900100800000266",
+                    "PRODID": "Maintenance",
+                    "LICENSETYPE": "Maintenance Entitlement",
+                    "QtyUnit": "",
+                    "Selfields": "[
+                      {\"FIELD\":\"hwkey\",\"VALUE\":\"Hardware Key\",\"REQUIRED\":\"X\",\"DEFAULT\":\"\",\"DATA\":[], ...},
+                      {\"FIELD\":\"expdate\",\"VALUE\":\"Valid until\",\"REQUIRED\":\"X\",\"DEFAULT\":\"20240130\",\"DATA\":[], ...}]",
+        ...
+
+    So to ensure the user provided valid license values,
+    we fetch these fields and ensure that the license type exists and all the required fields are set and contain valid options.
+    """
+    
     query_path = f"LicenseType?$filter=PRODUCT eq '{version_id}' and INSNR eq '{installation_nr}' and Uname eq '{username}' and Nocheck eq 'True'"
     results = _request(_url(query_path), headers=_headers({})).json()['d']['results']
 
@@ -125,7 +190,7 @@ def validate_licenses(licenses, version_id, installation_nr, username):
 
         final_fields = _validate_user_data_against_supported_fields(f'license {license["type"]}', license['data'],
                                                                     json.loads(result["Selfields"]))
-        # for some reason, the API wants to have the keys in uppercase, transform it
+        # for some reason, the downstream API calls require the keys in uppercase - transform them.
         final_fields = {k.upper(): v for k, v in final_fields.items()}
         final_fields["LICENSETYPE"] = result['PRODID']
         final_fields["LICENSETYPETEXT"] = result['LICENSETYPE']
@@ -159,6 +224,12 @@ def get_existing_licenses(system_nr, username):
 
 
 def keep_only_new_or_changed_licenses(existing_licenses, license_data):
+    """Given a system's licenses (existing_licenses) and the user-provided licenses (license_data), return only new or changed licenses.
+
+    Why is this necessary? The SAP API Endpoint /BSHWKEY (in function generate_licenses) fails if an identical license
+    is generated twice - thus, this function removes identical licenses are removed from the user provided data.
+    """
+    
     new_or_changed_licenses = []
     for license in license_data:
         if not any(license['HWKEY'] == lic['HWKEY'] and license['LICENSETYPE'] == lic['LICENSETYPE'] for lic in
@@ -224,7 +295,7 @@ def download_licenses(key_nrs):
     return _request(_url(f"FileContent(Keynr='{keys_json}')/$value")).content
 
 
-def find_licenses_to_delete(key_nrs_to_keep, existing_licenses):
+def select_licenses_to_delete(key_nrs_to_keep, existing_licenses):
     return [existing_license for existing_license in existing_licenses if
             not existing_license['KEYNR'] in key_nrs_to_keep]
 
@@ -264,6 +335,43 @@ class DataInvalidError(Exception):
 
 
 def _validate_user_data_against_supported_fields(scope, user_data, possible_fields):
+    """Validates user-provided data against all supported fields (provided by the SAP API).
+
+    In various areas the SAP API provides which data attributes are supported for a given entity:
+    - i.e. for system data the supported fields are provided in /SystData (see function validate_system_data)
+    - i.e. for license data the supported fields are provided in /LicenseType (see function validate_licenses)
+
+    The SAP API provides the supported fields in a common format:
+    { ...
+      \"FIELD\":\"free-text-field-name\",
+      \"REQUIRED\":\"X\"
+      \"DATA\":[]
+    },
+    ...
+    { ...
+      \"FIELD\":\"optional-field-name\",
+      \"REQUIRED\":\"\",
+      \"DATA\":[]
+    },
+    { ...
+      \"FIELD\":field-with-predefined-options\",
+      \"REQUIRED\":\"X\",
+      \"DATA\": [
+        {\"NAME\":\"OPTION1\",\"VALUE\":\"Description of Option1\"},
+        {\"NAME\":\"OPTION2\",\"VALUE\":\"Description of Option2\"},
+        {\"NAME\":\"OPTION3\",\"VALUE\":\"Description of Option3\"},
+        ...
+      ]
+    }
+
+    This helper method uses those fields provided by the SAP API and the user-provided data and raises a DataInvalidError
+    if any of the following issues is detected
+    - DataInvalidError.missing_fields: a required field (= REQUIRED = 'X') is not provided by the user
+    - DataInvalidError.fields_with_invalid_option: the user specified a invalid option for a field which has defined options
+    - DataInvalidError.unknown_fields: user provided a field which is not supported by SAP API
+
+    """
+
     unknown_fields = {field for field, _ in user_data.items() if
                       not any(field == possible_field['FIELD'] for possible_field in possible_fields)}
     missing_required_fields = {}
