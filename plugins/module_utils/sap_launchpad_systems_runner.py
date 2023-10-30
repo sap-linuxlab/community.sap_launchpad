@@ -248,7 +248,7 @@ def _url(query_path):
 
 
 def _headers(additional_headers):
-    return {**additional_headers, **{'Accept': 'application/json'}}
+    return {**{'Accept': 'application/json'}, **additional_headers}
 
 
 def _get_csrf_token():
