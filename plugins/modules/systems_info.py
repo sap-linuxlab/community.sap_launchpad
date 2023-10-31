@@ -5,24 +5,70 @@ from ..module_utils.sap_id_sso import sap_sso_login
 
 from requests.exceptions import HTTPError
 
-# TODO document
+DOCUMENTATION = r'''
+---
+module: systems_info
+
+short_description: Queries registered systems in me.sap.com
+
+version_added: 1.1.0
+
+options:
+  suser_id:
+    description:
+      - SAP S-User ID.
+    required: true
+    type: str
+  suser_password:
+    description:
+      - SAP S-User Password.
+    required: true
+    type: str
+  filter:
+    description:
+      - An ODATA filter expression to query the systems.
+    required: true
+    type: str
+author:
+    - Lab for SAP Solutions
+
+'''
+
+
+EXAMPLES = r'''
+- name: get system by SID and product
+  community.sap_launchpad.systems_info:
+    suser_id: 'SXXXXXXXX'
+    suser_password: 'password'
+    filter: "Insnr eq '12345678' and sysid eq 'H01' and ProductDescr eq 'SAP S/4HANA'"
+  register: result
+
+- name: Display the first returned system
+  debug:
+    msg:
+      - "{{ result.systems[0] }}"
+'''
+
+
+RETURN = r'''
+systems:
+  description: the systems returned for the filter
+  returned: always
+  type: list
+'''
+
 
 def run_module():
-
-    # Define available arguments/parameters a user can pass to the module
     module_args = dict(
         suser_id=dict(type='str', required=True),
         suser_password=dict(type='str', required=True, no_log=True),
         filter=dict(type='str', required=True),
     )
 
-    # Define result dictionary objects to be passed back to Ansible
     result = dict(
         systems='',
-        changed=False,
     )
 
-    # Instantiate module
     module = AnsibleModule(
         argument_spec=module_args,
         supports_check_mode=False

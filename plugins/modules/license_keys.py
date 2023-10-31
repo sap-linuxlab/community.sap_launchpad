@@ -4,7 +4,144 @@ from ..module_utils.sap_launchpad_systems_runner import *
 from ..module_utils.sap_id_sso import sap_sso_login
 
 
-# TODO document
+DOCUMENTATION = r'''
+---
+module: license_keys
+
+short_description: Creates systems and license keys on me.sap.com/licensekey
+
+version_added: 1.1.0
+
+options:
+  suser_id:
+    description:
+      - SAP S-User ID.
+    required: true
+    type: str
+  suser_password:
+    description:
+      - SAP S-User Password.
+    required: true
+    type: str
+  installation_nr:
+    description: 
+      - Number of the Installation for which the system should be created/updated
+    required: true
+    type: str
+  system:
+    description:
+      - The system to create/update
+    required: true
+    type: dict
+    suboptions:
+      nr:
+        description:
+          - The number of the system to update. If this attribute is not provided, a new system is created.
+        required: false
+        type: str
+      product:
+        description:
+          - The product description as found in the SAP portal, e.g. SAP S/4HANA
+        required: true
+        type: str
+      version:
+        description:
+          - The description of the product version, as found in the SAP portal, e.g. SAP S/4HANA 2022
+        required: true
+        type: str
+      data:
+        description: 
+          - The data attributes of the system. The possible attributes are defined by product and version.
+          - Running the module without any data attributes will return in the error message which attributes are supported/required.
+        required: true
+        type: dict
+
+  licenses:
+    description:
+      - List of licenses to create for the system.
+      - If the license does not exist, it is created.
+      - If it exists, it is updated.
+    required: true
+    type: list
+    elements: dict
+    suboptions:
+      type:
+        description:
+          - The license type description as found in the SAP portal, e.g. Maintenance Entitlement
+        required: true
+        type: str
+      data:
+        description: 
+          - The data attributes of the licenses. The possible attributes are defined by product and version.
+          - Running the module without any data attributes will return in the error message which attributes are supported/required
+          - In practice, most license types require at least a hardware key (hwkey) and expiry date (expdate)
+        required: true
+        type: dict
+      
+  delete_other_licenses:
+    description:
+      - Whether licenses other than the ones specified in the licenses attributes should be deleted.
+      - This is handy to clean up older licenses automatically.
+    type: bool
+    required: false
+    default: false
+    
+  
+author:
+    - Lab for SAP Solutions
+
+'''
+
+
+EXAMPLES = r'''
+- name: create license keys
+  community.sap_launchpad.license_keys:
+    suser_id: 'SXXXXXXXX'
+    suser_password: 'password'
+    installation_nr: 12345678
+    system:
+      nr: 12345678
+      product: SAP S/4HANA
+      version: SAP S/4HANA 2022
+      data:
+        sysid: H01
+        sysname: Test-System
+        systype: Development system
+        sysdb: SAP HANA database
+        sysos: Linux
+        sys_depl: Public - Microsoft Azure
+    licenses:
+      - type: Standard - Web Application Server ABAP or ABAP+JAVA
+        data:
+          hwkey: H1234567890
+          expdate: 99991231
+      - type: Maintenance Entitlement
+        data:
+          hwkey: H1234567890
+          expdate: 99991231
+    delete_other_licenses: true
+  register: result
+
+- name: Display the license file containing the licenses
+  debug:
+    msg:
+      - "{{ result.license_file }}"
+'''
+
+
+RETURN = r'''
+license_file:
+  description: |
+    The license file containing the digital signatures of the specified licenses.
+    All licenses that were provided in the licenses attribute are returned, no matter if they were modified or not. 
+  returned: always
+  type: string
+system_nr:
+  description: The number of the system which was created/updated. 
+  returned: always
+  type: string
+'''
+
 
 def run_module():
     # Define available arguments/parameters a user can pass to the module
@@ -31,8 +168,10 @@ def run_module():
     # Define result dictionary objects to be passed back to Ansible
     result = dict(
         license_file='',
-        changed=False,
-        msg=''
+        system_nr='',
+        # as we don't have a diff mechanism but always submit the system, we don't have a way to detect changes.
+        # it might always have changed.
+        changed=True,
     )
 
     # Instantiate module
@@ -132,6 +271,7 @@ def run_module():
     system_nr = submit_system(existing_system is None, system_data, generated_licenses, username)
     key_nrs = get_license_key_numbers(license_data, system_nr, username)
     result['license_file'] = download_licenses(key_nrs)
+    result['system_nr'] = system_nr
 
     if delete_other_licenses:
         existing_licenses = get_existing_licenses(system_nr, username)
