@@ -100,7 +100,7 @@ EXAMPLES = r'''
     suser_password: 'password'
     installation_nr: 12345678
     system:
-      nr: 12345678
+      nr: 23456789
       product: SAP S/4HANA
       version: SAP S/4HANA 2022
       data:
