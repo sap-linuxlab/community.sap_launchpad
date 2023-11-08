@@ -10,6 +10,14 @@ module: license_keys
 
 short_description: Creates systems and license keys on me.sap.com/licensekey
 
+description:
+ - This ansible module creates and updates systems and their license keys using the Launchpad API.
+ - It is closely modeled after the interactions in the portal https://me.sap.com/licensekey:
+ - First, a SAP system is defined by its SID, product, version and other data.
+ - Then, for this system, license keys are defined by license type, HW key and potential other attributes.
+ - The system and license data is then validated and submitted to the Launchpad API and the license key files returned to the caller.
+ - This module attempts to be as idempotent as possible, so it can be used in a CI/CD pipeline.
+
 version_added: 1.1.0
 
 options:
