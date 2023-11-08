@@ -136,10 +136,33 @@ license_file:
     All licenses that were provided in the licenses attribute are returned, no matter if they were modified or not. 
   returned: always
   type: string
+  sample: |
+    ----- Begin SAP License -----
+    SAPSYSTEM=H01
+    HARDWARE-KEY=H1234567890
+    INSTNO=0012345678
+    BEGIN=20231026
+    EXPIRATION=99991231
+    LKEY=MIIBO...
+    SWPRODUCTNAME=NetWeaver_MYS
+    SWPRODUCTLIMIT=2147483647
+    SYSTEM-NR=00000000023456789
+    ----- Begin SAP License -----
+    SAPSYSTEM=H01
+    HARDWARE-KEY=H1234567890
+    INSTNO=0012345678
+    BEGIN=20231026
+    EXPIRATION=20240127
+    LKEY=MIIBO...
+    SWPRODUCTNAME=Maintenance_MYS
+    SWPRODUCTLIMIT=2147483647
+    SYSTEM-NR=00000000023456789
+    
 system_nr:
   description: The number of the system which was created/updated. 
   returned: always
   type: string
+  sample: 23456789
 '''
 
 
