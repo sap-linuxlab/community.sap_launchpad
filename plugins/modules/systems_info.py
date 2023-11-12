@@ -11,6 +11,10 @@ module: systems_info
 
 short_description: Queries registered systems in me.sap.com
 
+description:
+- Fetch Systems from U(me.sap.com) with ODATA query filtering and returns the discovered Systems.
+- The query could easily copied from U(https://launchpad.support.sap.com/services/odata/i7p/odata/bkey)
+
 version_added: 1.1.0
 
 options:
