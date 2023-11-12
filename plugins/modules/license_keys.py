@@ -228,15 +228,6 @@ def run_module():
 
     sap_sso_login(username, password)
 
-    # This module closely mimics the flow of the portal (me.sap.com/licensekey) when creating license keys:
-    # - validate the user-provided installation against the available installations from API call /Installations
-    # - validate the user-provided product against the available products from API call /SysProducts
-    # - validate the user-provided product against the available product versions from API call /SysVersions
-    # - validate the user-provided system data (SID, OS etc.) via API calls /SystData and /SystemDataCheck
-    # - validate the user-provided license type and data via API call /LicenseType
-    # - if the validation succeeds, the data is enriched with the existing system and license data and submitted
-    #   by first generating the licenses via API Call /BSHWKEY and then submitting the system via API call /Submit.
-    # - as a last step, the license keys are now downloaded via API call /FileContent.
 
     try:
         validate_installation(installation_nr, username)
