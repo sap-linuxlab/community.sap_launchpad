@@ -1,9 +1,5 @@
-#!/user/bin/env python3
-# coding: utf-8
-
 from . import constants as C
 from .sap_api_common import _request
-from .sap_id_sso import sap_sso_login
 
 
 def get_software_catalog():

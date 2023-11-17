@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 # SAP software download module
 
@@ -88,6 +88,7 @@ from ansible.module_utils.basic import AnsibleModule
 
 # Import runner
 from ..module_utils.sap_launchpad_software_center_download_runner import *
+from ..module_utils.sap_id_sso import sap_sso_login
 
 
 def run_module():

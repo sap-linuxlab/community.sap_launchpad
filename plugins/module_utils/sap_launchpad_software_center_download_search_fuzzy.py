@@ -5,7 +5,6 @@ import requests
 
 from . import constants as C
 from .sap_api_common import _request
-from .sap_id_sso import sap_sso_login
 
 
 def search_software_fuzzy(query, max=None, csv_filename=None):
