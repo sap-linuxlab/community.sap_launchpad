@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 # SAP Maintenance Planner files retrieval
 
@@ -69,6 +69,7 @@ from ansible.module_utils.basic import AnsibleModule
 from ..module_utils.sap_launchpad_maintenance_planner_runner import *
 from ..module_utils.sap_launchpad_software_center_download_runner import \
     is_download_link_available
+from ..module_utils.sap_id_sso import sap_sso_login
 
 
 def run_module():

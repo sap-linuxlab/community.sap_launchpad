@@ -1,6 +1,3 @@
-#!/user/bin/env python3
-# coding: utf-8
-
 import hashlib
 import json
 import logging
@@ -12,7 +9,7 @@ from requests.exceptions import HTTPError
 
 from . import constants as C
 from .sap_api_common import _request, https_session
-from .sap_id_sso import _get_sso_endpoint_meta, sap_sso_login
+from .sap_id_sso import _get_sso_endpoint_meta
 
 logger = logging.getLogger(__name__)
 

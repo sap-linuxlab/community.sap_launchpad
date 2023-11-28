@@ -6,8 +6,9 @@ URL_ACCOUNT_ATTRIBUTES = 'https://launchpad.support.sap.com/services/account/att
 URL_SERVICE_INCIDENT = 'https://launchpad.support.sap.com/services/odata/incidentws'
 URL_SERVICE_USER_ADMIN = 'https://launchpad.support.sap.com/services/odata/useradminsrv'
 URL_SOFTWARE_DOWNLOAD = 'https://softwaredownloads.sap.com'
-# Maintainance Planner
-URL_MAINTAINANCE_PLANNER = 'https://maintenanceplanner.cfapps.eu10.hana.ondemand.com'
+# Maintenance Planner
+URL_MAINTENANCE_PLANNER = 'https://maintenanceplanner.cfapps.eu10.hana.ondemand.com'
+URL_SYSTEMS_PROVISIONING = 'https://launchpad.support.sap.com/services/odata/i7p/odata/bkey'
 URL_USERAPPS = 'https://userapps.support.sap.com/sap/support/mp/index.html'
 URL_USERAPP_MP_SERVICE = 'https://userapps.support.sap.com/sap/support/mnp/services'
 URL_LEGACY_MP_API = 'https://tech.support.sap.com/sap/support/mnp/services'

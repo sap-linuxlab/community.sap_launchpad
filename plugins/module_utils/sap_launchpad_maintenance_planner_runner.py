@@ -1,7 +1,3 @@
-#!/user/bin/env python3
-# coding: utf-8
-
-import os
 import pathlib
 import re
 import time
@@ -11,11 +7,10 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from lxml import etree
 from requests.auth import HTTPBasicAuth
-from requests.sessions import session
 
 from . import constants as C
 from .sap_api_common import _request, https_session
-from .sap_id_sso import _get_sso_endpoint_meta, sap_sso_login
+from .sap_id_sso import _get_sso_endpoint_meta
 
 _MP_XSRF_TOKEN = None
 _MP_TRANSACTIONS = None
@@ -24,7 +19,7 @@ _MP_TRANSACTIONS = None
 def auth_maintenance_planner():
     # Clear mp relevant cookies for avoiding unexpected responses.
     _clear_mp_cookies('maintenanceplanner')
-    res = _request(C.URL_MAINTAINANCE_PLANNER)
+    res = _request(C.URL_MAINTENANCE_PLANNER)
     sig_re = re.compile('signature=(.*?);path=\/";location="(.*)"')
     signature, redirect = re.search(sig_re, res.text).groups()
 
@@ -35,7 +30,7 @@ def auth_maintenance_planner():
         'locationAfterLogin': '%2F'
     }
 
-    MP_DOMAIN = C.URL_MAINTAINANCE_PLANNER.replace('https://', '')
+    MP_DOMAIN = C.URL_MAINTENANCE_PLANNER.replace('https://', '')
     for k, v in mp_cookies.items():
         https_session.cookies.set(k, v, domain=MP_DOMAIN, path='/')
 
@@ -68,7 +63,7 @@ def auth_userapps():
 
 
 def get_mp_user_details():
-    url = urljoin(C.URL_MAINTAINANCE_PLANNER,
+    url = urljoin(C.URL_MAINTENANCE_PLANNER,
                   '/MCP/MPHomePageController/getUserDetailsDisplay')
     params = {'_': int(time.time() * 1000)}
     user = _request(url, params=params).json()
