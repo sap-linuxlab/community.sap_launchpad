@@ -34,7 +34,7 @@ def _request(url, **kwargs):
     if 'allow_redirects' not in kwargs:
         kwargs['allow_redirects'] = True
 
-    method = 'POST' if kwargs.get('data') else 'GET'
+    method = 'POST' if kwargs.get('data') or kwargs.get('json') else 'GET'
     res = https_session.request(method, url, **kwargs)
     res.raise_for_status()
 
