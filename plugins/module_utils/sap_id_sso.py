@@ -45,8 +45,12 @@ def _get_sso_endpoint_meta(url, **kwargs):
 
 def sap_sso_login(username, password):
     https_session.cookies.clear()
+
+    # Ensure usage of SAP User ID even when SAP Universal ID is used,
+    # login with email address of SAP Universal ID will otherwise
+    # incorrectly default to the last used SAP User ID
     if not re.match(r'^[sS]\d+$', username):
-        raise ValueError('Please login with SID (like `S1234567890`)')
+        raise ValueError('Please login with SAP User ID (like `S1234567890`)')
 
     endpoint = C.URL_LAUNCHPAD
     meta = {}

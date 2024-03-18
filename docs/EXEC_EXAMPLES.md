@@ -46,7 +46,7 @@
         suser_id: "{{ suser_id }}"
         suser_password: "{{ suser_password }}"
         softwarecenter_search_query: "{{ item }}"
-      dest: "/tmp/"
+        dest: "/tmp/"
       loop: "{{ softwarecenter_search_list }}"
       loop_control:
         label: "{{ item }} : {{ download_task.msg }}"
@@ -66,84 +66,6 @@ ansible-galaxy collection install community.sap_launchpad
 
 # Run Ansible Collection on localhost
 ansible-playbook --timeout 60 ./community.sap_launchpad/playbooks/sample-download-install-media.yml --inventory "localhost," --connection=local
-```
-
-## Execution example with Ansible Playbook calling Ansible Role
-
-**Ansible Playbook YAML, execute Ansible Role on target/remote host**
-```yaml
----
-- hosts: all
-
-  collections:
-    - community.sap_launchpad
-
-  pre_tasks:
-    - name: Install Python package manager pip3 to system Python
-      ansible.builtin.package:
-        name: python3-pip
-        state: present
-    - name: Install Python dependencies for Ansible Modules to system Python
-      ansible.builtin.pip:
-        name:
-          - urllib3
-          - requests
-          - beautifulsoup4
-          - lxml
-
-# Prompt for Ansible Variables
-  vars_prompt:
-    - name: suser_id
-      prompt: Please enter S-User
-      private: no
-    - name: suser_password
-      prompt: Please enter Password
-      private: yes
-
-# Define Ansible Variables
-  vars:
-    ansible_python_interpreter: python3
-    softwarecenter_search_list: 
-      - 'SAPCAR_1324-80000936.EXE'
-      - 'HCMT_057_0-80003261.SAR'
-
-# Option 1: Use roles declaration
-  roles:
-    - { role: community.sap_launchpad.software_center_download }
-
-# Option 2: Use sequential parse/execution, by using include_role inside Task block
-  tasks:
-    - name: Execute Ansible Role to download SAP software
-      include_role:
-        name: { role: community.sap_launchpad.software_center_download }
-      vars:
-          suser_id: "{{ suser_id }}"
-          suser_password: "{{ suser_password }}"
-          softwarecenter_search_query: "{{ item }}"
-      loop: "{{ softwarecenter_search_list }}"
-      loop_control:
-        label: "{{ item }} : {{ download_task.msg }}"
-      register: download_task
-      retries: 1
-      until: download_task is not failed
-
-
-# Option 3: Use task block with import_roles
-  tasks:
-    - name: Execute Ansible Role to download SAP software
-      import_roles:
-        name: { role: community.sap_launchpad.software_center_download }
-      vars:
-        suser_id: "{{ suser_id }}"
-        suser_password: "{{ suser_password }}"
-        softwarecenter_search_query: "{{ item }}"
-      loop: "{{ softwarecenter_search_list }}"
-      loop_control:
-        label: "{{ item }} : {{ download_task.msg }}"
-      register: download_task
-      retries: 1
-      until: download_task is not failed
-
 ```
 
 **Execution of Ansible Playbook, with in-line Ansible Inventory of target/remote hosts**
@@ -192,17 +114,19 @@ python3
 
 **Execute Python Functions**
 ```python
+>>> from module_utils.sap_id_sso import sap_sso_login
 >>> from module_utils.sap_launchpad_software_center_download_runner import *
 >>>
 >>> # Debug
 >>> # from module_utils.sap_api_common import debug_https
 >>> # debug_https()
 >>>
->>> ## Perform API requests to SAP Support
+>>> ## Perform API login requests to SAP Support
 >>> username='S0000000'
 >>> password='password'
 >>> sap_sso_login(username, password)
->>> query_result = search_software_filename("HCMT_057_0-80003261.SAR")
+>>> ## Perform API activity requests to SAP Support (e.g. software search without deduplication, and download software)
+>>> query_result = search_software_filename("HCMT_057_0-80003261.SAR",'')
 >>> download_software(*query_result, output_dir='/tmp')
 ...
 >>> ## API responses from SAP Support

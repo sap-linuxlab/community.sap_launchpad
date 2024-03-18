@@ -36,6 +36,11 @@ def _request(url, **kwargs):
 
     method = 'POST' if kwargs.get('data') or kwargs.get('json') else 'GET'
     res = https_session.request(method, url, **kwargs)
+
+    if (res.status_code == 403
+            and res.json()['errorMessage'].startswith('Account Temporarily Locked Out')):
+        raise Exception('SAP ID Service has reported `Account Temporarily Locked Out`. Please reset password to regain access and try again.')
+
     res.raise_for_status()
 
     return res
