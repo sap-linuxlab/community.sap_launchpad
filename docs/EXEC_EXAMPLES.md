@@ -192,6 +192,7 @@ python3
 
 **Execute Python Functions**
 ```python
+>>> from module_utils.sap_id_sso import sap_sso_login
 >>> from module_utils.sap_launchpad_software_center_download_runner import *
 >>>
 >>> # Debug
