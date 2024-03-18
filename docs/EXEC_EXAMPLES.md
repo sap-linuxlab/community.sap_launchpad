@@ -198,11 +198,12 @@ python3
 >>> # from module_utils.sap_api_common import debug_https
 >>> # debug_https()
 >>>
->>> ## Perform API requests to SAP Support
+>>> ## Perform API login requests to SAP Support
 >>> username='S0000000'
 >>> password='password'
 >>> sap_sso_login(username, password)
->>> query_result = search_software_filename("HCMT_057_0-80003261.SAR")
+>>> ## Perform API activity requests to SAP Support (e.g. software search without deduplication, and download software)
+>>> query_result = search_software_filename("HCMT_057_0-80003261.SAR",'')
 >>> download_software(*query_result, output_dir='/tmp')
 ...
 >>> ## API responses from SAP Support
