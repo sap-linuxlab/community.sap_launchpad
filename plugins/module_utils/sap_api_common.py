@@ -41,6 +41,9 @@ def _request(url, **kwargs):
             and res.json()['errorMessage'].startswith('Account Temporarily Locked Out')):
         raise Exception('SAP ID Service has reported `Account Temporarily Locked Out`. Please reset password to regain access and try again.')
 
+    if "WEB Two-Factor Authentication" in str(res.content):
+        raise Exception('The SAP ID is enabled for two-factor authentication (MFA). Please disable MFA under https://accounts.sap.com/ and try again.')
+
     res.raise_for_status()
 
     return res
