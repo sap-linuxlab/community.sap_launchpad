@@ -10,6 +10,7 @@ from requests.exceptions import HTTPError
 from . import constants as C
 from .sap_api_common import _request, https_session
 from .sap_id_sso import _get_sso_endpoint_meta
+from .sap_launchpad_software_center_download_search_fuzzy import *
 
 logger = logging.getLogger(__name__)
 
@@ -17,27 +18,78 @@ _HAS_DOWNLOAD_AUTHORIZATION = None
 MAX_RETRY_TIMES = 3
 
 
-def search_software_filename(name, deduplicate):
-    """Return a single software that matched the filename
+def search_software_filename(name, deduplicate, latest):
     """
-    search_results = _search_software(name)
-    softwares = [r for r in search_results if r['Title'] == name or r['Description'] == name]
-    num_files=len(softwares)
+    Execute search for SAP Software or its alternative when query_latest is true.
+    
+    Args:
+        name: The filename name to check (e.g. 'SAPCAR_1115-70006178.EXE').
+        deduplicate
+        latest
+
+    Returns:
+        download_link of matched SAP Software.
+        filename of matched SAP Software.
+        latest_found if latest search was successful.
+    """
+
+    latest_found = False
+    software_search = _search_software(name)
+    software_filtered = [r for r in software_search if r['Title'] == name or r['Description'] == name]
+
+    num_files=len(software_filtered)
     if num_files == 0:
-        raise ValueError(f'no result found for {name}')
+        # Run fuzzy search if query_latest was selected
+        if latest:
+            software_fuzzy_found = search_software_fuzzy(name)
+            software_fuzzy_filtered, suggested_filename = filter_fuzzy_search(software_fuzzy_found, name)
+            if len(software_fuzzy_filtered) == 0:
+                raise ValueError(f'File {name} is not available to download and has no alternatives')
+
+            software_fuzzy_latest = software_fuzzy_filtered[0].get('Title')          
+
+            # software_search_latest = _search_software(software_fuzzy_latest)
+            # Search has to be filtered again, because API call can get
+            # duplicates like 70SWPM10SP43_2-20009701.sar for SWPM10SP43_2-20009701.SAR
+            software_search_latest = _search_software(software_fuzzy_latest)
+            software_search_latest_filtered = [
+                file for file in software_search_latest
+                if file.get('Title', '').startswith(suggested_filename)
+            ]
+            num_files_latest=len(software_search_latest_filtered)
+            if num_files_latest == 0:
+                raise ValueError(f'File {name} is not available to download and has no alternatives')
+            elif num_files_latest > 1 and deduplicate == '':
+                    names = [s['Title'] for s in software_search_latest_filtered]
+                    raise ValueError('More than one results were found: %s. '
+                                    'please use the correct full filename' % names)
+            elif num_files_latest > 1 and deduplicate == 'first':
+                    software_found = software_search_latest_filtered[0]
+                    latest_found = True
+            elif num_files_latest > 1 and deduplicate == 'last':
+                    software_found = software_search_latest_filtered[num_files-1]
+                    latest_found = True
+            else:
+                    software_found = software_search_latest_filtered[0]
+                    latest_found = True
+        else:
+            raise ValueError(f'File {name} is not available to download')
+
     elif num_files > 1 and deduplicate == '':
-            names = [s['Title'] for s in softwares]
-            raise ValueError('more than one results were found: %s. '
+            names = [s['Title'] for s in software_filtered]
+            raise ValueError('More than one results were found: %s. '
                              'please use the correct full filename' % names)
     elif num_files > 1 and deduplicate == 'first':
-            software = softwares[0]
+            software_found = software_filtered[0]
     elif num_files > 1 and deduplicate == 'last':
-            software = softwares[num_files-1]
+            software_found = software_filtered[num_files-1]
     else:
-            software = softwares[0]
+            software_found = software_filtered[0]
     
-    download_link, filename = software['DownloadDirectLink'], name
-    return (download_link, filename)
+    download_link = software_found['DownloadDirectLink']
+    filename = _get_valid_filename(software_found)
+
+    return (download_link, filename, latest_found)
 
 
 def download_software(download_link, filename, output_dir, retry=0):
@@ -151,6 +203,7 @@ def download_software_via_legacy_api(username, password, download_link,
 
 
 def _search_software(keyword):
+    
     url = C.URL_SOFTWARE_CENTER_SERVICE + '/SearchResultSet'
     params = {
         'SEARCH_MAX_RESULT': 500,
@@ -167,7 +220,7 @@ def _search_software(keyword):
         j = json.loads(res.text)
         results = j['d']['results']
     except json.JSONDecodeError:
-        # When use has no authority to search some specified softwares,
+        # When use has no authority to search some specified files,
         # it will return non-json response, which is actually expected.
         # So just return an empty list.
         logger.warning('Non-JSON response returned for software searching')
@@ -246,3 +299,27 @@ def _is_checksum_matched(f, etag):
         for chunk in iter(lambda: f.read(4096 * hash.block_size), b""):
             hash.update(chunk)
     return hash.hexdigest() == checksum
+
+
+def _get_valid_filename(software_found):
+    """
+    Ensure that CD Media have correct filenames from description.
+    Example: S4CORE105_INST_EXPORT_1.zip downloads as 19118000000000004323
+
+    Args:
+        software_found: List[0] with dictionary of file.
+
+    Returns:
+        Valid filename for CD Media files, where applicable.
+    """
+
+    # Check if Title contains filename and extension
+    if re.match(r'^[^/\\\0]+\.[^/\\\0]+$', software_found['Title']):
+        return software_found['Title']
+    else:
+        # Check if Description contains filename and extension
+        if re.match(r'^[^/\\\0]+\.[^/\\\0]+$', software_found['Description']):
+            return software_found['Description']
+        else:
+            # Default to Title if Description does not help
+            return software_found['Title']

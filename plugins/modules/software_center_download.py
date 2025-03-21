@@ -50,6 +50,11 @@ options:
       - How to handle multiple search results.
     required: false
     type: str
+  query_latest:
+    description:
+      - Enable search for alternative packages, when filename is not available.
+    required: false
+    type: bool
 author:
     - Lab for SAP Solutions
 
@@ -102,7 +107,8 @@ def run_module():
         download_filename=dict(type='str', required=False, default=''),
         dest=dict(type='str', required=True),
         dry_run=dict(type='bool', required=False, default=False),
-        deduplicate=dict(type='str', required=False, default='')
+        deduplicate=dict(type='str', required=False, default=''),
+        query_latest=dict(type='bool', required=False, default=False)
     )
 
     # Define result dictionary objects to be passed back to Ansible
@@ -130,6 +136,8 @@ def run_module():
     dest = module.params.get('dest')
     dry_run = module.params.get('dry_run')
     deduplicate = module.params.get('deduplicate')
+    latest = module.params.get('query_latest')
+
 
     # Main run
 
@@ -140,15 +148,21 @@ def run_module():
         pattern = dest + '/**/' + os.path.splitext(filename)[0] + '*'
         for file in glob.glob(pattern, recursive=True):
             if os.path.exists(file):
-                module.exit_json(skipped=True, msg="file {} already exists".format(file))
+                module.exit_json(skipped=True, msg=f"File '{os.path.basename(file)}' already exists")
 
         # Initiate login with given credentials
         sap_sso_login(username, password)
 
-        # EXEC: query
-        # execute search_software_filename first to get download link and filename
+        # Execute search_software_filename first to get download link and filename
+        download_latest = False  # True if query_latest was successful
         if query:
-            download_link, download_filename = search_software_filename(query,deduplicate)
+            download_link, download_filename, download_latest = search_software_filename(query,deduplicate,latest)
+            # Recheck file availability if query_latest is used
+            if latest:
+                pattern = dest + '/**/' + os.path.splitext(download_filename)[0] + '*'
+                for file in glob.glob(pattern, recursive=True):
+                    if os.path.exists(file):
+                        module.exit_json(skipped=True, msg=f"Alternative file '{os.path.basename(file)}' already exists - original file '{query}' is not available to download")
 
         # execute download_software
         if dry_run:
@@ -162,7 +176,10 @@ def run_module():
 
         # Process return dictionary for Ansible
         result['changed'] = True
-        result['msg'] = "SAP software download successful"
+        if query and download_latest:
+            result['msg'] = f"Successfully downloaded alternative SAP software: {download_filename} - original file '{query}' is not available to download"
+        else:
+            result['msg'] = f"Successfully downloaded SAP software: {download_filename}"
 
     except requests.exceptions.HTTPError as e:
         # module.fail_json(msg='SAP SSO authentication failed' + str(e), **result)
