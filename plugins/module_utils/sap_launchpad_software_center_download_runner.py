@@ -18,78 +18,77 @@ _HAS_DOWNLOAD_AUTHORIZATION = None
 MAX_RETRY_TIMES = 3
 
 
-def search_software_filename(name, deduplicate, latest):
+def search_software_filename(name, deduplicate, search_alternatives):
     """
-    Execute search for SAP Software or its alternative when query_latest is true.
+    Execute search for SAP Software or its alternative when search_alternatives is true.
     
     Args:
         name: The filename name to check (e.g. 'SAPCAR_1115-70006178.EXE').
-        deduplicate
-        latest
+        deduplicate: Select deduplication logic from 'first', 'last'
+        search_alternatives: Boolean for enabling fuzzy search.
 
     Returns:
-        download_link of matched SAP Software.
-        filename of matched SAP Software.
-        latest_found if latest search was successful.
+        download_link: Download link of matched SAP Software.
+        filename: File name of matched SAP Software.
+        alternative_found: True if alternative search was successful.
     """
 
-    latest_found = False
+    alternative_found = False
     software_search = _search_software(name)
     software_filtered = [r for r in software_search if r['Title'] == name or r['Description'] == name]
 
-    num_files=len(software_filtered)
-    if num_files == 0:
-        # Run fuzzy search if query_latest was selected
-        if latest:
+    files_count=len(software_filtered)
+    if files_count == 0:
+        # Run fuzzy search if search_alternatives was selected
+        if search_alternatives:
             software_fuzzy_found = search_software_fuzzy(name)
             software_fuzzy_filtered, suggested_filename = filter_fuzzy_search(software_fuzzy_found, name)
             if len(software_fuzzy_filtered) == 0:
                 raise ValueError(f'File {name} is not available to download and has no alternatives')
 
-            software_fuzzy_latest = software_fuzzy_filtered[0].get('Title')          
+            software_fuzzy_alternatives = software_fuzzy_filtered[0].get('Title')          
 
-            # software_search_latest = _search_software(software_fuzzy_latest)
             # Search has to be filtered again, because API call can get
             # duplicates like 70SWPM10SP43_2-20009701.sar for SWPM10SP43_2-20009701.SAR
-            software_search_latest = _search_software(software_fuzzy_latest)
-            software_search_latest_filtered = [
-                file for file in software_search_latest
+            software_search_alternatives = _search_software(software_fuzzy_alternatives)
+            software_search_alternatives_filtered = [
+                file for file in software_search_alternatives
                 if file.get('Title', '').startswith(suggested_filename)
             ]
-            num_files_latest=len(software_search_latest_filtered)
-            if num_files_latest == 0:
+            alternatives_count=len(software_search_alternatives_filtered)
+            if alternatives_count == 0:
                 raise ValueError(f'File {name} is not available to download and has no alternatives')
-            elif num_files_latest > 1 and deduplicate == '':
-                    names = [s['Title'] for s in software_search_latest_filtered]
+            elif alternatives_count > 1 and deduplicate == '':
+                    names = [s['Title'] for s in software_search_alternatives_filtered]
                     raise ValueError('More than one results were found: %s. '
                                     'please use the correct full filename' % names)
-            elif num_files_latest > 1 and deduplicate == 'first':
-                    software_found = software_search_latest_filtered[0]
-                    latest_found = True
-            elif num_files_latest > 1 and deduplicate == 'last':
-                    software_found = software_search_latest_filtered[num_files-1]
-                    latest_found = True
+            elif alternatives_count > 1 and deduplicate == 'first':
+                    software_found = software_search_alternatives_filtered[0]
+                    alternative_found = True
+            elif alternatives_count > 1 and deduplicate == 'last':
+                    software_found = software_search_alternatives_filtered[alternatives_count-1]
+                    alternative_found = True
             else:
-                    software_found = software_search_latest_filtered[0]
-                    latest_found = True
+                    software_found = software_search_alternatives_filtered[0]
+                    alternative_found = True
         else:
             raise ValueError(f'File {name} is not available to download')
 
-    elif num_files > 1 and deduplicate == '':
+    elif files_count > 1 and deduplicate == '':
             names = [s['Title'] for s in software_filtered]
             raise ValueError('More than one results were found: %s. '
                              'please use the correct full filename' % names)
-    elif num_files > 1 and deduplicate == 'first':
+    elif files_count > 1 and deduplicate == 'first':
             software_found = software_filtered[0]
-    elif num_files > 1 and deduplicate == 'last':
-            software_found = software_filtered[num_files-1]
+    elif files_count > 1 and deduplicate == 'last':
+            software_found = software_filtered[files_count-1]
     else:
             software_found = software_filtered[0]
     
     download_link = software_found['DownloadDirectLink']
     filename = _get_valid_filename(software_found)
 
-    return (download_link, filename, latest_found)
+    return (download_link, filename, alternative_found)
 
 
 def download_software(download_link, filename, output_dir, retry=0):

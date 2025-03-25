@@ -27,6 +27,14 @@ options:
     type: str
   softwarecenter_search_query:
     description:
+      - "Deprecated. Use 'search_query' instead."
+    required: false
+    type: str
+    deprecated:
+        alternative: search_query
+        removed_in: "1.2.0"
+  search_query:
+    description:
       - Filename of the SAP software to download.
     required: false
     type: str
@@ -50,13 +58,18 @@ options:
       - How to handle multiple search results.
     required: false
     type: str
-  query_latest:
+  search_alternatives:
     description:
       - Enable search for alternative packages, when filename is not available.
     required: false
     type: bool
+  dry_run:
+    description:
+      - Check availability of SAP Software without downloading.
+    required: false
+    type: bool
 author:
-    - Lab for SAP Solutions
+    - SAP LinuxLab
 
 '''
 
@@ -103,12 +116,13 @@ def run_module():
         suser_id=dict(type='str', required=True),
         suser_password=dict(type='str', required=True, no_log=True),
         softwarecenter_search_query=dict(type='str', required=False, default=''),
+        search_query=dict(type='str', required=False, default=''),
         download_link=dict(type='str', required=False, default=''),
         download_filename=dict(type='str', required=False, default=''),
         dest=dict(type='str', required=True),
         dry_run=dict(type='bool', required=False, default=False),
         deduplicate=dict(type='str', required=False, default=''),
-        query_latest=dict(type='bool', required=False, default=False)
+        search_alternatives=dict(type='bool', required=False, default=False)
     )
 
     # Define result dictionary objects to be passed back to Ansible
@@ -130,13 +144,21 @@ def run_module():
     # Define variables based on module inputs
     username = module.params.get('suser_id')
     password = module.params.get('suser_password')
-    query = module.params.get('softwarecenter_search_query')
+
+    if module.params['search_query'] != '':
+        query = module.params['search_query']
+    elif module.params['softwarecenter_search_query'] != '':
+        query = module.params['softwarecenter_search_query']
+        module.warn("The 'softwarecenter_search_query' is deprecated and will be removed in a future version. Use 'search_query' instead.")
+    else:
+        query = None
+
     download_link= module.params.get('download_link')
     download_filename= module.params.get('download_filename')
     dest = module.params.get('dest')
     dry_run = module.params.get('dry_run')
     deduplicate = module.params.get('deduplicate')
-    latest = module.params.get('query_latest')
+    search_alternatives = module.params.get('search_alternatives')
 
 
     # Main run
@@ -154,29 +176,35 @@ def run_module():
         sap_sso_login(username, password)
 
         # Execute search_software_filename first to get download link and filename
-        download_latest = False  # True if query_latest was successful
+        alternative_found = False  # True if search_alternatives was successful
         if query:
-            download_link, download_filename, download_latest = search_software_filename(query,deduplicate,latest)
-            # Recheck file availability if query_latest is used
-            if latest:
+            download_link, download_filename, alternative_found = search_software_filename(query,deduplicate,search_alternatives)
+            # Recheck file availability if search_alternatives is used
+            if search_alternatives:
                 pattern = dest + '/**/' + os.path.splitext(download_filename)[0] + '*'
                 for file in glob.glob(pattern, recursive=True):
                     if os.path.exists(file):
                         module.exit_json(skipped=True, msg=f"Alternative file '{os.path.basename(file)}' already exists - original file '{query}' is not available to download")
 
-        # execute download_software
+        # Ensure that download_link is provided when query was not provided
+        if not download_link:
+            module.fail_json(msg="Missing parameters 'query' or 'download_link'.")
+
+        # Exit module before download when dry_run is true
         if dry_run:
             available = is_download_link_available(download_link)
-            if available:
-                module.exit_json(changed=False, msg="download link {} is available".format(download_link))
+            if available and query and not alternative_found:
+                module.exit_json(changed=False, msg="SAP Software is available: {}".format(download_filename))
+            elif available and query and alternative_found:
+                module.exit_json(changed=False, msg="Alternative SAP Software is available: {} - original file {} is not available".format(download_filename, query))
             else:
-                module.fail_json(msg="download link {} is not available".format(download_link))
+                module.fail_json(msg="Download link {} is not available".format(download_link))
 
         download_software(download_link, download_filename, dest)
 
         # Process return dictionary for Ansible
         result['changed'] = True
-        if query and download_latest:
+        if query and alternative_found:
             result['msg'] = f"Successfully downloaded alternative SAP software: {download_filename} - original file '{query}' is not available to download"
         else:
             result['msg'] = f"Successfully downloaded SAP software: {download_filename}"
