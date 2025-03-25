@@ -72,7 +72,7 @@ def search_software_filename(name, deduplicate, search_alternatives):
                     software_found = software_search_alternatives_filtered[0]
                     alternative_found = True
         else:
-            raise ValueError(f'File {name} is not available to download')
+            raise ValueError(f'File {name} is not available to download. Enable "search_alternatives" to search for alternatives.')
 
     elif files_count > 1 and deduplicate == '':
             names = [s['Title'] for s in software_filtered]

@@ -165,13 +165,28 @@ def run_module():
 
     try:
 
-        # Search directory and subdirectories for filename without file extension
-        filename = query if query else download_filename
-        pattern = dest + '/**/' + os.path.splitext(filename)[0] + '*'
-        for file in glob.glob(pattern, recursive=True):
-            if os.path.exists(file):
-                module.exit_json(skipped=True, msg=f"File '{os.path.basename(file)}' already exists")
+        # Ensure that required parameters are provided
+        if not (query or (download_link and download_filename)):
+              module.fail_json(msg="Either 'search_query' or both 'download_link' and 'download_filename' must be provided.")
 
+        # Search for existing files using exact filename
+        filename = query if query else download_filename
+        filename_exact = os.path.join(dest, filename)
+        if os.path.exists(filename_exact):
+            module.exit_json(skipped=True, msg=f"File '{filename}' already exists")
+        else:
+            # Exact file not found, search with pattern
+            # pattern = dest + '/**/' + os.path.splitext(filename)[0] + '*' # old pattern
+            filename_base = os.path.splitext(filename)[0]
+            filename_ext = os.path.splitext(filename)[1]
+            filename_pattern = os.path.join(dest, "**", filename_base + "*" + filename_ext)
+            filename_similar = glob.glob(filename_pattern, recursive=True)
+
+            # Skip if similar files were found and search_alternatives was not set.
+            if filename_similar and not (query and search_alternatives):
+                filename_similar_names = [os.path.basename(f) for f in filename_similar]
+                module.exit_json(skipped=True, msg=f"Similar file(s) already exist: {', '.join(filename_similar_names)}")
+            
         # Initiate login with given credentials
         sap_sso_login(username, password)
 
@@ -179,12 +194,22 @@ def run_module():
         alternative_found = False  # True if search_alternatives was successful
         if query:
             download_link, download_filename, alternative_found = search_software_filename(query,deduplicate,search_alternatives)
-            # Recheck file availability if search_alternatives is used
-            if search_alternatives:
-                pattern = dest + '/**/' + os.path.splitext(download_filename)[0] + '*'
-                for file in glob.glob(pattern, recursive=True):
-                    if os.path.exists(file):
-                        module.exit_json(skipped=True, msg=f"Alternative file '{os.path.basename(file)}' already exists - original file '{query}' is not available to download")
+            
+            # Search for existing files again with alternative filename
+            if search_alternatives and alternative_found:
+                filename_alternative_exact = os.path.join(dest, download_filename)
+                if os.path.exists(filename_alternative_exact):
+                    module.exit_json(skipped=True, msg=f"Alternative file '{download_filename}' already exists - original file '{query}' is not available to download")
+                else:
+                  filename_alternative_base = os.path.splitext(download_filename)[0]
+                  filename_alternative_ext = os.path.splitext(download_filename)[1]
+                  filename_alternative_pattern = os.path.join(dest, "**", filename_alternative_base + "*" + filename_alternative_ext)
+                  filename_alternative_similar = glob.glob(filename_alternative_pattern, recursive=True)
+                  
+                  # Skip if similar files were found and search_alternatives was not set.
+                  if filename_alternative_similar:
+                      filename_alternative_similar_names = [os.path.basename(f) for f in filename_alternative_similar]
+                      module.exit_json(skipped=True, msg=f"Similar alternative file(s) already exist: {', '.join(filename_alternative_similar_names)}")
 
         # Ensure that download_link is provided when query was not provided
         if not download_link:
@@ -194,9 +219,9 @@ def run_module():
         if dry_run:
             available = is_download_link_available(download_link)
             if available and query and not alternative_found:
-                module.exit_json(changed=False, msg="SAP Software is available: {}".format(download_filename))
+                module.exit_json(changed=False, msg="SAP Software is available to download: {}".format(download_filename))
             elif available and query and alternative_found:
-                module.exit_json(changed=False, msg="Alternative SAP Software is available: {} - original file {} is not available".format(download_filename, query))
+                module.exit_json(changed=False, msg="Alternative SAP Software is available to download: {} - original file {} is not available".format(download_filename, query))
             else:
                 module.fail_json(msg="Download link {} is not available".format(download_link))
 
