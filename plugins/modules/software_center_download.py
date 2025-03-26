@@ -95,6 +95,14 @@ msg:
   description: the status of the process
   returned: always
   type: str
+filename:
+  description: the name of the original or alternative file found to download.
+  returned: always
+  type: str
+alternative:
+  description: true if alternative file was found
+  returned: always
+  type: bool
 '''
 
 
@@ -125,21 +133,11 @@ def run_module():
         search_alternatives=dict(type='bool', required=False, default=False)
     )
 
-    # Define result dictionary objects to be passed back to Ansible
-    result = dict(
-        changed=False,
-        msg=''
-    )
-
     # Instantiate module
     module = AnsibleModule(
         argument_spec=module_args,
         supports_check_mode=True
     )
-
-    # Check mode
-    if module.check_mode:
-        module.exit_json(**result)
 
     # Define variables based on module inputs
     username = module.params.get('suser_id')
@@ -160,20 +158,39 @@ def run_module():
     deduplicate = module.params.get('deduplicate')
     search_alternatives = module.params.get('search_alternatives')
 
+    # Define result dictionary objects to be passed back to Ansible
+    result = dict(
+        changed=False,
+        msg='',
+        filename=download_filename,
+        alternative=False,
+        skipped=False,
+        failed=False
+    )
 
-    # Main run
+    # Check mode
+    if module.check_mode:
+        module.exit_json(**result)
 
+
+    # Main
     try:
 
         # Ensure that required parameters are provided
         if not (query or (download_link and download_filename)):
-              module.fail_json(msg="Either 'search_query' or both 'download_link' and 'download_filename' must be provided.")
+              module.fail_json(
+                  msg="Either 'search_query' or both 'download_link' and 'download_filename' must be provided."
+              )
 
         # Search for existing files using exact filename
         filename = query if query else download_filename
         filename_exact = os.path.join(dest, filename)
+        result['filename'] = filename
+
         if os.path.exists(filename_exact):
-            module.exit_json(skipped=True, msg=f"File '{filename}' already exists")
+            result['skipped'] = True
+            result['msg'] = f"File already exists: {filename}"
+            module.exit_json(**result)
         else:
             # Exact file not found, search with pattern
             # pattern = dest + '/**/' + os.path.splitext(filename)[0] + '*' # old pattern
@@ -185,7 +202,9 @@ def run_module():
             # Skip if similar files were found and search_alternatives was not set.
             if filename_similar and not (query and search_alternatives):
                 filename_similar_names = [os.path.basename(f) for f in filename_similar]
-                module.exit_json(skipped=True, msg=f"Similar file(s) already exist: {', '.join(filename_similar_names)}")
+                result['skipped'] = True
+                result['msg'] = f"Similar file(s) already exist: {', '.join(filename_similar_names)}"
+                module.exit_json(**result)
             
         # Initiate login with given credentials
         sap_sso_login(username, password)
@@ -197,9 +216,14 @@ def run_module():
             
             # Search for existing files again with alternative filename
             if search_alternatives and alternative_found:
+                result['filename'] = download_filename
+                result['alternative'] = True
+
                 filename_alternative_exact = os.path.join(dest, download_filename)
                 if os.path.exists(filename_alternative_exact):
-                    module.exit_json(skipped=True, msg=f"Alternative file '{download_filename}' already exists - original file '{query}' is not available to download")
+                    result['skipped'] = True
+                    result['msg'] = f"Alternative file already exists: {download_filename} - original file {query} is not available to download"
+                    module.exit_json(**result)
                 else:
                   filename_alternative_base = os.path.splitext(download_filename)[0]
                   filename_alternative_ext = os.path.splitext(download_filename)[1]
@@ -209,7 +233,9 @@ def run_module():
                   # Skip if similar files were found and search_alternatives was not set.
                   if filename_alternative_similar:
                       filename_alternative_similar_names = [os.path.basename(f) for f in filename_alternative_similar]
-                      module.exit_json(skipped=True, msg=f"Similar alternative file(s) already exist: {', '.join(filename_alternative_similar_names)}")
+                      result['skipped'] = True
+                      result['msg'] = f"Similar alternative file(s) already exist: {', '.join(filename_alternative_similar_names)}"                     
+                      module.exit_json(**result)
 
         # Ensure that download_link is provided when query was not provided
         if not download_link:
@@ -219,18 +245,20 @@ def run_module():
         if dry_run:
             available = is_download_link_available(download_link)
             if available and query and not alternative_found:
-                module.exit_json(changed=False, msg="SAP Software is available to download: {}".format(download_filename))
+                result['msg'] = f"SAP Software is available to download: {download_filename}"
+                module.exit_json(**result)
             elif available and query and alternative_found:
-                module.exit_json(changed=False, msg="Alternative SAP Software is available to download: {} - original file {} is not available".format(download_filename, query))
+                result['msg'] = f"Alternative SAP Software is available to download: {download_filename} - original file {query} is not available to download"
+                module.exit_json(**result) 
             else:
                 module.fail_json(msg="Download link {} is not available".format(download_link))
 
         download_software(download_link, download_filename, dest)
 
-        # Process return dictionary for Ansible
+        # Update final results json
         result['changed'] = True
         if query and alternative_found:
-            result['msg'] = f"Successfully downloaded alternative SAP software: {download_filename} - original file '{query}' is not available to download"
+            result['msg'] = f"Successfully downloaded alternative SAP software: {download_filename} - original file {query} is not available to download"
         else:
             result['msg'] = f"Successfully downloaded SAP software: {download_filename}"
 
