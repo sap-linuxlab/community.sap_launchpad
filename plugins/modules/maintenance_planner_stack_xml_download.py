@@ -27,16 +27,16 @@ options:
     type: str
   transaction_name:
     description:
-      - Transaction name of your Maintenance Planner session.
+      - Name or Display ID of your Maintenance Planner transaction.
     required: true
     type: str
-  dest:
+  download_path:
     description:
-      - Destination folder.
+      - Destination folder path.
     required: true
     type: str
 author:
-    - Lab for SAP Solutions
+    - SAP LinuxLab
 
 '''
 
@@ -46,7 +46,7 @@ EXAMPLES = r'''
     suser_id: 'SXXXXXXXX'
     suser_password: 'password'
     transaction_name: 'MP_NEW_INST_20211015_044854'
-    dest: "/tmp/"
+    download_path: "/tmp/"
   register: sap_mp_register
 - name: Display the list of download links and filenames
   debug:
@@ -79,7 +79,7 @@ def run_module():
         suser_id=dict(type='str', required=True),
         suser_password=dict(type='str', required=True, no_log=True),
         transaction_name=dict(type='str', required=True),
-        dest=dict(type='str', required=True)
+        download_path=dict(type='str', required=True)
     )
 
     # Define result dictionary objects to be passed back to Ansible
@@ -102,7 +102,7 @@ def run_module():
     username = module.params.get('suser_id')
     password = module.params.get('suser_password')
     transaction_name = module.params.get('transaction_name')
-    dest = module.params.get('dest')
+    download_path = module.params.get('download_path')
 
     # Main run
 
@@ -115,10 +115,10 @@ def run_module():
         auth_userapps()
 
         # EXEC: Get MP stack transaction id from transaction name
-        transaction_id = get_transaction_id_by_name(transaction_name)
+        transaction_id = get_transaction_id(transaction_name)
 
         # EXEC: Download the MP Stack XML file
-        get_transaction_stack_xml(transaction_id, dest)
+        get_transaction_stack_xml(transaction_id, download_path)
 
         # Process return dictionary for Ansible
         result['changed'] = True
