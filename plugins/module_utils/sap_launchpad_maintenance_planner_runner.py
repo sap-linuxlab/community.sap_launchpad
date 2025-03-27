@@ -281,6 +281,26 @@ def _get_transaction_name(trans_id):
     return transaction['trans_name']
 
 
+def get_transaction_id(name):
+    """
+    Search transaction ID using transaction Name or Display ID.
+    
+    Args:
+        name: transaction name or display id.
+    """
+    transactions = get_transactions()
+    transaction_name = [t for t in transactions if t['trans_name'] == name]
+    if not transaction_name:
+        # Repeat search using Display ID
+        transaction_display_id = [t for t in transactions if t['trans_display_id'] == name]
+        if not transaction_display_id:
+            raise KeyError(f'Name or Display ID {name} not found in transactionsX')
+        else:
+            return transaction_display_id[0]['trans_id']
+    else:
+        return transaction_name[0]['trans_id']
+
+
 def _get_transaction(key, value):
     transactions = get_transactions()
     trans = [t for t in transactions if t[key] == value]

@@ -27,11 +27,11 @@ options:
     type: str
   transaction_name:
     description:
-      - Transaction name of your Maintenance Planner session.
+      - Transaction Name or Transaction Display ID from Maintenance Planner.
     required: true
     type: str
 author:
-    - Lab for SAP Solutions
+    - SAP LinuxLab
 
 '''
 
@@ -115,7 +115,7 @@ def run_module():
         auth_userapps()
 
         # EXEC: Get MP stack transaction id from transaction name
-        transaction_id = get_transaction_id_by_name(transaction_name)
+        transaction_id = get_transaction_id(transaction_name)
 
         # EXEC: Get a json list of download_links and download_filenames
         download_basket_details = get_transaction_filename_url(transaction_id)
