@@ -116,6 +116,29 @@ from ansible.module_utils.basic import AnsibleModule
 from ..module_utils.sap_launchpad_software_center_download_runner import *
 from ..module_utils.sap_id_sso import sap_sso_login
 
+def _check_similar_files(download_path, filename):
+    """
+    Checks for similar files in the download path based on the given filename.
+
+    Args:
+        download_path (str): The path where files are downloaded.
+        filename (str): The filename to check for similar files.
+
+    Returns:
+        bool: True if similar files exist, False otherwise.
+        filename_similar_names: A list of similar filenames if they exist, empty list otherwise.
+    """
+    # pattern = download_path + '/**/' + os.path.splitext(filename)[0]
+    filename_base = os.path.splitext(filename)[0]
+    filename_pattern = os.path.join(download_path, "**", filename_base)
+    filename_similar = glob.glob(filename_pattern, recursive=True)
+
+    if filename_similar:
+        filename_similar_names = [os.path.basename(f) for f in filename_similar]
+        return True, filename_similar_names
+    else:
+        return False, []
+
 
 def run_module():
 
@@ -192,16 +215,9 @@ def run_module():
             result['msg'] = f"File already exists: {filename}"
             module.exit_json(**result)
         else:
-            # Exact file not found, search with pattern
-            # pattern = download_path + '/**/' + os.path.splitext(filename)[0] + '*' # old pattern
-            filename_base = os.path.splitext(filename)[0]
-            filename_ext = os.path.splitext(filename)[1]
-            filename_pattern = os.path.join(download_path, "**", filename_base + "*" + filename_ext)
-            filename_similar = glob.glob(filename_pattern, recursive=True)
-
-            # Skip if similar files were found and search_alternatives was not set.
-            if filename_similar and not (query and search_alternatives):
-                filename_similar_names = [os.path.basename(f) for f in filename_similar]
+            # Exact file not found, search for similar files with pattern
+            filename_similar_exists, filename_similar_names = _check_similar_files(download_path, filename)
+            if filename_similar_exists and not (query and search_alternatives):
                 result['skipped'] = True
                 result['msg'] = f"Similar file(s) already exist: {', '.join(filename_similar_names)}"
                 module.exit_json(**result)
@@ -213,9 +229,9 @@ def run_module():
         alternative_found = False  # True if search_alternatives was successful
         if query:
             download_link, download_filename, alternative_found = search_software_filename(query,deduplicate,search_alternatives)
-            
+
             # Search for existing files again with alternative filename
-            if search_alternatives and alternative_found:
+            if  search_alternatives and alternative_found:
                 result['filename'] = download_filename
                 result['alternative'] = True
 
@@ -225,17 +241,29 @@ def run_module():
                     result['msg'] = f"Alternative file already exists: {download_filename} - original file {query} is not available to download"
                     module.exit_json(**result)
                 else:
-                  filename_alternative_base = os.path.splitext(download_filename)[0]
-                  filename_alternative_ext = os.path.splitext(download_filename)[1]
-                  filename_alternative_pattern = os.path.join(download_path, "**", filename_alternative_base + "*" + filename_alternative_ext)
-                  filename_alternative_similar = glob.glob(filename_alternative_pattern, recursive=True)
-                  
-                  # Skip if similar files were found and search_alternatives was not set.
-                  if filename_alternative_similar:
-                      filename_alternative_similar_names = [os.path.basename(f) for f in filename_alternative_similar]
-                      result['skipped'] = True
-                      result['msg'] = f"Similar alternative file(s) already exist: {', '.join(filename_alternative_similar_names)}"                     
-                      module.exit_json(**result)
+                    # Exact file not found, search for similar files with pattern
+                    filename_similar_exists, filename_similar_names = _check_similar_files(download_path, download_filename)
+                    if filename_similar_exists:
+                        result['skipped'] = True
+                        result['msg'] = f"Similar alternative file(s) already exist: {', '.join(filename_similar_names)}"                     
+                        module.exit_json(**result)
+            
+            # Triggers for CD Media, where number was changed to name using _get_valid_filename
+            elif filename != download_filename and not alternative_found:
+                result['filename'] = download_filename
+
+                if os.path.exists(os.path.join(download_path, download_filename)):
+                    result['skipped'] = True
+                    result['msg'] = f"File already exists with correct name: {download_filename}"
+                    module.exit_json(**result)
+                else:
+                    # Exact file not found, search for similar files with pattern
+                    filename_similar_exists, filename_similar_names = _check_similar_files(download_path, download_filename)                 
+                    if filename_similar_exists:
+                        result['skipped'] = True
+                        result['msg'] = f"Similar file(s) already exist for correct name {download_filename}: {', '.join(filename_similar_names)}"                     
+                        module.exit_json(**result)
+
 
         # Ensure that download_link is provided when query was not provided
         if not download_link:
