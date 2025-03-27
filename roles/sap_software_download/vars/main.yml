@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# The list of required Python Modules for download module
+__sap_software_download_python_modules:
+  - wheel
+  - urllib3
+  - requests
+  - beautifulsoup4
+  - lxml

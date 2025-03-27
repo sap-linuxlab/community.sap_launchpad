@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Download - Maintenance Plan - Get files with Python venv
+  when: sap_software_download_use_venv | d(true)
+  community.sap_launchpad.software_center_download:
+    suser_id: "{{ sap_software_download_suser_id }}"
+    suser_password: "{{ sap_software_download_suser_password }}"
+    download_link: "{{ item.DirectLink }}"
+    download_filename: "{{ item.Filename }}"
+    download_path: "{{ sap_software_download_directory }}"
+  loop: "{{ __sap_software_download_plan_results.download_basket }}"
+  loop_control:
+    label: "{{ item.Filename }} : {{ __sap_software_download_files_plan_results_venv.msg | d('') }}"
+  register: __sap_software_download_files_plan_results_venv
+  retries: 1
+  until: __sap_software_download_files_plan_results_venv is not failed
+  environment:
+    PATH: "{{ __sap_software_download_venv.path }}/bin:{{ ansible_env.PATH }}" 
+    PYTHONPATH: "{{ __sap_software_download_venv.path }}/lib/{{ sap_software_download_python_interpreter }}/site-packages" 
+    VIRTUAL_ENV: "{{ __sap_software_download_venv.path }}" 
+  vars:
+    ansible_python_interpreter: "{{ __sap_software_download_venv.path ~ '/bin/' ~ sap_software_download_python_interpreter }}"
+  ignore_errors: true  # Errors are ignored and validated afterwards
+
+
+- name: Download - Maintenance Plan - Get files with default Python
+  when: not sap_software_download_use_venv | d(true)
+  community.sap_launchpad.software_center_download:
+    suser_id: "{{ sap_software_download_suser_id }}"
+    suser_password: "{{ sap_software_download_suser_password }}"
+    download_link: "{{ item.DirectLink }}"
+    download_filename: "{{ item.Filename }}"
+    download_path: "{{ sap_software_download_directory }}"
+  loop: "{{ __sap_software_download_plan_results.download_basket }}"
+  loop_control:
+    label: "{{ item.Filename }} : {{ __sap_software_download_files_plan_results_default.msg | d('') }}"
+  register: __sap_software_download_files_plan_results_default
+  retries: 1
+  until: __sap_software_download_files_plan_results_default is not failed
+  vars:
+    ansible_python_interpreter: "{{ '/usr/bin/' ~ sap_software_download_python_interpreter }}"
+  ignore_errors: true  # Errors are ignored and validated afterwards
+
+
+- name: Download - Maintenance Plan - Set fact with software_center_download output
+  ansible.builtin.set_fact:
+    __sap_software_download_files_plan_results: "{{ __sap_software_download_files_plan_results_venv
+      if sap_software_download_use_venv | d(true) else __sap_software_download_files_plan_results_default }}"
+
+- name: Download - Maintenance Plan - Show failed results
+  ansible.builtin.fail:
+    msg: |
+      Maintenance Plan file(s) not found:  {{ __failed_items | map(attribute='item') | list | join(', ') }}
+      Verify your Maintenance Plan on SAP Launchpad before retrying.
+  vars:
+    __failed_items: "{{ __sap_software_download_files_plan_results.results
+      | selectattr('failed', 'defined') | selectattr('failed', 'true') }}"
+  when:
+    - not sap_software_download_ignore_file_not_found
+    - __failed_items | length > 0

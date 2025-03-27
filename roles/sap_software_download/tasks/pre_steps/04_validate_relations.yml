@@ -1,0 +1,88 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Block - Relation Validation - Check availability of files (with alternatives)
+  when: sap_software_download_find_alternatives
+  block:
+
+    - name: Relation Validation - Check availability of files with Python venv
+      when: sap_software_download_use_venv | d(true)
+      community.sap_launchpad.software_center_download:
+        suser_id: "{{ sap_software_download_suser_id }}"
+        suser_password: "{{ sap_software_download_suser_password }}"
+        search_query: "{{ item }}"
+        dest: "{{ sap_software_download_directory }}"
+        search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
+        dry_run: true
+      loop: "{{ sap_software_download_files }}"
+      loop_control:
+        label: "{{ item }} : {{ __sap_software_download_files_results_dryrun_venv.msg | d('') }}"
+      register: __sap_software_download_files_results_dryrun_venv
+      retries: 1
+      until: __sap_software_download_files_results_dryrun_venv is not failed
+      environment:
+        PATH: "{{ __sap_software_download_venv.path }}/bin:{{ ansible_env.PATH }}" 
+        PYTHONPATH: "{{ __sap_software_download_venv.path }}/lib/{{ sap_software_download_python_interpreter }}/site-packages" 
+        VIRTUAL_ENV: "{{ __sap_software_download_venv.path }}" 
+      vars:
+        ansible_python_interpreter: "{{ __sap_software_download_venv.path ~ '/bin/' ~ sap_software_download_python_interpreter }}"
+      ignore_errors: true  # Errors are ignored and validated afterwards
+
+
+    - name: Relation Validation - Check availability of files with default Python
+      when: not sap_software_download_use_venv | d(true)
+      community.sap_launchpad.software_center_download:
+        suser_id: "{{ sap_software_download_suser_id }}"
+        suser_password: "{{ sap_software_download_suser_password }}"
+        search_query: "{{ item }}"
+        dest: "{{ sap_software_download_directory }}"
+        search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
+        dry_run: true
+      loop: "{{ sap_software_download_files }}"
+      loop_control:
+        label: "{{ item }} : {{ __sap_software_download_files_results_dryrun_default.msg | d('') }}"
+      register: __sap_software_download_files_results_dryrun_default
+      retries: 1
+      until: __sap_software_download_files_results_dryrun_default is not failed
+      vars:
+        ansible_python_interpreter: "{{ '/usr/bin/' ~ sap_software_download_python_interpreter }}"
+      ignore_errors: true  # Errors are ignored and validated afterwards
+
+
+    - name: Relation Validation - Set fact with software_center_download output
+      ansible.builtin.set_fact:
+        __sap_software_download_files_results_dryrun: "{{ __sap_software_download_files_results_dryrun_venv
+          if sap_software_download_use_venv | d(true) else __sap_software_download_files_results_dryrun_default }}"
+
+    - name: Relation Validation - Show failed results
+      ansible.builtin.fail:
+        msg: |
+          Relation validation failed because following files were not found: {{ __failed_items | map(attribute='item') | list | join(', ') }}
+          Either ensure correct list of files in `sap_software_download_files`
+          or ignore this error with `sap_software_download_ignore_file_not_found` set to `true`.
+      vars:
+        __failed_items: "{{ __sap_software_download_files_results_dryrun.results | selectattr('failed', 'defined') | selectattr('failed', 'true') }}"
+      when:
+        - not sap_software_download_ignore_file_not_found
+        - __failed_items | length > 0
+
+
+- name: Relation Validation - Define list of files
+  ansible.builtin.set_fact:
+    __sap_software_download_files: "{{ sap_software_download_files if not sap_software_download_find_alternatives
+      else __sap_software_download_files_results_dryrun.results | selectattr('failed', 'false')| map(attribute='filename') | list | unique | d([])}}"
+
+
+- name: Relation Validation - SAP HANA - Multiple IMDB_SERVER files found
+  ansible.builtin.debug:
+    msg: Warning - Multiple SAP HANA Database (IMDB_SERVER) found, which can result in inaccurate relation validation!
+  when: __sap_software_download_files | select('match', '^IMDB_SERVER.*') | list | length > 1
+
+
+- name: Relation Validation - Include tasks for SAP HANA relation validation
+  when: __sap_software_download_files | select('match', '^IMDB_SERVER.*') | list | length > 0
+  ansible.builtin.include_tasks:
+    file: pre_steps/05_validate_sap_hana.yml
+  loop: "{{ __sap_software_download_files | select('match', '^IMDB_SERVER.*') | list }}"
+  loop_control:
+    loop_var: __sap_software_download_sap_hana

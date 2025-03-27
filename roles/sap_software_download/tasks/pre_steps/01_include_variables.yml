@@ -1,0 +1,112 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Example of files loading order:
+# 1. Suse.yml / RedHat.yml - Specific to OS family.
+# 2. SLES_15.yml / RedHat_9.yml - Specific to distribution (SLES, SLES_SAP or RedHat) and major release.
+# 3. SLES_15.6.yml / RedHat_9.2 - Specific to distribution (SLES, SLES_SAP or RedHat) and minor release.
+# 4. SLES_SAP_15.yml - Specific to distribution SLES_SAP and major release.
+# 5. SLES_SAP_15.6.yml - Specific to distribution SLES_SAP and minor release.
+- name: Pre-Steps - Include OS specific variables
+  ansible.builtin.include_vars: "{{ __vars_file }}"
+  loop: "{{ __var_files }}"
+  vars:
+    __vars_file: "{{ role_path }}/vars/{{ item }}"
+    __distribution_major: "{{ ansible_distribution ~ '_' ~ ansible_distribution_major_version }}"
+    __distribution_minor: "{{ ansible_distribution ~ '_' ~ ansible_distribution_version }}"
+    # Enables loading of shared vars between SLES and SLES_SAP
+    __distribution_major_split: "{{ ansible_distribution.split('_')[0] ~ '_' ~ ansible_distribution_major_version }}"
+    __distribution_minor_split: "{{ ansible_distribution.split('_')[0] ~ '_' ~ ansible_distribution_version }}"
+    __var_files: >-
+      {{
+        [
+          ansible_os_family ~ '.yml',
+          (ansible_distribution ~ '.yml') if ansible_distribution != ansible_os_family else None,
+          (__distribution_major_split ~ '.yml') if __distribution_major_split != __distribution_major else None,
+          (__distribution_minor_split ~ '.yml') if __distribution_minor_split != __distribution_minor else None,
+          __distribution_major ~ '.yml',
+          __distribution_minor ~ '.yml'
+        ] | select('defined') | select('string') | list
+      }}
+  when: __vars_file is file
+
+
+- name: Pre-Steps - Assert that SAP Software files were specified
+  ansible.builtin.assert:
+    that:
+      - (sap_software_download_files is defined and sap_software_download_files | length > 0)
+        or (sap_software_download_plan is defined and sap_software_download_plan | length > 0)
+    fail_msg: |
+      Neither `sap_software_download_files` or `sap_software_download_plan` are valid.
+      Ensure that it at least one of them is valid.
+
+- name: "Pre-Steps - Assert that download directory was provided"
+  ansible.builtin.assert:
+    that:
+      - sap_software_download_directory is defined
+      - sap_software_download_directory | length > 0
+    fail_msg: |
+      Empty variable `sap_software_download_directory`.
+
+
+- name: "Pre-Steps - Verify variable: sap_software_download_python_interpreter"
+  ansible.builtin.assert:
+    that:
+      - sap_software_download_python_interpreter is defined
+      - sap_software_download_python_interpreter | length > 0
+    fail_msg: |
+      Empty variable `sap_software_download_python_interpreter`.
+      Ensure that it contains correct Python interpreter or revert back to defaults. 
+
+- name: "Pre-Steps - Verify variable: sap_software_download_python_package"
+  ansible.builtin.assert:
+    that:
+      - sap_software_download_python_package is defined
+      - sap_software_download_python_package | length > 0
+    fail_msg: |
+      Empty variable `sap_software_download_python_package`.
+      Ensure that it contains correct Python package name or revert back to defaults. 
+
+- name: "Pre-Steps - Verify variable: sap_software_download_use_venv"
+  ansible.builtin.assert:
+    that:
+      - sap_software_download_use_venv is defined
+      - sap_software_download_use_venv is boolean
+    fail_msg: |
+      Variable `sap_software_download_use_venv` is not boolean. 
+
+- name: "Pre-Steps - Verify variable: sap_software_download_suser_id"
+  ansible.builtin.assert:
+    that:
+      - sap_software_download_suser_id is defined
+      - sap_software_download_suser_id | length > 0
+    fail_msg: |
+      Empty variable `sap_software_download_suser_id`.
+      Enter valid S-User ID with download authorizations. 
+
+- name: "Pre-Steps - Verify variable: sap_software_download_suser_password"
+  ansible.builtin.assert:
+    that:
+      - sap_software_download_suser_password is defined
+      - sap_software_download_suser_password | length > 0
+    fail_msg: |
+      Empty variable `sap_software_download_suser_password`.
+      Enter valid S-User password.
+  no_log: true
+
+- name: "Pre-Steps - Verify variable: sap_software_download_find_alternatives"
+  ansible.builtin.assert:
+    that:
+      - sap_software_download_find_alternatives is defined
+      - sap_software_download_find_alternatives is boolean
+    fail_msg: |
+      Variable `sap_software_download_find_alternatives` is not boolean. 
+
+- name: "Pre-Steps - Verify variable: sap_software_download_deduplicate"
+  ansible.builtin.assert:
+    that:
+      - sap_software_download_deduplicate in ['first', 'last']
+    fail_msg: |
+      Enter valid option for `sap_software_download_deduplicate` variable.
+      Options: first, last
+  when: sap_software_download_deduplicate is defined

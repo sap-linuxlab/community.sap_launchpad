@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Variables specific to following versions:
+# - Red Hat Linux Enterprise Server 8
+# - Red Hat Linux Enterprise Server 9
+
+# Set which Python version will be used on destination node.
+# This is python executable name, which can differ from python package name.
+__sap_software_download_python_interpreter: 'python3.9'
+
+# Set which Python package will be installed on destination node.
+__sap_software_download_python_package: 'python3.9'

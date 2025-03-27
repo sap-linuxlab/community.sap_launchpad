@@ -1,0 +1,71 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+# Logic behind relation validation:
+# - Known variations for files are validated in dedicated tasks
+# - Each SAP HANA version have different handling due to different versioning
+# - SAP HANA SPS is used to search for 
+
+- name: Relation Validation - SAP HANA - Set HANA variables
+  ansible.builtin.set_fact:
+    # "{{ '1' if __sap_software_download_sap_hana | regex_search('^IMDB_SERVER1') else '2' }}"
+    __sap_software_download_sap_hana_1_sps:
+      "{{ __sap_software_download_sap_hana.split('_')[2] | regex_replace('[^0-9]', '') }}"  # 122 for IMDB_SERVER100_122_35-10009569.SAR
+    __sap_software_download_sap_hana_1_sps_rev:
+      "{{ __sap_software_download_sap_hana.split('_')[3].split('-')[0] | regex_replace('[^0-9]', '') }}"  # 35 for IMDB_SERVER100_122_35-10009569.SAR
+
+    __sap_software_download_sap_hana_2_version:
+      "{{ __sap_software_download_sap_hana.split('_')[2] }}"  # 084 for IMDB_SERVER20_084_0-80002031.SAR
+
+
+# Warning is triggered only when following conditions are fulfilled
+# - At least one IMDB_LCAPPS_1 was found
+# - No IMDB_LCAPPS_<SPS>_<Revision> was found
+# Examples:
+# - IMDB_SERVER100_122_35-10009569.SAR - Maintenance Revision 122.35 (SPS12) for HANA DB 1.00
+# - IMDB_LCAPPS_122P_3500-20010426.SAR - LCAPPS for HANA 1.00.122.35 Build 100.47 PL 017
+- name: Relation Check - SAP HANA 1.00 - IMDB_SERVER and IMDB_LCAPPS
+  ansible.builtin.fail:
+    msg: |
+      Warning: Incompatible SAP HANA 1.0 LCAPPS files were found.
+      Ensure that correct version is selected: SPS {{ __sap_software_download_sap_hana_1_sps
+        }} and Revision {{ __sap_software_download_sap_hana_1_sps_rev }}
+
+      Expected file pattern: IMDB_LCAPPS_{{ __sap_software_download_sap_hana_1_sps }}*_{{ __sap_software_download_sap_hana_1_sps_rev }}*
+      Actual files detected: {{ __sap_software_download_sap_hana_1_lcapps_list | join(', ') }}
+  vars:
+    __sap_software_download_sap_hana_1_lcapps_list:
+      "{{ __sap_software_download_files | select('match', '^IMDB_LCAPPS_1.*') | list }}"
+    __sap_software_download_sap_hana_1_lcapps_list_filtered:
+      "{{ sap_software_download_files | select('match', '^IMDB_LCAPPS_.*'
+        ~ __sap_software_download_sap_hana_1_sps ~ '.*_' ~ __sap_software_download_sap_hana_1_sps_rev) | list }}"
+  ignore_errors: "{{ sap_software_download_ignore_relation_warning | d(false) }}"
+  when:
+    - __sap_software_download_sap_hana | regex_search('^IMDB_SERVER1')
+    - __sap_software_download_sap_hana_1_lcapps_list | length > 0
+    - __sap_software_download_sap_hana_1_lcapps_list_filtered | length == 0
+
+
+# Warning is triggered only when following conditions are fulfilled
+# - At least one IMDB_LCAPPS_1 was found
+# - No IMDB_LCAPPS_<SPS>_<Revision> was found
+# Examples:
+    # - IMDB_SERVER20_084_0-80002031.SAR - Revision 2.00.084.0 (SPS08) for HANA DB 2.0
+    # - IMDB_LCAPPS_2084_0-20010426.SAR - LCAPPS for HANA 2.0 Rev 84 Build 101.19 PL 007
+- name: Relation Check - SAP HANA 2.00 - IMDB_SERVER and IMDB_LCAPPS
+  ansible.builtin.fail:
+    msg: |
+      Warning: Incompatible SAP HANA 2.0 LCAPPS files were found.
+      Ensure that correct version is selected: {{ __sap_software_download_sap_hana_2_version }}
+
+      Expected file pattern: IMDB_LCAPPS_2{{ __sap_software_download_sap_hana_2_version }}*
+      Actual files detected: {{ __sap_software_download_sap_hana_2_lcapps_list | join(', ') }}
+  vars:
+    __sap_software_download_sap_hana_2_lcapps_list:
+      "{{ __sap_software_download_files | select('match', '^IMDB_LCAPPS_2.*') | list }}"
+    __sap_software_download_sap_hana_2_lcapps_list_filtered:
+      "{{ sap_software_download_files | select('match', '^IMDB_LCAPPS_2' ~ __sap_software_download_sap_hana_2_version) | list }}"
+  ignore_errors: "{{ sap_software_download_ignore_relation_warning | d(false) }}"
+  when:
+    - __sap_software_download_sap_hana | regex_search('^IMDB_SERVER2')
+    - __sap_software_download_sap_hana_2_lcapps_list | length > 0
+    - __sap_software_download_sap_hana_2_lcapps_list_filtered | length == 0
