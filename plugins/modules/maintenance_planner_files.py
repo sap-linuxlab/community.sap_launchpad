@@ -27,7 +27,7 @@ options:
     type: str
   transaction_name:
     description:
-      - Name or Display ID of your Maintenance Planner transaction.
+      - Transaction Name or Transaction Display ID from Maintenance Planner.
     required: true
     type: str
 author:
