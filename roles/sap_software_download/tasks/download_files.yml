@@ -2,14 +2,15 @@
 ---
 
 - name: Download - SAP Software Files - Get files with Python venv
-  when: sap_software_download_use_venv | d(true)
   community.sap_launchpad.software_center_download:
     suser_id: "{{ sap_software_download_suser_id }}"
     suser_password: "{{ sap_software_download_suser_password }}"
     search_query: "{{ item }}"
     download_path: "{{ sap_software_download_directory }}"
     search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
-  loop: "{{ sap_software_download_files }}"
+    deduplicate: "{{ sap_software_download_deduplicate | d('') }}"
+  # Loop condition acts as when conditional
+  loop: "{{ sap_software_download_files if sap_software_download_use_venv | d(true) else [] }}"
   loop_control:
     label: "{{ item }} : {{ __sap_software_download_files_results_venv.msg | d('') }}"
   register: __sap_software_download_files_results_venv
@@ -25,14 +26,15 @@
 
 
 - name: Download - SAP Software Files - Get files with default Python
-  when: not sap_software_download_use_venv | d(true)
   community.sap_launchpad.software_center_download:
     suser_id: "{{ sap_software_download_suser_id }}"
     suser_password: "{{ sap_software_download_suser_password }}"
     search_query: "{{ item }}"
     download_path: "{{ sap_software_download_directory }}"
     search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
-  loop: "{{ sap_software_download_files }}"
+    deduplicate: "{{ sap_software_download_deduplicate | d('') }}"
+  # Loop condition acts as when conditional
+  loop: "{{ sap_software_download_files if not sap_software_download_use_venv | d(true) else [] }}"
   loop_control:
     label: "{{ item }} : {{ __sap_software_download_files_results_default.msg | d('') }}"
   register: __sap_software_download_files_results_default

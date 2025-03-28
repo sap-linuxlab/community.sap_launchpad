@@ -49,6 +49,14 @@
       Empty variable `sap_software_download_directory`.
 
 
+- name: "Pre-Steps - Verify variable: sap_software_download_use_venv"
+  ansible.builtin.assert:
+    that:
+      - sap_software_download_use_venv is defined
+      - sap_software_download_use_venv is boolean
+    fail_msg: |
+      Variable `sap_software_download_use_venv` is not boolean. 
+
 - name: "Pre-Steps - Verify variable: sap_software_download_python_interpreter"
   ansible.builtin.assert:
     that:
@@ -56,7 +64,8 @@
       - sap_software_download_python_interpreter | length > 0
     fail_msg: |
       Empty variable `sap_software_download_python_interpreter`.
-      Ensure that it contains correct Python interpreter or revert back to defaults. 
+      Ensure that it contains correct Python interpreter or revert back to defaults.
+  when: sap_software_download_use_venv
 
 - name: "Pre-Steps - Verify variable: sap_software_download_python_package"
   ansible.builtin.assert:
@@ -66,14 +75,6 @@
     fail_msg: |
       Empty variable `sap_software_download_python_package`.
       Ensure that it contains correct Python package name or revert back to defaults. 
-
-- name: "Pre-Steps - Verify variable: sap_software_download_use_venv"
-  ansible.builtin.assert:
-    that:
-      - sap_software_download_use_venv is defined
-      - sap_software_download_use_venv is boolean
-    fail_msg: |
-      Variable `sap_software_download_use_venv` is not boolean. 
 
 - name: "Pre-Steps - Verify variable: sap_software_download_suser_id"
   ansible.builtin.assert:

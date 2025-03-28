@@ -1,58 +1,71 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-# Set which Python version will be used on managed node.
-# This is python executable name, which can differ from python package name.
-# The default value is set in var file corresponding with OS version.
-# Example: python3.11 (Suse), python3.9 (RedHat) 
+# The Python interpreter executable to use when creating a Python virtual environment.
+# Mandatory when `sap_software_download_use_venv` is `true`.
+# This is the name of the Python executable (e.g., `python3.11`, `python3.9`), which may differ from the Python package name.
+# The default value is determined by the operating system and is set in the corresponding OS-specific variables file.
+# Examples: `python3.11` (SUSE), `python3.9` (Red Hat)
 sap_software_download_python_interpreter:
   "{{ __sap_software_download_python_interpreter }}"
 
-# Set which Python package will be installed on managed node.
-# The default value is set in var file corresponding with OS version.
-# Example: python311 (Suse), python3.9 (RedHat)
+# The name of the OS package that provides the desired Python version.
+# The Python version provided by this package must match the version specified by `sap_software_download_python_interpreter`.
+# The default value is determined by the operating system and is set in the corresponding OS-specific variables file.
+# Examples: `python311` (SUSE), `python3.9` (Red Hat)
 sap_software_download_python_package:
   "{{ __sap_software_download_python_package }}"
 
-# Execute role in Python Virtual Environment (recommended).
-# If set to `false`, the role will install Python pip modules directly without.
+# Determines whether to execute the role within a Python virtual environment.
+# Using a virtual environment is strongly recommended to isolate dependencies.
+# If set to `false`, the role will install Python dependencies directly into the system's Python environment.
 sap_software_download_use_venv: true
 
-# Set S-User ID with appropriate authorizations for SAP Software download. 
+# The SAP S-User ID with download authorization for SAP software.
 sap_software_download_suser_id: ''
 
-# Set S-User password for user defined in `sap_software_download_suser_id`. 
+# The password for the SAP S-User specified in `sap_software_download_suser_id`. 
 sap_software_download_suser_password: ''
 
-# Enter list of SAP Software files to download.
+# A list of SAP software file names to download.
 sap_software_download_files: []
 
-# Enter Transaction Name or Transaction Display ID from SAP Maintenance planner.
+# The name or display ID of a transaction from the SAP Maintenance Planner.
+# If provided, the role will download all files associated with this Maintenance Plan transaction.
 sap_software_download_plan: ''
 
-# Set to `false` to disable searching for alternatives for unavailable files.
+# Enables searching for alternative files if the requested file is not found.
+# Only applies to files specified in `sap_software_download_files`. 
+# If set to `false`, the role will not search for alternatives.
 sap_software_download_find_alternatives: true
 
-# Enable handling of duplicate file results.
-# Available values: first , last
-# sap_software_download_deduplicate: first
-
-# Set directory where SAP Software will be downloaded.
+# The directory where downloaded SAP software files will be stored.
 sap_software_download_directory: '/software'
 
-# Set to `false` to disable check for known combinations of related files.
-# This functionality is not used with `sap_software_download_plan`
-# Example: Verify version of IMDB_LCAPPS against IMDB_SERVER if available.
+# Enables validation of relationships between SAP software files.
+# Only applies to files specified in `sap_software_download_files`.
+# If set to `false`, no relationship validation will be performed.
+# Example: Verify version of IMDB_LCAPPS against IMDB_SERVER if IMDB_SERVER was found.
 sap_software_download_validate_relations: true
 
-# Set to `true` to ignore errors during validation of file relations.
-# Applicable to `sap_software_download_validate_relations: true`
-sap_software_download_ignore_relation_warning: false
-
-# Set to `true` to ignore role errors when file is not found.
-# Download of files will proceed only for files that were found.
+# Determines whether to ignore errors when a requested file is not found.
+# If set to `true`, the role will continue execution and download other files, even if some files are not found.
+# If set to `false`, the role will fail if any requested file is not found.
 sap_software_download_ignore_file_not_found: false
 
-# Set to `true` to ignore role errors when Maintenance Plan is not found.
-# Role will continue with rest of files if `sap_software_download_files` is defined.
+# Determines whether to ignore errors when a specified Maintenance Plan transaction is not found.
+# If set to `true` and a Maintenance Plan is not found, the role will continue execution,
+# downloading any files specified in `sap_software_download_files`.
+# If set to `false`, the role will fail if the specified Maintenance Plan is not found.
 sap_software_download_ignore_plan_not_found: false
+
+# Determines whether to ignore warnings during file relationship validation.
+# If set to `true`, the role will continue execution even if there are warnings during the validation of file relationships.
+# If set to `false`, the role will fail if any warnings are encountered during file relationship validation.
+sap_software_download_ignore_relation_warning: false
+
+# Specifies how to handle duplicate file results when using `sap_software_download_files`.
+# If multiple files with the same name are found, this setting determines which one to download.
+#   `first`: Download the first file found.
+#   `last`: Download the last file found.
+# sap_software_download_deduplicate: first

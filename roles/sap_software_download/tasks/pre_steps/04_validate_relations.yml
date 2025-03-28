@@ -6,15 +6,16 @@
   block:
 
     - name: Relation Validation - Check availability of files with Python venv
-      when: sap_software_download_use_venv | d(true)
       community.sap_launchpad.software_center_download:
         suser_id: "{{ sap_software_download_suser_id }}"
         suser_password: "{{ sap_software_download_suser_password }}"
         search_query: "{{ item }}"
-        dest: "{{ sap_software_download_directory }}"
+        download_path: "{{ sap_software_download_directory }}"
         search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
+        deduplicate: "{{ sap_software_download_deduplicate | d('') }}"
         dry_run: true
-      loop: "{{ sap_software_download_files }}"
+      # Loop condition acts as when conditional
+      loop: "{{ sap_software_download_files if sap_software_download_use_venv | d(true) else [] }}"
       loop_control:
         label: "{{ item }} : {{ __sap_software_download_files_results_dryrun_venv.msg | d('') }}"
       register: __sap_software_download_files_results_dryrun_venv
@@ -30,15 +31,16 @@
 
 
     - name: Relation Validation - Check availability of files with default Python
-      when: not sap_software_download_use_venv | d(true)
       community.sap_launchpad.software_center_download:
         suser_id: "{{ sap_software_download_suser_id }}"
         suser_password: "{{ sap_software_download_suser_password }}"
         search_query: "{{ item }}"
-        dest: "{{ sap_software_download_directory }}"
+        download_path: "{{ sap_software_download_directory }}"
         search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
+        deduplicate: "{{ sap_software_download_deduplicate | d('') }}"
         dry_run: true
-      loop: "{{ sap_software_download_files }}"
+      # Loop condition acts as when conditional
+      loop: "{{ sap_software_download_files if not sap_software_download_use_venv | d(true) else [] }}"
       loop_control:
         label: "{{ item }} : {{ __sap_software_download_files_results_dryrun_default.msg | d('') }}"
       register: __sap_software_download_files_results_dryrun_default
