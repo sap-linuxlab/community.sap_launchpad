@@ -215,6 +215,7 @@ def _get_sdk_build_number(api_key):
 
     build_number = match.group(1)
     logger.debug(f'gigya sdk build number: {build_number}')
+    GIGYA_SDK_BUILD_NUMBER = build_number
     return build_number
 
 
