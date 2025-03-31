@@ -34,7 +34,7 @@ argument_specs:
 
       sap_software_download_use_venv:
         type: bool
-        required: true
+        required: false
         default: true
         description:
           - Determines whether to execute the role within a Python virtual environment.
@@ -62,7 +62,7 @@ argument_specs:
         description:
           - A list of SAP software file names to download.
 
-      sap_software_download_plan:
+      sap_software_download_mp_transaction:
         type: str
         required: false
         default: ""
@@ -86,9 +86,9 @@ argument_specs:
         description:
           - The directory where downloaded SAP software files will be stored.
 
-      sap_software_download_validate_relations:
+      sap_software_download_validate_relationships:
         type: bool
-        required: true
+        required: false
         default: true
         description:
           - Enables validation of relationships between SAP software files.
@@ -98,7 +98,7 @@ argument_specs:
 
       sap_software_download_ignore_file_not_found:
         type: bool
-        required: true
+        required: false
         default: false
         description:
           - Determines whether to ignore errors when a requested file is not found.
@@ -107,7 +107,7 @@ argument_specs:
 
       sap_software_download_ignore_plan_not_found:
         type: bool
-        required: true
+        required: false
         default: false
         description:
           - Determines whether to ignore errors when a specified Maintenance Plan transaction is not found.
@@ -115,12 +115,22 @@ argument_specs:
           - downloading any files specified in `sap_software_download_files`.
           - If set to `false`, the role will fail if the specified Maintenance Plan is not found.
 
-      sap_software_download_ignore_relation_warning:
+      sap_software_download_ignore_relationship_warning:
         type: bool
-        required: true
+        required: false
         default: false
         description:
           - Determines whether to ignore warnings during file relationship validation.
+          - If set to `true`, the role will continue execution even if there are warnings during the validation of file relationships.
+          - If set to `false`, the role will fail if any warnings are encountered during file relationship validation.
+
+      sap_software_download_ignore_validate_credentials:
+        type: bool
+        required: false
+        default: false
+        description:
+          - Determines whether to ignore warnings during file relationship validation.
+          - Disabling this check can lead to locked account, if password is incorrect.
           - If set to `true`, the role will continue execution even if there are warnings during the validation of file relationships.
           - If set to `false`, the role will fail if any warnings are encountered during file relationship validation.
 

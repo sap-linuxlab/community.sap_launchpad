@@ -1,0 +1,87 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Relationship Validation - SAP HANA 1.00 - Set HANA variables
+  ansible.builtin.set_fact:
+    # 122 for IMDB_SERVER100_122_35-10009569.SAR
+    __sap_software_download_sap_hana_1_version:
+      "{{ __sap_software_download_sap_hana.split('_')[2] | regex_replace('[^0-9]', '') }}"
+    
+    # 35 for IMDB_SERVER100_122_35-10009569.SAR
+    __sap_software_download_sap_hana_1_revision:
+      "{{ __sap_software_download_sap_hana.split('_')[3].split('-')[0] | regex_replace('[^0-9]', '') }}"
+
+
+# Warning conditions:
+# - At least one IMDB_LCAPPS_1 was found
+# - No IMDB_LCAPPS_<Version>_<Revision> was found
+# Examples:
+# - IMDB_SERVER100_122_35-10009569.SAR - Maintenance Revision 122.35 (SPS12) for HANA DB 1.00
+# - IMDB_LCAPPS_122P_3500-20010426.SAR - LCAPPS for HANA 1.00.122.35 Build 100.47 PL 017
+- name: Relationship Validation - SAP HANA 1.00 - IMDB_SERVER and IMDB_LCAPPS
+  ansible.builtin.fail:
+    msg: |
+      Warning: Incompatible SAP HANA component LCAPPS files were found for detected SAP HANA DATABASE 1.0 {{
+        __sap_software_download_sap_hana_1_version }}.{{ __sap_software_download_sap_hana_1_revision }}.
+  
+      Expected file pattern: IMDB_LCAPPS_{{
+        __sap_software_download_sap_hana_1_version }}*_{{__sap_software_download_sap_hana_1_revision }}*
+      Actual files detected: {{ __sap_software_download_sap_hana_1_lcapps_list | unique | join(', ') }}
+  vars:
+    __sap_software_download_sap_hana_1_lcapps_list:
+      "{{ __sap_software_download_files | select('match', '^IMDB_LCAPPS_1.*') | list }}"
+    __sap_software_download_sap_hana_1_lcapps_list_filtered:
+      "{{ sap_software_download_files | select('match', '^IMDB_LCAPPS_.*'
+        ~ __sap_software_download_sap_hana_1_version ~ '.*_' ~ __sap_software_download_sap_hana_1_revision) | list }}"
+  ignore_errors: "{{ sap_software_download_ignore_relationship_warning | d(false) }}"
+  when:
+    - __sap_software_download_sap_hana_1_lcapps_list | length > 0
+    - __sap_software_download_sap_hana_1_lcapps_list_filtered | length == 0
+
+
+# Warning conditions:
+# - At least one IMDB_AFL100 was found
+# - No IMDB_AFL100_<Version>_<Revision> was found
+# Examples:
+# - IMDB_SERVER100_122_35-10009569.SAR - Maintenance Revision 122.35 (SPS12) for HANA DB 1.00
+# - IMDB_AFL100_122P_3500-10012328.SAR - SAP HANA AFL 1.0 Revision 122.3500 only for HANA DB 122.35
+- name: Relationship Validation - SAP HANA 1.00 - IMDB_SERVER and IMDB_AFL
+  ansible.builtin.fail:
+    msg: |
+      Warning: Incompatible SAP HANA component AFL files were found for detected SAP HANA DATABASE 1.0 {{
+        __sap_software_download_sap_hana_1_version }}.{{ __sap_software_download_sap_hana_1_revision }}.
+
+      Expected file pattern: IMDB_AFL100_{{ __sap_software_download_sap_hana_1_version }}*_{{ __sap_software_download_sap_hana_1_revision }}*
+      Actual files detected: {{ __sap_software_download_sap_hana_1_afl_list | unique | join(', ') }}
+  vars:
+    __sap_software_download_sap_hana_1_afl_list:
+      "{{ __sap_software_download_files | select('match', '^IMDB_AFL100.*') | list }}"
+    __sap_software_download_sap_hana_1_afl_list_filtered:
+      "{{ sap_software_download_files | select('match', '^IMDB_AFL100_.*'
+        ~ __sap_software_download_sap_hana_1_version ~ '.*_' ~ __sap_software_download_sap_hana_1_revision) | list }}"
+  ignore_errors: "{{ sap_software_download_ignore_relationship_warning | d(false) }}"
+  when:
+    - __sap_software_download_sap_hana_1_afl_list | length > 0
+    - __sap_software_download_sap_hana_1_afl_list_filtered | length == 0
+
+
+# Warning conditions:
+# - At least one IMDB_CLIENT was found
+# - No IMDB_CLIENT1* was found
+# Examples:
+    # - IMDB_SERVER100_122_35-10009569.SAR - Maintenance Revision 122.35 (SPS12) for HANA DB 1.00
+    # - IMDB_CLIENT100_120_140-10009663.SAR - Revision 120 for SAP HANA CLIENT 1.00
+- name: Relationship Validation - SAP HANA 1.00 - IMDB_SERVER and IMDB_CLIENT
+  ansible.builtin.fail:
+    msg: |
+      Warning: Incompatible SAP HANA client files were found for detected SAP HANA DATABASE 1.0.
+
+      Expected file pattern: IMDB_CLIENT100_*
+      Actual files detected: {{ __sap_software_download_sap_hana_client_list | unique | join(', ') }}
+  vars:
+    __sap_software_download_sap_hana_client_list:
+      "{{ __sap_software_download_files | select('match', '^IMDB_CLIENT.*') | list }}"
+  ignore_errors: "{{ sap_software_download_ignore_relationship_warning | d(false) }}"
+  when:
+    - __sap_software_download_sap_hana_client_list | length > 0
+    - __sap_software_download_sap_hana_client_list | select('match', '^IMDB_CLIENT1.*') | length == 0

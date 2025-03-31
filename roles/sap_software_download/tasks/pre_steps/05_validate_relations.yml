@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: Block - Relation Validation - Check availability of files (with alternatives)
+- name: Block - Relationship Validation - Check availability of files (with alternatives)
   when: sap_software_download_find_alternatives
   block:
 
-    - name: Relation Validation - Check availability of files with Python venv
+    - name: Relationship Validation - Dry run to check availability of files with Python venv
       community.sap_launchpad.software_center_download:
         suser_id: "{{ sap_software_download_suser_id }}"
         suser_password: "{{ sap_software_download_suser_password }}"
@@ -30,7 +30,7 @@
       ignore_errors: true  # Errors are ignored and validated afterwards
 
 
-    - name: Relation Validation - Check availability of files with default Python
+    - name: Relationship Validation - Dry run to check availability of files with Python system default
       community.sap_launchpad.software_center_download:
         suser_id: "{{ sap_software_download_suser_id }}"
         suser_password: "{{ sap_software_download_suser_password }}"
@@ -51,40 +51,48 @@
       ignore_errors: true  # Errors are ignored and validated afterwards
 
 
-    - name: Relation Validation - Set fact with software_center_download output
+    - name: Relationship Validation - Set fact with software_center_download output
       ansible.builtin.set_fact:
         __sap_software_download_files_results_dryrun: "{{ __sap_software_download_files_results_dryrun_venv
           if sap_software_download_use_venv | d(true) else __sap_software_download_files_results_dryrun_default }}"
 
-    - name: Relation Validation - Show failed results
+    - name: Relationship Validation - Show failed results
       ansible.builtin.fail:
         msg: |
-          Relation validation failed because following files were not found: {{ __failed_items | map(attribute='item') | list | join(', ') }}
+          Relationship validation failed because following files were not found: {{ __failed_items | map(attribute='item') | list | join(', ') }}
           Either ensure correct list of files in `sap_software_download_files`
           or ignore this error with `sap_software_download_ignore_file_not_found` set to `true`.
       vars:
         __failed_items: "{{ __sap_software_download_files_results_dryrun.results | selectattr('failed', 'defined') | selectattr('failed', 'true') }}"
       when:
-        - not sap_software_download_ignore_file_not_found
+        - not sap_software_download_ignore_file_not_found | d(false)
         - __failed_items | length > 0
 
 
-- name: Relation Validation - Define list of files
+- name: Relationship Validation - Define list of files
   ansible.builtin.set_fact:
     __sap_software_download_files: "{{ sap_software_download_files if not sap_software_download_find_alternatives
       else __sap_software_download_files_results_dryrun.results | selectattr('failed', 'false')| map(attribute='filename') | list | unique | d([])}}"
 
 
-- name: Relation Validation - SAP HANA - Multiple IMDB_SERVER files found
+- name: Relationship Validation - SAP HANA - Multiple IMDB_SERVER files found
   ansible.builtin.debug:
-    msg: Warning - Multiple SAP HANA Database (IMDB_SERVER) found, which can result in inaccurate relation validation!
+    msg: Warning - Multiple SAP HANA Database (IMDB_SERVER) found, which can result in inaccurate relationship validation!
   when: __sap_software_download_files | select('match', '^IMDB_SERVER.*') | list | length > 1
 
 
-- name: Relation Validation - Include tasks for SAP HANA relation validation
-  when: __sap_software_download_files | select('match', '^IMDB_SERVER.*') | list | length > 0
+- name: Relationship Validation - Include tasks for SAP HANA 1.0 relationship validation
+  when: __sap_software_download_files | select('match', '^IMDB_SERVER1.*') | list | length > 0
   ansible.builtin.include_tasks:
-    file: pre_steps/05_validate_sap_hana.yml
-  loop: "{{ __sap_software_download_files | select('match', '^IMDB_SERVER.*') | list }}"
+    file: pre_steps/06_validate_sap_hana_1.yml
+  loop: "{{ __sap_software_download_files | select('match', '^IMDB_SERVER1.*') | list }}"
+  loop_control:
+    loop_var: __sap_software_download_sap_hana
+
+- name: Relationship Validation - Include tasks for SAP HANA 2.0 relationship validation
+  when: __sap_software_download_files | select('match', '^IMDB_SERVER2.*') | list | length > 0
+  ansible.builtin.include_tasks:
+    file: pre_steps/07_validate_sap_hana_2.yml
+  loop: "{{ __sap_software_download_files | select('match', '^IMDB_SERVER2.*') | list }}"
   loop_control:
     loop_var: __sap_software_download_sap_hana

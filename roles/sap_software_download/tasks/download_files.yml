@@ -25,7 +25,7 @@
   ignore_errors: true  # Errors are ignored and validated afterwards
 
 
-- name: Download - SAP Software Files - Get files with default Python
+- name: Download - SAP Software Files - Get files with Python system default
   community.sap_launchpad.software_center_download:
     suser_id: "{{ sap_software_download_suser_id }}"
     suser_password: "{{ sap_software_download_suser_password }}"
@@ -50,7 +50,7 @@
     __sap_software_download_files_results: "{{ __sap_software_download_files_results_venv
       if sap_software_download_use_venv | d(true) else __sap_software_download_files_results_default }}"
 
-- name: Relation Validation - Show failed results in dry run
+- name: Download - SAP Software Files - Show failed results
   ansible.builtin.fail:
     msg: |
       Download failed for following files: {{ __failed_items | map(attribute='item') | list | join(', ') }}
@@ -60,5 +60,5 @@
     __failed_items: "{{ __sap_software_download_files_results.results
       | selectattr('failed', 'defined') | selectattr('failed', 'true') }}"
   when:
-    - not sap_software_download_ignore_file_not_found
+    - not sap_software_download_ignore_file_not_found | d(false)
     - __failed_items | length > 0

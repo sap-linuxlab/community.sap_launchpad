@@ -32,7 +32,7 @@ sap_software_download_files: []
 
 # The name or display ID of a transaction from the SAP Maintenance Planner.
 # If provided, the role will download all files associated with this Maintenance Plan transaction.
-sap_software_download_plan: ''
+sap_software_download_mp_transaction: ''
 
 # Enables searching for alternative files if the requested file is not found.
 # Only applies to files specified in `sap_software_download_files`. 
@@ -46,7 +46,7 @@ sap_software_download_directory: '/software'
 # Only applies to files specified in `sap_software_download_files`.
 # If set to `false`, no relationship validation will be performed.
 # Example: Verify version of IMDB_LCAPPS against IMDB_SERVER if IMDB_SERVER was found.
-sap_software_download_validate_relations: true
+sap_software_download_validate_relationships: true
 
 # Determines whether to ignore errors when a requested file is not found.
 # If set to `true`, the role will continue execution and download other files, even if some files are not found.
@@ -62,7 +62,13 @@ sap_software_download_ignore_plan_not_found: false
 # Determines whether to ignore warnings during file relationship validation.
 # If set to `true`, the role will continue execution even if there are warnings during the validation of file relationships.
 # If set to `false`, the role will fail if any warnings are encountered during file relationship validation.
-sap_software_download_ignore_relation_warning: false
+sap_software_download_ignore_relationship_warning: false
+
+# Determines whether to ignore validate credentials task.
+# Disabling this check can lead to locked account, if password is incorrect.
+# If set to `true`, the role will continue execution without validating S-User credentials.
+# If set to `false`, the role will execute dry run to validate S-User credentials.
+sap_software_download_ignore_validate_credentials: false
 
 # Specifies how to handle duplicate file results when using `sap_software_download_files`.
 # If multiple files with the same name are found, this setting determines which one to download.

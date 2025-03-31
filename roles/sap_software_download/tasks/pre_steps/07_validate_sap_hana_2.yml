@@ -1,0 +1,80 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Relationship Validation - SAP HANA 2.00 - Set HANA variables
+  ansible.builtin.set_fact:
+    # 084 for IMDB_SERVER20_084_0-80002031.SAR
+    __sap_software_download_sap_hana_2_version:
+      "{{ __sap_software_download_sap_hana.split('_')[2] }}"
+
+
+# Warning conditions:
+# - At least one IMDB_LCAPPS_2 was found
+# - No IMDB_LCAPPS_2<Version> was found
+# Examples:
+    # - IMDB_SERVER20_084_0-80002031.SAR - Revision 2.00.084.0 (SPS08) for HANA DB 2.0
+    # - IMDB_LCAPPS_2084_0-20010426.SAR - LCAPPS for HANA 2.0 Rev 84 Build 101.19 PL 007
+- name: Relationship Validation - SAP HANA 2.00 - IMDB_SERVER and IMDB_LCAPPS
+  ansible.builtin.fail:
+    msg: |
+      Warning: Incompatible SAP HANA component LCAPPS files were found for detected SAP HANA DATABASE 2.0 Revision {{
+        __sap_software_download_sap_hana_2_version }}.
+
+      Expected file pattern: IMDB_LCAPPS_2{{ __sap_software_download_sap_hana_2_version }}*
+      Actual files detected: {{ __sap_software_download_sap_hana_2_lcapps_list | unique | join(', ') }}
+  vars:
+    __sap_software_download_sap_hana_2_lcapps_list:
+      "{{ __sap_software_download_files | select('match', '^IMDB_LCAPPS_2.*') | list }}"
+    __sap_software_download_sap_hana_2_lcapps_list_filtered:
+      "{{ sap_software_download_files | select('match', '^IMDB_LCAPPS_2' ~ __sap_software_download_sap_hana_2_version) | list }}"
+  ignore_errors: "{{ sap_software_download_ignore_relationship_warning | d(false) }}"
+  when:
+    - __sap_software_download_sap_hana_2_lcapps_list | length > 0
+    - __sap_software_download_sap_hana_2_lcapps_list_filtered | length == 0
+
+
+# Warning conditions:
+# - At least one IMDB_AFL20 was found
+# - No IMDB_AFL20_<Version> was found
+# Examples:
+    # - IMDB_SERVER20_084_0-80002031.SAR - Revision 2.00.084.0 (SPS08) for HANA DB 2.0
+    # - IMDB_AFL20_084_1-80001894.SAR - SAP HANA AFL Rev 84.1 only for HANA 2.0 Rev 84
+- name: Relationship Validation - SAP HANA 2.00 - IMDB_SERVER and IMDB_AFL
+  ansible.builtin.fail:
+    msg: |
+      Warning: Incompatible SAP HANA component AFL files were found for detected SAP HANA DATABASE 2.0 Revision {{
+        __sap_software_download_sap_hana_2_version }}.
+
+      Expected file pattern: IMDB_AFL20_{{ __sap_software_download_sap_hana_2_version }}*
+      Actual files detected: {{ __sap_software_download_sap_hana_2_afl_list | unique | join(', ') }}
+  vars:
+    __sap_software_download_sap_hana_2_afl_list:
+      "{{ __sap_software_download_files | select('match', '^IMDB_AFL20.*') | list }}"
+    __sap_software_download_sap_hana_2_afl_list_filtered:
+      "{{ sap_software_download_files | select('match', '^IMDB_AFL20_.*' ~ __sap_software_download_sap_hana_2_version) | list }}"
+  ignore_errors: "{{ sap_software_download_ignore_relationship_warning | d(false) }}"
+  when:
+    - __sap_software_download_sap_hana_2_afl_list | length > 0
+    - __sap_software_download_sap_hana_2_afl_list_filtered | length == 0
+
+
+# Warning conditions:
+# - At least one IMDB_CLIENT was found
+# - No IMDB_CLIENT2* was found
+# Examples:
+    # - IMDB_SERVER20_084_0-80002031.SAR - Revision 2.00.084.0 (SPS08) for HANA DB 2.0
+    # - IMDB_CLIENT20_024_21-80002082.SAR - SAP HANA CLIENT Version 2.24
+- name: Relationship Validation - SAP HANA 2.00 - IMDB_SERVER and IMDB_CLIENT
+  ansible.builtin.fail:
+    msg: |
+      Warning: Incompatible SAP HANA client files were found for detected SAP HANA DATABASE 2.0.
+
+      Expected file pattern: IMDB_CLIENT20_*
+      Actual files detected: {{ __sap_software_download_sap_hana_client_list | unique | join(', ') }}
+  vars:
+    __sap_software_download_sap_hana_client_list:
+      "{{ __sap_software_download_files | select('match', '^IMDB_CLIENT.*') | list }}"
+  ignore_errors: "{{ sap_software_download_ignore_relationship_warning | d(false) }}"
+  when:
+    - __sap_software_download_sap_hana_client_list | length > 0
+    - __sap_software_download_sap_hana_client_list | select('match', '^IMDB_CLIENT2.*') | length == 0

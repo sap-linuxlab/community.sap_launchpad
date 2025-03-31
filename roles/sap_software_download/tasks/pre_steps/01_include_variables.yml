@@ -35,9 +35,9 @@
   ansible.builtin.assert:
     that:
       - (sap_software_download_files is defined and sap_software_download_files | length > 0)
-        or (sap_software_download_plan is defined and sap_software_download_plan | length > 0)
+        or (sap_software_download_mp_transaction is defined and sap_software_download_mp_transaction | length > 0)
     fail_msg: |
-      Neither `sap_software_download_files` or `sap_software_download_plan` are valid.
+      Neither `sap_software_download_files` or `sap_software_download_mp_transaction` are valid.
       Ensure that it at least one of them is valid.
 
 - name: "Pre-Steps - Assert that download directory was provided"
@@ -52,10 +52,10 @@
 - name: "Pre-Steps - Verify variable: sap_software_download_use_venv"
   ansible.builtin.assert:
     that:
-      - sap_software_download_use_venv is defined
       - sap_software_download_use_venv is boolean
     fail_msg: |
-      Variable `sap_software_download_use_venv` is not boolean. 
+      Variable `sap_software_download_use_venv` is not boolean.
+  when: sap_software_download_use_venv is defined
 
 - name: "Pre-Steps - Verify variable: sap_software_download_python_interpreter"
   ansible.builtin.assert:
@@ -98,10 +98,10 @@
 - name: "Pre-Steps - Verify variable: sap_software_download_find_alternatives"
   ansible.builtin.assert:
     that:
-      - sap_software_download_find_alternatives is defined
       - sap_software_download_find_alternatives is boolean
     fail_msg: |
-      Variable `sap_software_download_find_alternatives` is not boolean. 
+      Variable `sap_software_download_find_alternatives` is not boolean.
+  when: sap_software_download_find_alternatives is defined
 
 - name: "Pre-Steps - Verify variable: sap_software_download_deduplicate"
   ansible.builtin.assert:

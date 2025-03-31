@@ -9,7 +9,7 @@
     download_filename: "{{ item.Filename }}"
     download_path: "{{ sap_software_download_directory }}"
   # Loop condition acts as when conditional
-  loop: "{{ __sap_software_download_plan_results.download_basket if sap_software_download_use_venv | d(true) else [] }}"
+  loop: "{{ __sap_software_download_mp_transaction_results.download_basket if sap_software_download_use_venv | d(true) else [] }}"
   loop_control:
     label: "{{ item.Filename }} : {{ __sap_software_download_files_plan_results_venv.msg | d('') }}"
   register: __sap_software_download_files_plan_results_venv
@@ -24,7 +24,7 @@
   ignore_errors: true  # Errors are ignored and validated afterwards
 
 
-- name: Download - Maintenance Plan - Get files with default Python
+- name: Download - Maintenance Plan - Get files with Python system default
   community.sap_launchpad.software_center_download:
     suser_id: "{{ sap_software_download_suser_id }}"
     suser_password: "{{ sap_software_download_suser_password }}"
@@ -32,7 +32,7 @@
     download_filename: "{{ item.Filename }}"
     download_path: "{{ sap_software_download_directory }}"
   # Loop condition acts as when conditional
-  loop: "{{ __sap_software_download_plan_results.download_basket if not sap_software_download_use_venv | d(true) else [] }}"
+  loop: "{{ __sap_software_download_mp_transaction_results.download_basket if not sap_software_download_use_venv | d(true) else [] }}"
   loop_control:
     label: "{{ item.Filename }} : {{ __sap_software_download_files_plan_results_default.msg | d('') }}"
   register: __sap_software_download_files_plan_results_default
@@ -51,11 +51,11 @@
 - name: Download - Maintenance Plan - Show failed results
   ansible.builtin.fail:
     msg: |
-      Maintenance Plan file(s) not found:  {{ __failed_items | map(attribute='item') | list | join(', ') }}
+      Maintenance Plan file(s) not found:  {{ __failed_items | map(attribute='Filename') | list | join(', ') }}
       Verify your Maintenance Plan on SAP Launchpad before retrying.
   vars:
     __failed_items: "{{ __sap_software_download_files_plan_results.results
       | selectattr('failed', 'defined') | selectattr('failed', 'true') }}"
   when:
-    - not sap_software_download_ignore_file_not_found
+    - not sap_software_download_ignore_file_not_found | d(false)
     - __failed_items | length > 0
