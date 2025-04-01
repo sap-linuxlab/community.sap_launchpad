@@ -51,7 +51,7 @@
 - name: Download - Maintenance Plan - Show failed results
   ansible.builtin.fail:
     msg: |
-      Maintenance Plan file(s) not found:  {{ __failed_items | map(attribute='Filename') | list | join(', ') }}
+      Maintenance Plan file(s) not found:  {{ __failed_items | map(attribute='item.Filename') | list | join(', ') }}
       Verify your Maintenance Plan on SAP Launchpad before retrying.
   vars:
     __failed_items: "{{ __sap_software_download_files_plan_results.results

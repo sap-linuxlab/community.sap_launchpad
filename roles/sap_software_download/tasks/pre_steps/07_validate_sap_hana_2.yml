@@ -17,8 +17,8 @@
 - name: Relationship Validation - SAP HANA 2.00 - IMDB_SERVER and IMDB_LCAPPS
   ansible.builtin.fail:
     msg: |
-      Warning: Incompatible SAP HANA component LCAPPS files were found for detected SAP HANA DATABASE 2.0 Revision {{
-        __sap_software_download_sap_hana_2_version }}.
+      Warning: Incompatible SAP HANA component LCAPPS files were found for detected SAP HANA DATABASE 2.0 SPS {{
+        __sap_software_download_sap_hana_2_version[:2] }} Revision {{ __sap_software_download_sap_hana_2_version }}.
 
       Expected file pattern: IMDB_LCAPPS_2{{ __sap_software_download_sap_hana_2_version }}*
       Actual files detected: {{ __sap_software_download_sap_hana_2_lcapps_list | unique | join(', ') }}
@@ -42,8 +42,8 @@
 - name: Relationship Validation - SAP HANA 2.00 - IMDB_SERVER and IMDB_AFL
   ansible.builtin.fail:
     msg: |
-      Warning: Incompatible SAP HANA component AFL files were found for detected SAP HANA DATABASE 2.0 Revision {{
-        __sap_software_download_sap_hana_2_version }}.
+      Warning: Incompatible SAP HANA component AFL files were found for detected SAP HANA DATABASE 2.0 SPS {{
+        __sap_software_download_sap_hana_2_version[:2] }} Revision {{ __sap_software_download_sap_hana_2_version }}.
 
       Expected file pattern: IMDB_AFL20_{{ __sap_software_download_sap_hana_2_version }}*
       Actual files detected: {{ __sap_software_download_sap_hana_2_afl_list | unique | join(', ') }}

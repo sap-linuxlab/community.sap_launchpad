@@ -6,7 +6,7 @@
     # 122 for IMDB_SERVER100_122_35-10009569.SAR
     __sap_software_download_sap_hana_1_version:
       "{{ __sap_software_download_sap_hana.split('_')[2] | regex_replace('[^0-9]', '') }}"
-    
+
     # 35 for IMDB_SERVER100_122_35-10009569.SAR
     __sap_software_download_sap_hana_1_revision:
       "{{ __sap_software_download_sap_hana.split('_')[3].split('-')[0] | regex_replace('[^0-9]', '') }}"
@@ -21,8 +21,9 @@
 - name: Relationship Validation - SAP HANA 1.00 - IMDB_SERVER and IMDB_LCAPPS
   ansible.builtin.fail:
     msg: |
-      Warning: Incompatible SAP HANA component LCAPPS files were found for detected SAP HANA DATABASE 1.0 {{
-        __sap_software_download_sap_hana_1_version }}.{{ __sap_software_download_sap_hana_1_revision }}.
+      Warning: Incompatible SAP HANA component LCAPPS files were found for detected SAP HANA DATABASE 1.0 SPS {{
+        __sap_software_download_sap_hana_1_version[:2] }} Revision {{ __sap_software_download_sap_hana_1_version
+        }}.{{ __sap_software_download_sap_hana_1_revision }}.
   
       Expected file pattern: IMDB_LCAPPS_{{
         __sap_software_download_sap_hana_1_version }}*_{{__sap_software_download_sap_hana_1_revision }}*
@@ -48,8 +49,9 @@
 - name: Relationship Validation - SAP HANA 1.00 - IMDB_SERVER and IMDB_AFL
   ansible.builtin.fail:
     msg: |
-      Warning: Incompatible SAP HANA component AFL files were found for detected SAP HANA DATABASE 1.0 {{
-        __sap_software_download_sap_hana_1_version }}.{{ __sap_software_download_sap_hana_1_revision }}.
+      Warning: Incompatible SAP HANA component AFL files were found for detected SAP HANA DATABASE 1.0 SPS {{
+        __sap_software_download_sap_hana_1_version[:2] }} Revision {{ __sap_software_download_sap_hana_1_version
+        }}.{{ __sap_software_download_sap_hana_1_revision }}.
 
       Expected file pattern: IMDB_AFL100_{{ __sap_software_download_sap_hana_1_version }}*_{{ __sap_software_download_sap_hana_1_revision }}*
       Actual files detected: {{ __sap_software_download_sap_hana_1_afl_list | unique | join(', ') }}
