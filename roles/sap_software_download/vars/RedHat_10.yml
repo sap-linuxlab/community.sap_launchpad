@@ -10,3 +10,12 @@ __sap_software_download_python_interpreter: 'python3.12'
 
 # Set which Python package will be installed on destination node.
 __sap_software_download_python_package: 'python3.12'
+
+# The list of required Python Modules in packages
+# This is required in order to avoid externally-managed-environment error.
+__sap_software_download_python_module_packages:
+  - python3.12-wheel
+  - python3.12-urllib3
+  - python3.12-requests
+  - python3.12-beautifulsoup4
+  - python3.12-lxml

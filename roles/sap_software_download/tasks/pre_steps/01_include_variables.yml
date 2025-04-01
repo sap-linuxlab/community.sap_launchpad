@@ -34,7 +34,7 @@
 - name: Pre-Steps - Assert that SAP Software files were specified
   ansible.builtin.assert:
     that:
-      - (sap_software_download_files is defined and sap_software_download_files | length > 0)
+      - (sap_software_download_files is defined and sap_software_download_files | type_debug == 'list' and sap_software_download_files | length > 0)
         or (sap_software_download_mp_transaction is defined and sap_software_download_mp_transaction | length > 0)
     fail_msg: |
       Neither `sap_software_download_files` or `sap_software_download_mp_transaction` are valid.
@@ -75,6 +75,16 @@
     fail_msg: |
       Empty variable `sap_software_download_python_package`.
       Ensure that it contains correct Python package name or revert back to defaults. 
+
+- name: "Pre-Steps - Verify variable: sap_software_download_python_module_packages"
+  ansible.builtin.assert:
+    that:
+      - sap_software_download_python_module_packages is defined
+      - sap_software_download_python_module_packages | type_debug == 'list'
+      - sap_software_download_python_module_packages | length > 0
+    fail_msg: |
+      Empty variable `sap_software_download_python_module_packages`.
+      Ensure that it contains correct list of Python module package names or revert back to defaults. 
 
 - name: "Pre-Steps - Verify variable: sap_software_download_suser_id"
   ansible.builtin.assert:

@@ -35,6 +35,9 @@
 - name: Pre-Steps - Block for default Python preparation
   when: not sap_software_download_use_venv | d(true)
   block:
-    - name: Pre-Steps - Install Python modules in default Python
-      ansible.builtin.pip:
-        name: "{{ __sap_software_download_python_modules }}"
+    # Packages with python modules are installed instead of modules to avoid error:
+    # `externally-managed-environment` which requires `--break-system-packages`
+    - name: Pre-Steps - Install Python module packages
+      ansible.builtin.package:
+        name: "{{ __sap_software_download_python_module_packages }}"
+        state: present

@@ -25,12 +25,24 @@ argument_specs:
 
       sap_software_download_python_package:
         type: str
-        required: true
+        required: false
         description:
           - The name of the OS package that provides the desired Python version.
           - The Python version provided by this package must match the version specified by `sap_software_download_python_interpreter`.
           - The default value is determined by the operating system and is set in the corresponding OS-specific variables file.
           - Examples are `python311` (SUSE), `python3.9` (Red Hat)
+
+      sap_software_download_python_module_packages:
+        type: list
+        elements: str
+        required: false
+        description:
+          - The list of the OS packages that provide modules for the desired Python version.
+          - Required modules are wheel, urllib3, requests, beautifulsoup4, lxml
+          - The listed package versions must match the Python version specified by `sap_software_download_python_interpreter`.
+          - The default value is determined by the operating system and is set in the corresponding OS-specific variables file. Examples are
+          - python311-wheel, python311-urllib3, python311-requests, python311-beautifulsoup4, python311-lxml (SUSE)
+          - python3.9-wheel, python3.9-urllib3, python3.9-requests, python3.9-beautifulsoup4, python3.9-lxml (Red Hat)
 
       sap_software_download_use_venv:
         type: bool

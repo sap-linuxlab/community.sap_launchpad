@@ -16,6 +16,15 @@ sap_software_download_python_interpreter:
 sap_software_download_python_package:
   "{{ __sap_software_download_python_package }}"
 
+# The list of the OS packages that provide modules for the desired Python version.
+# Required modules: wheel, urllib3, requests, beautifulsoup4, lxml
+# The listed package versions must match the Python version specified by `sap_software_download_python_interpreter`.
+# The default value is determined by the operating system and is set in the corresponding OS-specific variables file. Examples:
+# python311-wheel, python311-urllib3, python311-requests, python311-beautifulsoup4, python311-lxml (SUSE)
+# python3.9-wheel, python3.9-urllib3, python3.9-requests, python3.9-beautifulsoup4, python3.9-lxml (Red Hat)
+sap_software_download_python_module_packages:
+  "{{ __sap_software_download_python_module_packages }}"
+
 # Determines whether to execute the role within a Python virtual environment.
 # Using a virtual environment is strongly recommended to isolate dependencies.
 # If set to `false`, the role will install Python dependencies directly into the system's Python environment.
