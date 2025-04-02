@@ -8,3 +8,6 @@
     - **Sean Freeman** - Origin developer of Python API constructs, and project owner
 - **SVA GmbH - System Vertrieb Alexander GmbH**
   - **Rainer Leber** - User acceptance testing
+- **SUSE**
+  - SUSE SAP Emerging Technology Solutions
+    - **Marcel Mamula** - Developer of Ansible Collection
