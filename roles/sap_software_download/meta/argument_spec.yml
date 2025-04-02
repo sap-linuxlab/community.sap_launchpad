@@ -64,7 +64,7 @@ argument_specs:
         required: true
         no_log: true
         description:
-          - The password for the SAP S-User specified in `sap_software_download_suser_id`. 
+          - The password for the SAP S-User specified in `sap_software_download_suser_id`.
 
       sap_software_download_files:
         type: list
@@ -88,7 +88,7 @@ argument_specs:
         default: true
         description:
           - Enables searching for alternative files if the requested file is not found.
-          - Only applies to files specified in `sap_software_download_files`. 
+          - Only applies to files specified in `sap_software_download_files`.
           - If set to `false`, the role will not search for alternatives.
 
       sap_software_download_directory:

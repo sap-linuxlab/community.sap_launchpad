@@ -33,7 +33,7 @@ sap_software_download_use_venv: true
 # The SAP S-User ID with download authorization for SAP software.
 sap_software_download_suser_id: ''
 
-# The password for the SAP S-User specified in `sap_software_download_suser_id`. 
+# The password for the SAP S-User specified in `sap_software_download_suser_id`.
 sap_software_download_suser_password: ''
 
 # A list of SAP software file names to download.
@@ -44,18 +44,12 @@ sap_software_download_files: []
 sap_software_download_mp_transaction: ''
 
 # Enables searching for alternative files if the requested file is not found.
-# Only applies to files specified in `sap_software_download_files`. 
+# Only applies to files specified in `sap_software_download_files`.
 # If set to `false`, the role will not search for alternatives.
 sap_software_download_find_alternatives: true
 
 # The directory where downloaded SAP software files will be stored.
 sap_software_download_directory: '/software'
-
-# Enables validation of relationships between SAP software files.
-# Only applies to files specified in `sap_software_download_files`.
-# If set to `false`, no relationship validation will be performed.
-# Example: Verify version of IMDB_LCAPPS against IMDB_SERVER if IMDB_SERVER was found.
-sap_software_download_validate_relationships: true
 
 # Determines whether to ignore errors when a requested file is not found.
 # If set to `true`, the role will continue execution and download other files, even if some files are not found.
@@ -67,6 +61,12 @@ sap_software_download_ignore_file_not_found: false
 # downloading any files specified in `sap_software_download_files`.
 # If set to `false`, the role will fail if the specified Maintenance Plan is not found.
 sap_software_download_ignore_plan_not_found: false
+
+# Enables validation of relationships between SAP software files.
+# Only applies to files specified in `sap_software_download_files`.
+# If set to `false`, no relationship validation will be performed.
+# Example: Verify version of IMDB_LCAPPS against IMDB_SERVER if IMDB_SERVER was found.
+sap_software_download_validate_relationships: true
 
 # Determines whether to ignore warnings during file relationship validation.
 # If set to `true`, the role will continue execution even if there are warnings during the validation of file relationships.

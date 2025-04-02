@@ -10,9 +10,9 @@
   register: __sap_software_download_mp_transaction_results_venv
   retries: 1
   environment:
-    PATH: "{{ __sap_software_download_venv.path }}/bin:{{ ansible_env.PATH }}" 
-    PYTHONPATH: "{{ __sap_software_download_venv.path }}/lib/{{ sap_software_download_python_interpreter }}/site-packages" 
-    VIRTUAL_ENV: "{{ __sap_software_download_venv.path }}" 
+    PATH: "{{ __sap_software_download_venv.path }}/bin:{{ ansible_env.PATH }}"
+    PYTHONPATH: "{{ __sap_software_download_venv.path }}/lib/{{ sap_software_download_python_interpreter }}/site-packages"
+    VIRTUAL_ENV: "{{ __sap_software_download_venv.path }}"
   vars:
     ansible_python_interpreter: "{{ __sap_software_download_venv.path ~ '/bin/' ~ sap_software_download_python_interpreter }}"
   changed_when: false  # Getting list of files does not change anything

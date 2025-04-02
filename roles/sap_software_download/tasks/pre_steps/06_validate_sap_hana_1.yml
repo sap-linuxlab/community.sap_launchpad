@@ -24,7 +24,7 @@
       Warning: Incompatible SAP HANA component LCAPPS files were found for detected SAP HANA DATABASE 1.0 SPS {{
         __sap_software_download_sap_hana_1_version[:2] }} Revision {{ __sap_software_download_sap_hana_1_version
         }}.{{ __sap_software_download_sap_hana_1_revision }}.
-  
+
       Expected file pattern: IMDB_LCAPPS_{{
         __sap_software_download_sap_hana_1_version }}*_{{__sap_software_download_sap_hana_1_revision }}*
       Actual files detected: {{ __sap_software_download_sap_hana_1_lcapps_list | unique | join(', ') }}

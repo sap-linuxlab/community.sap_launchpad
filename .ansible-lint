@@ -5,7 +5,7 @@ exclude_paths:
   - .ansible/
   - .cache/
   - .github/
-  #- docs/
+  # - docs/
   - changelogs/
   - playbooks/
   - tests/

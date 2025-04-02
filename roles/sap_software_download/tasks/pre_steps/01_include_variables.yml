@@ -74,7 +74,7 @@
       - sap_software_download_python_package | length > 0
     fail_msg: |
       Empty variable `sap_software_download_python_package`.
-      Ensure that it contains correct Python package name or revert back to defaults. 
+      Ensure that it contains correct Python package name or revert back to defaults.
 
 - name: "Pre-Steps - Verify variable: sap_software_download_python_module_packages"
   ansible.builtin.assert:
@@ -84,7 +84,7 @@
       - sap_software_download_python_module_packages | length > 0
     fail_msg: |
       Empty variable `sap_software_download_python_module_packages`.
-      Ensure that it contains correct list of Python module package names or revert back to defaults. 
+      Ensure that it contains correct list of Python module package names or revert back to defaults.
 
 - name: "Pre-Steps - Verify variable: sap_software_download_suser_id"
   ansible.builtin.assert:
@@ -93,7 +93,7 @@
       - sap_software_download_suser_id | length > 0
     fail_msg: |
       Empty variable `sap_software_download_suser_id`.
-      Enter valid S-User ID with download authorizations. 
+      Enter valid S-User ID with download authorizations.
 
 - name: "Pre-Steps - Verify variable: sap_software_download_suser_password"
   ansible.builtin.assert:
