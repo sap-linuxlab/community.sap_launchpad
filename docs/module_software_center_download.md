@@ -24,7 +24,7 @@ Download SAP Software file
     suser_id: "Enter SAP S-User ID"
     suser_password: "Enter SAP S-User Password"
     search_query: "Enter SAP Software file name"
-    download_path: "Enter download path (e.g. /software)"
+    dest: "Enter download path (e.g. /software)"
 ```
 
 Download SAP Software file, but search for alternatives if not found
@@ -34,7 +34,7 @@ Download SAP Software file, but search for alternatives if not found
     suser_id: "Enter SAP S-User ID"
     suser_password: "Enter SAP S-User Password"
     search_query: "Enter SAP Software file name"
-    download_path: "Enter download path (e.g. /software)"
+    dest: "Enter download path (e.g. /software)"
     search_alternatives: true
     deduplicate: "last"
 ```
@@ -46,7 +46,7 @@ Download list of SAP Software files, but search for alternatives if not found
     suser_id: "Enter SAP S-User ID"
     suser_password: "Enter SAP S-User Password"
     search_query: "{{ item }}"
-    download_path: "Enter download path (e.g. /software)"
+    dest: "Enter download path (e.g. /software)"
     search_alternatives: true
     deduplicate: "last"
   loop:
@@ -66,7 +66,7 @@ Download SAP Software file using Python Virtual Environment `/tmp/venv`
     suser_id: "Enter SAP S-User ID"
     suser_password: "Enter SAP S-User Password"
     search_query: "{{ item }}"
-    download_path: "Enter download path (e.g. /software)"
+    dest: "Enter download path (e.g. /software)"
   loop:
     - "Enter SAP Software file name 1"
     - "Enter SAP Software file name 2"
@@ -179,7 +179,7 @@ Download links can be obtained from SAP Software Center or using module `module_
 Download filename of the SAP software.</br>
 Download names can be obtained from SAP Software Center or using module `module_maintenance_planner_files`.
 
-### download_path
+### dest
 - _Required:_ `true`<br>
 - _Type:_ `string`<br>
 

@@ -24,7 +24,7 @@ Obtain Stack file
     suser_id: "Enter SAP S-User ID"
     suser_password: "Enter SAP S-User Password"
     transaction_name: "Transaction Name or Display ID from Maintenance Planner"
-    download_path: "/software"
+    dest: "/software"
   register: __module_results
 ```
 
@@ -35,7 +35,7 @@ Obtain Stack file using Python Virtual Environment `/tmp/venv`
     suser_id: "Enter SAP S-User ID"
     suser_password: "Enter SAP S-User Password"
     transaction_name: "Transaction Name or Display ID from Maintenance Planner"
-    download_path: "/software"
+    dest: "/software"
   register: __module_results
   environment:
     PATH: "/tmp/venv:{{ ansible_env.PATH }}" 
@@ -130,7 +130,7 @@ The password for the SAP S-User specified in `suser_id`.
 
 The name or display ID of a transaction from the SAP Maintenance Planner.
 
-### download_path
+### dest
 - _Required:_ `true`<br>
 - _Type:_ `string`<br>
 
