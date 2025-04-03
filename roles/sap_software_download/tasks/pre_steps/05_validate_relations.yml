@@ -10,7 +10,7 @@
         suser_id: "{{ sap_software_download_suser_id }}"
         suser_password: "{{ sap_software_download_suser_password }}"
         search_query: "{{ item }}"
-        download_path: "{{ sap_software_download_directory }}"
+        dest: "{{ sap_software_download_directory }}"
         search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
         deduplicate: "{{ sap_software_download_deduplicate | d('') }}"
         dry_run: true
@@ -35,7 +35,7 @@
         suser_id: "{{ sap_software_download_suser_id }}"
         suser_password: "{{ sap_software_download_suser_password }}"
         search_query: "{{ item }}"
-        download_path: "{{ sap_software_download_directory }}"
+        dest: "{{ sap_software_download_directory }}"
         search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
         deduplicate: "{{ sap_software_download_deduplicate | d('') }}"
         dry_run: true

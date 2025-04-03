@@ -7,7 +7,7 @@
     suser_password: "{{ sap_software_download_suser_password }}"
     download_link: "{{ item.DirectLink }}"
     download_filename: "{{ item.Filename }}"
-    download_path: "{{ sap_software_download_directory }}"
+    dest: "{{ sap_software_download_directory }}"
   # Loop condition acts as when conditional
   loop: "{{ __sap_software_download_mp_transaction_results.download_basket if sap_software_download_use_venv | d(true) else [] }}"
   loop_control:
@@ -30,7 +30,7 @@
     suser_password: "{{ sap_software_download_suser_password }}"
     download_link: "{{ item.DirectLink }}"
     download_filename: "{{ item.Filename }}"
-    download_path: "{{ sap_software_download_directory }}"
+    dest: "{{ sap_software_download_directory }}"
   # Loop condition acts as when conditional
   loop: "{{ __sap_software_download_mp_transaction_results.download_basket if not sap_software_download_use_venv | d(true) else [] }}"
   loop_control:
