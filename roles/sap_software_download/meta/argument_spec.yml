@@ -82,6 +82,14 @@ argument_specs:
           - The name or display ID of a transaction from the SAP Maintenance Planner.
           - If provided, the role will download all files associated with this Maintenance Plan transaction.
 
+      sap_software_download_mp_stack_xml:
+        type: bool
+        required: false
+        default: true
+        description:
+          - Enables download of Maintenance Plan Stack XML file together with files.
+          - If set to `false`, Stack XML file will not be downloaded.
+
       sap_software_download_find_alternatives:
         type: bool
         required: true

@@ -29,6 +29,13 @@
     - sap_software_download_validate_relationships
 
 
+- name: SAP Software Download - Download - Stack XML {{ sap_software_download_mp_transaction | d('') }}
+  ansible.builtin.include_tasks:
+    file: download_stack.yml
+  when:
+    - sap_software_download_mp_transaction | length > 0
+    - sap_software_download_mp_stack_xml | d(true)
+
 - name: SAP Software Download - Download - Maintenance Plan {{ sap_software_download_mp_transaction | d('') }}
   ansible.builtin.include_tasks:
     file: download_plan.yml
