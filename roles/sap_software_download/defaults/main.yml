@@ -43,6 +43,10 @@ sap_software_download_files: []
 # If provided, the role will download all files associated with this Maintenance Plan transaction.
 sap_software_download_mp_transaction: ''
 
+# Enables download of Maintenance Plan Stack XML file together with files.
+# If set to `false`, Stack XML file will not be downloaded.
+sap_software_download_mp_stack_xml: true
+
 # Enables searching for alternative files if the requested file is not found.
 # Only applies to files specified in `sap_software_download_files`.
 # If set to `false`, the role will not search for alternatives.

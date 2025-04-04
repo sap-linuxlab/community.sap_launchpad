@@ -256,6 +256,13 @@ A list of SAP software file names to download.<br>
 The name or display ID of a transaction from the SAP Maintenance Planner.<br>
 If provided, the role will download all files associated with this Maintenance Plan transaction.<br>
 
+### sap_software_download_mp_stack_xml
+- _Type:_ `boolean`<br>
+- _Default:_ `true`<br>
+
+Enables download of Maintenance Plan Stack XML file together with files.<br>
+If set to `false`, Stack XML file will not be downloaded.<br>
+
 ### sap_software_download_find_alternatives
 - _Type:_ `boolean`<br>
 - _Default:_ `true`<br>
