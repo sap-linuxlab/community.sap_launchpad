@@ -4,7 +4,7 @@
 
 ## Description
 
-This Ansible Collection executes download of SAP Software.
+This Ansible Collection provides roles and modules to automate interaction with SAP Launchpad API, primarily focusing on downloading software and files from the SAP Software Download Center and Maintenance Planner.
 
 Included role and modules cover range of options:
 - Preparation of environment before download.

@@ -69,7 +69,7 @@ Prerequisite preparation using Python 3.11 Virtual Environment `/tmp/python_venv
 ---
 - name: Example play to install prerequisites for sap_launchpad
   hosts: all
-  pre_tasks:
+  tasks:
     - name: Install Python and Python package manager pip
       ansible.builtin.package:
         name:
@@ -94,7 +94,7 @@ Prerequisite preparation using Python 3.11 system default</br>
 ---
 - name: Example play to install prerequisites for sap_launchpad
   hosts: all
-  pre_tasks:
+  tasks:
     - name: Install Python and Python package manager pip
       ansible.builtin.package:
         name:

@@ -14,9 +14,9 @@ Enhancements to Modules and introduction of new Ansible Role.
 
 Minor Changes
 -------------
+- sap_software_download: New Ansible Role with enhanced logic for downloading software using Ansible Module software_center_download (https://github.com/sap-linuxlab/community.sap_launchpad/pull/32)
 - software_center_download: Add option to search for latest packages (https://github.com/sap-linuxlab/community.sap_launchpad/pull/28)
 - maintenance_planner modules: Add option to use Display ID instead of name (https://github.com/sap-linuxlab/community.sap_launchpad/pull/31)
-- sap_software_download: New role for downloading software (https://github.com/sap-linuxlab/community.sap_launchpad/pull/32)
 - Collection Readme update and preparation for 1.2.0 release (https://github.com/sap-linuxlab/community.sap_launchpad/pull/34)
 
 Bugfixes
