@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Download - Maintenance Plan Stack XML - Get file with Python venv
+  when: sap_software_download_use_venv | d(true)
+  community.sap_launchpad.maintenance_planner_stack_xml_download:
+    suser_id: "{{ sap_software_download_suser_id }}"
+    suser_password: "{{ sap_software_download_suser_password }}"
+    transaction_name: "{{ sap_software_download_mp_transaction }}"
+    dest: "{{ sap_software_download_directory }}"
+  register: __sap_software_download_stack_results_venv
+  retries: 1
+  environment:
+    PATH: "{{ __sap_software_download_venv.path }}/bin:{{ ansible_env.PATH }}"
+    PYTHONPATH: "{{ __sap_software_download_venv.path }}/lib/{{ sap_software_download_python_interpreter }}/site-packages"
+    VIRTUAL_ENV: "{{ __sap_software_download_venv.path }}"
+  vars:
+    ansible_python_interpreter: "{{ __sap_software_download_venv.path ~ '/bin/' ~ sap_software_download_python_interpreter }}"
+  ignore_errors: true  # Errors are ignored and validated afterwards
+
+
+- name: Download - Maintenance Plan Stack XML - Get file with Python system default
+  when: not sap_software_download_use_venv | d(true)
+  community.sap_launchpad.maintenance_planner_stack_xml_download:
+    suser_id: "{{ sap_software_download_suser_id }}"
+    suser_password: "{{ sap_software_download_suser_password }}"
+    transaction_name: "{{ sap_software_download_mp_transaction }}"
+    dest: "{{ sap_software_download_directory }}"
+  register: __sap_software_download_stack_results_default
+  retries: 1
+  vars:
+    ansible_python_interpreter: "{{ '/usr/bin/' ~ sap_software_download_python_interpreter }}"
+  ignore_errors: true  # Errors are ignored and validated afterwards
+
+
+- name: Download - Maintenance Plan Stack XML - Set fact with maintenance_planner_stack_xml_download output
+  ansible.builtin.set_fact:
+    __sap_software_download_stack_results: "{{ __sap_software_download_stack_results_venv
+      if sap_software_download_use_venv | d(true) else __sap_software_download_stack_results_default }}"
+
+- name: Download - Maintenance Plan Stack XML - Show failed results
+  ansible.builtin.fail:
+    msg: |
+      Download of Stack XML failed.
+      Either ensure correct value in `sap_software_download_mp_transaction`
+      or ignore this error with `sap_software_download_ignore_plan_not_found` set to `true`.
+  when:
+    - not sap_software_download_ignore_plan_not_found | d(false)
+    - __sap_software_download_stack_results.failed

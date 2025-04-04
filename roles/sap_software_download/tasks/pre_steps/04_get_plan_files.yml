@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Maintenance Plan - Get list of files with Python venv
+  when: sap_software_download_use_venv | d(true)
+  community.sap_launchpad.maintenance_planner_files:
+    suser_id: "{{ sap_software_download_suser_id }}"
+    suser_password: "{{ sap_software_download_suser_password }}"
+    transaction_name: "{{ sap_software_download_mp_transaction }}"
+  register: __sap_software_download_mp_transaction_results_venv
+  retries: 1
+  environment:
+    PATH: "{{ __sap_software_download_venv.path }}/bin:{{ ansible_env.PATH }}"
+    PYTHONPATH: "{{ __sap_software_download_venv.path }}/lib/{{ sap_software_download_python_interpreter }}/site-packages"
+    VIRTUAL_ENV: "{{ __sap_software_download_venv.path }}"
+  vars:
+    ansible_python_interpreter: "{{ __sap_software_download_venv.path ~ '/bin/' ~ sap_software_download_python_interpreter }}"
+  changed_when: false  # Getting list of files does not change anything
+  ignore_errors: true  # Errors are ignored and validated afterwards
+
+- name: Maintenance Plan - Get list of files with default Python
+  when: not sap_software_download_use_venv | d(true)
+  community.sap_launchpad.maintenance_planner_files:
+    suser_id: "{{ sap_software_download_suser_id }}"
+    suser_password: "{{ sap_software_download_suser_password }}"
+    transaction_name: "{{ sap_software_download_mp_transaction }}"
+  register: __sap_software_download_mp_transaction_results_default
+  retries: 1
+  vars:
+    ansible_python_interpreter: "{{ '/usr/bin/' ~ sap_software_download_python_interpreter }}"
+  changed_when: false  # Getting list of files does not change anything
+  ignore_errors: true  # Errors are ignored and validated afterwards
+
+- name: Maintenance Plan - Set fact with maintenance_planner_files output
+  ansible.builtin.set_fact:
+    __sap_software_download_mp_transaction_results: "{{ __sap_software_download_mp_transaction_results_venv
+      if sap_software_download_use_venv | d(true) else __sap_software_download_mp_transaction_results_default }}"
+
+
+- name: Maintenance Plan - Show failed results
+  ansible.builtin.fail:
+    msg: |
+      Maintenance Plan was not found.
+      Either ensure correct value in `sap_software_download_mp_transaction`
+      or ignore this error with `sap_software_download_ignore_plan_not_found` set to `true`.
+  when:
+    - not sap_software_download_ignore_plan_not_found | d(false)
+    - __sap_software_download_mp_transaction_results.failed
+
+- name: Maintenance Plan - Show ignored failed results
+  ansible.builtin.debug:
+    msg: |
+      Maintenance Plan was not found.
+      Error was ignored with `sap_software_download_ignore_plan_not_found` set to `true`.
+  when:
+    - sap_software_download_ignore_plan_not_found | d(false)
+    - __sap_software_download_mp_transaction_results.failed

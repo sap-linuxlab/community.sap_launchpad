@@ -1,0 +1,166 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+# Requires: ansible 2.16
+# Argument specifications in this separate file maintain backwards compatibility.
+argument_specs:
+
+  main:
+    short_description: Downloads SAP Software Media from SAP using an S-User ID and password.
+    description:
+      - This role downloads SAP Software Media from SAP using an S-User ID and password.
+      - It supports both direct file downloads and Maintenance Plan transactions.
+    options:
+
+      sap_software_download_python_interpreter:
+        description:
+          - If set to `false`, the role will only execute or verify the installation or configuration steps of SAP notes.
+          - Default is to perform installation and configuration steps.
+        required: false
+        type: str
+          - The Python interpreter executable to use when creating a Python virtual environment.
+          - Mandatory when `sap_software_download_use_venv` is `true`.
+          - This is the name of the Python executable (e.g., `python3.11`, `python3.9`), which may differ from the Python package name.
+          - The default value is determined by the operating system and is set in the corresponding OS-specific variables file.
+          - Examples are `python3.11` (SUSE), `python3.9` (Red Hat)
+
+      sap_software_download_python_package:
+        type: str
+        required: false
+        description:
+          - The name of the OS package that provides the desired Python version.
+          - The Python version provided by this package must match the version specified by `sap_software_download_python_interpreter`.
+          - The default value is determined by the operating system and is set in the corresponding OS-specific variables file.
+          - Examples are `python311` (SUSE), `python3.9` (Red Hat)
+
+      sap_software_download_python_module_packages:
+        type: list
+        elements: str
+        required: false
+        description:
+          - The list of the OS packages that provide modules for the desired Python version.
+          - Required modules are wheel, urllib3, requests, beautifulsoup4, lxml
+          - The listed package versions must match the Python version specified by `sap_software_download_python_interpreter`.
+          - The default value is determined by the operating system and is set in the corresponding OS-specific variables file. Examples are
+          - python311-wheel, python311-urllib3, python311-requests, python311-beautifulsoup4, python311-lxml (SUSE)
+          - python3.9-wheel, python3.9-urllib3, python3.9-requests, python3.9-beautifulsoup4, python3.9-lxml (Red Hat)
+
+      sap_software_download_use_venv:
+        type: bool
+        required: false
+        default: true
+        description:
+          - Determines whether to execute the role within a Python virtual environment.
+          - Using a virtual environment is strongly recommended to isolate dependencies.
+          - If set to `false`, the role will install Python dependencies directly into the system's Python environment.
+
+      sap_software_download_suser_id:
+        type: str
+        required: true
+        description:
+          - The SAP S-User ID with download authorization for SAP software.
+
+      sap_software_download_suser_password:
+        type: str
+        required: true
+        no_log: true
+        description:
+          - The password for the SAP S-User specified in `sap_software_download_suser_id`.
+
+      sap_software_download_files:
+        type: list
+        elements: str
+        required: false
+        default: []
+        description:
+          - A list of SAP software file names to download.
+
+      sap_software_download_mp_transaction:
+        type: str
+        required: false
+        default: ""
+        description:
+          - The name or display ID of a transaction from the SAP Maintenance Planner.
+          - If provided, the role will download all files associated with this Maintenance Plan transaction.
+
+      sap_software_download_mp_stack_xml:
+        type: bool
+        required: false
+        default: true
+        description:
+          - Enables download of Maintenance Plan Stack XML file together with files.
+          - If set to `false`, Stack XML file will not be downloaded.
+
+      sap_software_download_find_alternatives:
+        type: bool
+        required: true
+        default: true
+        description:
+          - Enables searching for alternative files if the requested file is not found.
+          - Only applies to files specified in `sap_software_download_files`.
+          - If set to `false`, the role will not search for alternatives.
+
+      sap_software_download_directory:
+        type: str
+        required: true
+        default: "/software"
+        description:
+          - The directory where downloaded SAP software files will be stored.
+
+      sap_software_download_validate_relationships:
+        type: bool
+        required: false
+        default: true
+        description:
+          - Enables validation of relationships between SAP software files.
+          - Only applies to files specified in `sap_software_download_files`.
+          - If set to `false`, no relationship validation will be performed.
+          - Example Verify version of IMDB_LCAPPS against IMDB_SERVER if IMDB_SERVER was found.
+
+      sap_software_download_ignore_file_not_found:
+        type: bool
+        required: false
+        default: false
+        description:
+          - Determines whether to ignore errors when a requested file is not found.
+          - If set to `true`, the role will continue execution and download other files, even if some files are not found.
+          - If set to `false`, the role will fail if any requested file is not found.
+
+      sap_software_download_ignore_plan_not_found:
+        type: bool
+        required: false
+        default: false
+        description:
+          - Determines whether to ignore errors when a specified Maintenance Plan transaction is not found.
+          - If set to `true` and a Maintenance Plan is not found, the role will continue execution,
+          - downloading any files specified in `sap_software_download_files`.
+          - If set to `false`, the role will fail if the specified Maintenance Plan is not found.
+
+      sap_software_download_ignore_relationship_warning:
+        type: bool
+        required: false
+        default: false
+        description:
+          - Determines whether to ignore warnings during file relationship validation.
+          - If set to `true`, the role will continue execution even if there are warnings during the validation of file relationships.
+          - If set to `false`, the role will fail if any warnings are encountered during file relationship validation.
+
+      sap_software_download_ignore_validate_credentials:
+        type: bool
+        required: false
+        default: false
+        description:
+          - Determines whether to ignore warnings during file relationship validation.
+          - Disabling this check can lead to locked account, if password is incorrect.
+          - If set to `true`, the role will continue execution even if there are warnings during the validation of file relationships.
+          - If set to `false`, the role will fail if any warnings are encountered during file relationship validation.
+
+      sap_software_download_deduplicate:
+        type: str
+        required: false
+        default: "first"
+        choices: ["first", "last"]
+        description:
+          - Specifies how to handle duplicate file results when using `sap_software_download_files`.
+          - If multiple files with the same name are found, this setting determines which one to download.
+          - Value `first` - Download the first file found.
+          - Value `last` - Download the last file found.

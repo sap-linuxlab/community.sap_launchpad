@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 # SAP Maintenance Planner Stack XML download
 
@@ -27,16 +27,16 @@ options:
     type: str
   transaction_name:
     description:
-      - Transaction name of your Maintenance Planner session.
+      - Transaction Name or Transaction Display ID from Maintenance Planner.
     required: true
     type: str
   dest:
     description:
-      - Destination folder.
+      - Destination folder path.
     required: true
     type: str
 author:
-    - Lab for SAP Solutions
+    - SAP LinuxLab
 
 '''
 
@@ -115,7 +115,7 @@ def run_module():
         auth_userapps()
 
         # EXEC: Get MP stack transaction id from transaction name
-        transaction_id = get_transaction_id_by_name(transaction_name)
+        transaction_id = get_transaction_id(transaction_name)
 
         # EXEC: Download the MP Stack XML file
         get_transaction_stack_xml(transaction_id, dest)

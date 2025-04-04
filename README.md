@@ -1,42 +1,118 @@
-# community.sap_launchpad Ansible Collection ![Ansible Lint](https://github.com/sap-linuxlab/community.sap_launchpad/actions/workflows/ansible-lint.yml/badge.svg?branch=main)
+# community.sap_launchpad Ansible Collection
 
-This Ansible Collection executes basic SAP.com Support operations tasks.
+![Ansible Lint](https://github.com/sap-linuxlab/community.sap_launchpad/actions/workflows/ansible-lint.yml/badge.svg?branch=main)
 
-## Functionality
+## Description
 
-This Ansible Collection executes basic SAP.com Support operations tasks, including:
+This Ansible Collection provides roles and modules to automate interaction with SAP Launchpad API, primarily focusing on downloading software and files from the SAP Software Download Center and Maintenance Planner.
 
-- **Software Center Catalog**
-  - Search and Download of SAP software center catalog files
-  - Search and Extraction of SAP software center catalog information
-- **Maintenance Planner**
-  - Lookup and download files from an existing 'New Implementation' MP Transaction and Stack, using SAP software center's download basket
+Included role and modules cover range of options:
+- Preparation of environment before download.
+- Download of specific SAP Software files.
+- Download of alternative SAP Software files if specific was not available. 
+- Download of SAP Software files from existing Maintenance Plan transaction.
+- Download of Stack file from existing Maintenance Plan transaction.
+- Register Systems and License Keys
+- Query registered Systems
+
+
+## Requirements
+
+### Control Nodes
+| Type | Version |
+| :--- | :--- |
+| Operating system | Any operating system with required Python and Ansible versions |
+| Python | 3.11 or higher |
+| Ansible | 9.9 or higher |
+| Ansible-core | 2.16 or higher |
+
+
+### Managed Nodes
+| Type | Version |
+| :--- | :--- |
+| Operating system | SUSE Linux Enterprise Server 15 SP5+, 16 <br> Red Hat Enterprise Linux 8.x, 9.x, 10.x |
+| Python | 3.11 or higher (SUSE) <br> 3.9 or higher (Red Hat) |
+
+**NOTE: Operating system needs to have access to required package repositories either directly or via subscription registration.**
+
+
+## Installation Instructions
+
+### Installation
+Install this collection with Ansible Galaxy command:
+```console
+ansible-galaxy collection install community.sap_launchpad
+```
+
+Optionally you can include collection in requirements.yml file and include it together with other collections using: `ansible-galaxy collection install -r requirements.yml`
+Requirements file need to be maintained in following format:
+```yaml
+collections:
+  - name: community.sap_launchpad
+```
+
+### Upgrade
+Installed Ansible Collection will not be upgraded automatically when Ansible package is upgraded.
+
+To upgrade the collection to the latest available version, run the following command:
+```console
+ansible-galaxy collection install community.sap_launchpad --upgrade
+```
+
+You can also install a specific version of the collection, when you encounter issues with latest version. Please report these issues in affected Role repository if that happens.
+Example of downgrading collection to version 1.0.0:
+```
+ansible-galaxy collection install community.sap_launchpad:==1.0.0
+```
+
+See [Installing collections](https://docs.ansible.com/ansible/latest/collections_guide/collections_installing.html) for more details on installation methods.
+
 
 ## Contents
 
-An Ansible Playbook can call either an Ansible Role, or the individual Ansible Modules for handling the API calls to various SAP Support Portal API capabilities:
-- **Ansible Roles** (runs multiple Ansible Modules)
-- **Ansible Modules** (and adjoining Python Functions)
-
-For further information regarding the development, code structure and execution workflow please read the [Development documentation](./docs/DEVELOPMENT.md).
-
-Within this Ansible Collection, there are various Ansible Modules.
-
-#### Ansible Modules
-
-| Name &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; | Summary |
+### Ansible Modules
+| Name | Summary |
 | :-- | :-- |
-| [sap_launchpad.software_center_download](./docs/module_software_center_download.md) | search for files and download |
-| [sap_launchpad.maintenance_planner_files](./docs/module_maintenance_planner_files.md) | maintenance planner files retrieval |
-| [sap_launchpad.maintenance_planner_stack_xml_download](./docs/module_maintenance_planner_stack_xml_download.md) | maintenance planner stack xml download |
+| [sap_launchpad.software_center_download](./docs/module_software_center_download.md) | Search and download SAP Software file |
+| [sap_launchpad.maintenance_planner_files](./docs/module_maintenance_planner_files.md) | Get list of files from Maintenance Planner |
+| [sap_launchpad.maintenance_planner_stack_xml_download](./docs/module_maintenance_planner_stack_xml_download.md) | Get stack file from Maintenance Planner |
 
-## Execution
+### Ansible Roles
+| Name | Summary |
+| :-- | :-- |
+| [sap_software_download](./roles/sap_software_download/README.md) | Prepare environment and download SAP Software files or Maintenance Plan transaction files |
 
-### Credentials - SAP User ID
 
-SAP software installation media must be obtained from SAP directly, and requires valid license agreements with SAP in order to access these files.
+## Testing
+This Ansible Collection was tested across different Operating Systems and SAP products.
 
-An SAP Company Number (SCN) contains one or more Installation Number/s, providing licences for specified SAP Software. When an SAP User ID is created within the SAP Customer Number (SCN), the administrator must provide SAP Download authorizations for the SAP User ID.
+| Type | Version |
+| :--- | :--- |
+| Operating system | SUSE Linux Enterprise Server 15 SP5+, 16 <br> Red Hat Enterprise Linux 8.x, 9.x, 10.x |
+| Python | 3.11, 3.12 |
+| Ansible | 9, 10, 11 |
+| Ansible-core | 2.16, 2.17, 2.18 |
+
+
+## Contributing
+You can find more information about ways you can contribute at [sap-linuxlab website](https://sap-linuxlab.github.io/initiative_contributions/).
+
+
+## Support
+You can report any issues using [Issues](https://github.com/sap-linuxlab/community.sap_launchpad/issues) section.
+
+
+## Release Notes and Roadmap
+You can find the release notes of this collection in [Changelog file](./CHANGELOG.rst)
+
+
+## Further Information
+
+### Credentials - SAP S-User
+
+SAP software files must be obtained from SAP directly, and requires valid license agreements with SAP in order to access these files.
+
+An SAP Company Number (SCN) contains one or more Installation Number/s, providing licenses for specified SAP Software. When an SAP User ID is created within the SAP Customer Number (SCN), the administrator must provide SAP Download authorizations for the SAP User ID.
 
 When an SAP User ID (e.g. S-User) is enabled with and part of an SAP Universal ID, then the `sap_launchpad` Ansible Collection **must** use:
 - the SAP User ID
@@ -46,63 +122,10 @@ In addition, if a SAP Universal ID is used then the recommendation is to check a
 
 For further information regarding connection errors, please see the FAQ section [Errors with prefix 'SAP SSO authentication failed - '](./docs/FAQ.md#errors-with-prefix-sap-sso-authentication-failed---).
 
-### Execution examples
+**Multi Factor Authentication is not supported.**
 
-There are various methods to execute the Ansible Collection, dependant on the use case. For more information, see [Execution examples with code samples](./docs/EXEC_EXAMPLES.md) and the summary below:
-
-| Execution Scenario | Use Case | Target |
-| --- | --- | --- |
-| Ansible Playbook <br/>-> source Ansible Collection <br/>-> execute Ansible Task <br/>--> run Ansible Module <br/>---> run Python/Bash Functions | Simple executions with a few activities | Localhost or Remote |
-| Ansible Playbook <br/>-> source Ansible Collection <br/>-> execute Ansible Task <br/>--> run Ansible Role <br/>---> run Ansible Module <br/>----> run Python/Bash Functions <br/>--> run Ansible Role<br/>---> ... | Complex executions with various interlinked activities;<br/> run in parallel or sequentially | Localhost or Remote |
-| Python/Bash Functions | Simple testing or non-Ansible use cases | Localhost |
-
----
-
-## Requirements, Dependencies and Testing
-
-### Operating System requirements
-
-Designed for Linux operating systems, e.g. RHEL.
-
-This role has not been tested and amended for SAP NetWeaver Application Server instantiations on IBM AIX or Windows Server.
-
-Assumptions for executing this role include:
-- Registered OS License and OS Package repositories are available (from the relevant content delivery network of the OS vendor)
-- Simultaneous Ansible Playbook executions will require amendment of Ansible Variable name `softwarecenter_search_list` shown in execution samples (containing the list of installation media to download). This avoids accidental global variable clashes from occuring in Ansible Playbooks executed from the same controller host with an inline Ansible Inventory against 'all' target hosts.
-
-### Python requirements
-
-Execution/Controller/Management host:
-- Python 3
-
-Target host:
-- Python 3, with Python Modules `beautifulsoup4 lxml requests` (see [Execution examples with code samples](./docs/EXEC_EXAMPLES.md))
-
-### Testing on execution/controller host
-
-**Tests with Ansible Core release versions:**
-- Ansible Core 2.11.5 community edition
-
-**Tests with Python release versions:**
-- Python 3.9.7 (i.e. CPython distribution)
-
-**Tests with Operating System release versions:**
-- RHEL 8.4
-- macOS 11.6 (Big Sur), with Homebrew used for Python 3.x via PyEnv
-
-### Testing on target/remote host
-
-**Tests with Operating System release versions:**
-- RHEL 8.2 for SAP
-
-**Tests with Python release versions:**
-- Python 3.6.x (i.e. CPython distribution), default for RHEL 8.x and SLES 15.x
-- Python 3.8.x (i.e. CPython distribution)
+### Variable Precedence Rules
+Please follow [Ansible Precedence guidelines](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable) on how to pass variables when using this collection.
 
 ## License
-
-- [Apache 2.0](./LICENSE)
-
-## Contributors
-
-Contributors to the Ansible Roles within this Ansible Collection, are shown within [/docs/contributors](./docs/CONTRIBUTORS.md).
+[Apache 2.0](./LICENSE)

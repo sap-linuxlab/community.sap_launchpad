@@ -37,9 +37,23 @@ def _request(url, **kwargs):
     method = 'POST' if kwargs.get('data') or kwargs.get('json') else 'GET'
     res = https_session.request(method, url, **kwargs)
 
-    if (res.status_code == 403
-            and res.json()['errorMessage'].startswith('Account Temporarily Locked Out')):
-        raise Exception('SAP ID Service has reported `Account Temporarily Locked Out`. Please reset password to regain access and try again.')
+    # Validating against `res.text` can cause long execution time, because fuzzy search result can contain large `res.text`.
+    # This can be prevented by validating `res.status_code` check before `res.text`.
+    # Example: 'Two-Factor Authentication' is only in `res.text`, which can lead to long execution.
+
+    if res.status_code == 403:
+        if 'You are not authorized to download this file' in res.text:
+            raise Exception(f'You are not authorized to download this file.')
+        elif 'Account Temporarily Locked Out' in res.text:
+            raise Exception(f'Account Temporarily Locked Out. Please reset password to regain access and try again.')
+        else:
+            res.raise_for_status()
+
+    if res.status_code == 404:
+        if 'The file you have requested cannot be found' in res.text:
+            raise Exception(f'The file you have requested cannot be found.')
+        else:
+            res.raise_for_status()
 
     res.raise_for_status()
 
