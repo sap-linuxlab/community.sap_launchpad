@@ -1,61 +1,79 @@
-# Execution examples
+# Developer notes for community.sap_launchpad Ansible Collection
 
-## Execution example with Ansible Playbook calling Ansible Module
+This document contains details for maintaining Ansible Collection.
 
-**Ansible Playbook YAML, execute Ansible Module**
+## Dependencies for all modules
+Modules require the following Python modules to be installed on the target node (the machine where SAP software will be downloaded):
+
+- wheel
+- urllib3
+- requests
+- beautifulsoup4
+- lxml
+
+### Installation of dependencies using role `sap_software_download`
+Ansible Role `sap_software_download` installs all required dependencies as part of `02_prepare_python_environment.yml` task file.
+
+### Installation of dependencies with Python Virtual Environment (venv)
+It is recommended to install dependencies in venv that can be removed after execution is completed.
 ```yaml
----
-- hosts: all
+- name: Example play to install prerequisites with Python Virtual Environment
+  hosts: all
+  tasks:
+    - name: Create temporary directory for Python Virtual Environment
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: __sap_software_download_venv
+      register: __sap_software_download_venv
 
-  collections:
-    - community.sap_launchpad
+    - name: Install Python and Python package manager pip
+      ansible.builtin.package:
+      name:
+        - python311
+        - python311-pip
+      state: present
 
-  pre_tasks:
-    - name: Install Python package manager pip3 to system Python
-      yum:
-        name: python3-pip
-        state: present
-    - name: Install Python dependencies for Ansible Modules to system Python
-      pip:
+    - name: Install Python modules to Python Virtual Environment
+      ansible.builtin.pip:
         name:
+          - wheel
           - urllib3
           - requests
           - beautifulsoup4
           - lxml
+        virtualenv: "{{ __sap_software_download_venv.path }}"
+        virtualenv_command: "python3.11 -m venv"
 
-# Prompt for Ansible Variables
-  vars_prompt:
-    - name: suser_id
-      prompt: Please enter S-User
-      private: no
-    - name: suser_password
-      prompt: Please enter Password
-      private: yes
-
-# Define Ansible Variables
-  vars:
-    ansible_python_interpreter: python3
-    softwarecenter_search_list: 
-      - 'SAPCAR_1324-80000936.EXE'
-      - 'HCMT_057_0-80003261.SAR'
-
-# Use task block to call Ansible Module
-  tasks:   
-    - name: Execute Ansible Module to download SAP software
-      community.sap_launchpad.software_center_download:
-        suser_id: "{{ suser_id }}"
-        suser_password: "{{ suser_password }}"
-        softwarecenter_search_query: "{{ item }}"
-        dest: "/tmp/"
-      loop: "{{ softwarecenter_search_list }}"
-      loop_control:
-        label: "{{ item }} : {{ download_task.msg }}"
-      register: download_task
-      retries: 1
-      until: download_task is not failed
+    - name: Remove temporary Python Virtual Environment
+      ansible.builtin.file:
+        path: "{{ __sap_software_download_venv.path }}"
+        state: absent
 ```
 
-**Execution of Ansible Playbook, with in-line Ansible Inventory set as localhost**
+### Installation of dependencies with Python system default
+```yaml
+- name: Example play to install prerequisites with Python system default
+  hosts: all
+  tasks:
+    - name: Install Python and Python package manager pip
+      ansible.builtin.package:
+      name:
+        - python31
+        - python311-pip
+      state: present
+
+    - name: Install Python modules to Python system default
+      ansible.builtin.pip:
+      name:
+        - wheel
+        - urllib3
+        - requests
+        - beautifulsoup4
+        - lxml
+```
+
+## Additional execution methods
+### Execution of Ansible Playbook, with in-line Ansible Inventory set as localhost
 
 ```shell
 # Install from local source directory for Ansible 2.11+
@@ -68,7 +86,7 @@ ansible-galaxy collection install community.sap_launchpad
 ansible-playbook --timeout 60 ./community.sap_launchpad/playbooks/sample-download-install-media.yml --inventory "localhost," --connection=local
 ```
 
-**Execution of Ansible Playbook, with in-line Ansible Inventory of target/remote hosts**
+### Execution of Ansible Playbook, with in-line Ansible Inventory of target/remote hosts
 
 ```shell
 # Install from local source directory for Ansible 2.11+
@@ -93,9 +111,8 @@ ansible-playbook --timeout 60 ./sample-playbook.yml \
 --ssh-extra-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand='ssh -W %h:%p $bastion_user@$bastion_host -p $bastion_port -i $bastion_private_key_file -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
 ```
 
-## Execution example with Python environment
-
-**Setup local Python environment**
+## Execution of Python Modules directly
+### Setup local Python environment
 ```shell
 # Change directory to Python scripts source
 cd ./plugins
@@ -112,7 +129,7 @@ pip3 install beautifulsoup4 lxml requests
 python3
 ```
 
-**Execute Python Functions**
+### Execute Python Functions
 ```python
 >>> from module_utils.sap_id_sso import sap_sso_login
 >>> from module_utils.sap_launchpad_software_center_download_runner import *
