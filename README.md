@@ -12,6 +12,8 @@ Included role and modules cover range of options:
 - Download of alternative SAP Software files if specific was not available. 
 - Download of SAP Software files from existing Maintenance Plan transaction.
 - Download of Stack file from existing Maintenance Plan transaction.
+- Register Systems and License Keys
+- Query registered Systems
 
 
 ## Requirements
