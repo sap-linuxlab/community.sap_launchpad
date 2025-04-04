@@ -48,7 +48,7 @@ options:
       - Download filename of the SAP software.
     required: false
     type: str
-  download_path:
+  dest:
     description:
       - Destination folder path.
     required: true
@@ -80,14 +80,14 @@ EXAMPLES = r'''
     suser_password: 'password'
     search_query:
       - 'SAPCAR_1324-80000936.EXE'
-    download_path: "/tmp/"
+    dest: "/tmp/"
 - name: Download using direct link and filename
   community.sap_launchpad.software_center_download:
     suser_id: 'SXXXXXXXX'
     suser_password: 'password'
     download_link: 'https://softwaredownloads.sap.com/file/0010000000048502015'
     download_filename: 'IW_FNDGC100.SAR'
-    download_path: "/tmp/"
+    dest: "/tmp/"
 '''
 
 RETURN = r'''
@@ -116,21 +116,21 @@ from ansible.module_utils.basic import AnsibleModule
 from ..module_utils.sap_launchpad_software_center_download_runner import *
 from ..module_utils.sap_id_sso import sap_sso_login
 
-def _check_similar_files(download_path, filename):
+def _check_similar_files(dest, filename):
     """
     Checks for similar files in the download path based on the given filename.
 
     Args:
-        download_path (str): The path where files are downloaded.
+        dest (str): The path where files are downloaded.
         filename (str): The filename to check for similar files.
 
     Returns:
         bool: True if similar files exist, False otherwise.
         filename_similar_names: A list of similar filenames if they exist, empty list otherwise.
     """
-    # pattern = download_path + '/**/' + os.path.splitext(filename)[0]
+    # pattern = dest + '/**/' + os.path.splitext(filename)[0]
     filename_base = os.path.splitext(filename)[0]
-    filename_pattern = os.path.join(download_path, "**", filename_base)
+    filename_pattern = os.path.join(dest, "**", filename_base)
     filename_similar = glob.glob(filename_pattern, recursive=True)
 
     if filename_similar:
@@ -150,7 +150,7 @@ def run_module():
         search_query=dict(type='str', required=False, default=''),
         download_link=dict(type='str', required=False, default=''),
         download_filename=dict(type='str', required=False, default=''),
-        download_path=dict(type='str', required=True),
+        dest=dict(type='str', required=True),
         dry_run=dict(type='bool', required=False, default=False),
         deduplicate=dict(type='str', required=False, default=''),
         search_alternatives=dict(type='bool', required=False, default=False)
@@ -174,7 +174,7 @@ def run_module():
     else:
         query = None
 
-    download_path = module.params['download_path']
+    dest = module.params['dest']
     download_link= module.params.get('download_link')
     download_filename= module.params.get('download_filename')
     dry_run = module.params.get('dry_run')
@@ -207,7 +207,7 @@ def run_module():
 
         # Search for existing files using exact filename
         filename = query if query else download_filename
-        filename_exact = os.path.join(download_path, filename)
+        filename_exact = os.path.join(dest, filename)
         result['filename'] = filename
 
         if os.path.exists(filename_exact):
@@ -216,7 +216,7 @@ def run_module():
             module.exit_json(**result)
         else:
             # Exact file not found, search for similar files with pattern
-            filename_similar_exists, filename_similar_names = _check_similar_files(download_path, filename)
+            filename_similar_exists, filename_similar_names = _check_similar_files(dest, filename)
             if filename_similar_exists and not (query and search_alternatives):
                 result['skipped'] = True
                 result['msg'] = f"Similar file(s) already exist: {', '.join(filename_similar_names)}"
@@ -235,14 +235,14 @@ def run_module():
                 result['filename'] = download_filename
                 result['alternative'] = True
 
-                filename_alternative_exact = os.path.join(download_path, download_filename)
+                filename_alternative_exact = os.path.join(dest, download_filename)
                 if os.path.exists(filename_alternative_exact):
                     result['skipped'] = True
                     result['msg'] = f"Alternative file already exists: {download_filename} - original file {query} is not available to download"
                     module.exit_json(**result)
                 else:
                     # Exact file not found, search for similar files with pattern
-                    filename_similar_exists, filename_similar_names = _check_similar_files(download_path, download_filename)
+                    filename_similar_exists, filename_similar_names = _check_similar_files(dest, download_filename)
                     if filename_similar_exists:
                         result['skipped'] = True
                         result['msg'] = f"Similar alternative file(s) already exist: {', '.join(filename_similar_names)}"                     
@@ -252,13 +252,13 @@ def run_module():
             elif filename != download_filename and not alternative_found:
                 result['filename'] = download_filename
 
-                if os.path.exists(os.path.join(download_path, download_filename)):
+                if os.path.exists(os.path.join(dest, download_filename)):
                     result['skipped'] = True
                     result['msg'] = f"File already exists with correct name: {download_filename}"
                     module.exit_json(**result)
                 else:
                     # Exact file not found, search for similar files with pattern
-                    filename_similar_exists, filename_similar_names = _check_similar_files(download_path, download_filename)                 
+                    filename_similar_exists, filename_similar_names = _check_similar_files(dest, download_filename)                 
                     if filename_similar_exists:
                         result['skipped'] = True
                         result['msg'] = f"Similar file(s) already exist for correct name {download_filename}: {', '.join(filename_similar_names)}"                     
@@ -281,7 +281,7 @@ def run_module():
             else:
                 module.fail_json(msg="Download link {} is not available".format(download_link))
 
-        download_software(download_link, download_filename, download_path)
+        download_software(download_link, download_filename, dest)
 
         # Update final results json
         result['changed'] = True

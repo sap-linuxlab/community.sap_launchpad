@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Pre-Steps - Install Python and Python package manager pip
+  ansible.builtin.package:
+    name:
+      - "{{ sap_software_download_python_package }}"
+      - "{{ sap_software_download_python_package }}-pip"
+    state: present
+
+
+- name: Pre-Steps - Create download directory {{ sap_software_download_directory }}
+  ansible.builtin.file:
+    path: "{{ sap_software_download_directory }}"
+    state: directory
+    mode: '0755'
+
+
+- name: Pre-Steps - Block for Python venv preparation
+  when: sap_software_download_use_venv | d(true)
+  block:
+    - name: Pre-Steps - Create temporary directory for venv
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: __sap_software_download_venv
+      register: __sap_software_download_venv
+
+    - name: Pre-Steps - Install Python modules to Python venv
+      ansible.builtin.pip:
+        name: "{{ __sap_software_download_python_modules }}"
+        virtualenv: "{{ __sap_software_download_venv.path }}"
+        virtualenv_command: "{{ sap_software_download_python_interpreter }} -m venv"
+
+
+- name: Pre-Steps - Block for default Python preparation
+  when: not sap_software_download_use_venv | d(true)
+  block:
+    # Packages with python modules are installed instead of modules to avoid error:
+    # `externally-managed-environment` which requires `--break-system-packages`
+    - name: Pre-Steps - Install Python module packages
+      ansible.builtin.package:
+        name: "{{ __sap_software_download_python_module_packages }}"
+        state: present

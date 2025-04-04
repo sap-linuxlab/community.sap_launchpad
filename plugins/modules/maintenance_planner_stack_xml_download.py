@@ -30,7 +30,7 @@ options:
       - Transaction Name or Transaction Display ID from Maintenance Planner.
     required: true
     type: str
-  download_path:
+  dest:
     description:
       - Destination folder path.
     required: true
@@ -46,7 +46,7 @@ EXAMPLES = r'''
     suser_id: 'SXXXXXXXX'
     suser_password: 'password'
     transaction_name: 'MP_NEW_INST_20211015_044854'
-    download_path: "/tmp/"
+    dest: "/tmp/"
   register: sap_mp_register
 - name: Display the list of download links and filenames
   debug:
@@ -79,7 +79,7 @@ def run_module():
         suser_id=dict(type='str', required=True),
         suser_password=dict(type='str', required=True, no_log=True),
         transaction_name=dict(type='str', required=True),
-        download_path=dict(type='str', required=True)
+        dest=dict(type='str', required=True)
     )
 
     # Define result dictionary objects to be passed back to Ansible
@@ -102,7 +102,7 @@ def run_module():
     username = module.params.get('suser_id')
     password = module.params.get('suser_password')
     transaction_name = module.params.get('transaction_name')
-    download_path = module.params.get('download_path')
+    dest = module.params.get('dest')
 
     # Main run
 
@@ -118,7 +118,7 @@ def run_module():
         transaction_id = get_transaction_id(transaction_name)
 
         # EXEC: Download the MP Stack XML file
-        get_transaction_stack_xml(transaction_id, download_path)
+        get_transaction_stack_xml(transaction_id, dest)
 
         # Process return dictionary for Ansible
         result['changed'] = True
