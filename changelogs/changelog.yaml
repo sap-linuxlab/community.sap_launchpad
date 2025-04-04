@@ -1,33 +1,43 @@
 ancestor: null
 releases:
+  1.2.0:
+    release_date: '2025-04-04'
+    changes:
+      release_summary: Enhancements to Modules and introduction of new Ansible Role
+      minor_changes:
+        - sap_software_download - New Ansible Role with enhanced logic for downloading software using Ansible Module software_center_download (https://github.com/sap-linuxlab/community.sap_launchpad/pull/32)
+        - sap_software_download - Download stack XML option (https://github.com/sap-linuxlab/community.sap_launchpad/pull/35)
+        - software_center_download - Add option to search for latest packages (https://github.com/sap-linuxlab/community.sap_launchpad/pull/28)
+        - maintenance_planner modules - Add option to use Display ID instead of name (https://github.com/sap-linuxlab/community.sap_launchpad/pull/31)
+        - Collection Readme update and preparation for 1.2.0 release (https://github.com/sap-linuxlab/community.sap_launchpad/pull/34)
+      bugfixes:
+        - fix - cache gigya sdk build number (https://github.com/sap-linuxlab/community.sap_launchpad/pull/33)
+
+  1.1.1:
+    release_date: '2024-03-18'
+    changes:
+      release_summary: Various bug fixes
+      bugfixes:
+        - Append logic for Account Temporarily Locked Out
+        - Fix errors in the example file
 
   1.1.0:
-    changes:
-      release_summary: '| Release Date: 2023-11-28
-
-        | Community contribution Ansible Module systems_info to query registered systems in me.sap.com
-
-        | Community contribution Ansible Module license_keys to create systems and license keys on me.sap.com/licensekey
-
-        '
     release_date: '2023-11-28'
+    changes:
+      release_summary: Community contribution with new Ansible Modules systems_info and license_keys
+      minor_changes:
+        - Create/update systems and license keys (https://github.com/sap-linuxlab/community.sap_launchpad/pull/16)
 
   1.0.1:
-    changes:
-      release_summary: '| Release Date: 2023-09-14
-
-        | Fix for handling old password prompt
-
-        '
     release_date: '2023-09-14'
+    changes:
+      release_summary: Various bug fixes
+      bugfixes:
+        - Fix for handling old password prompt
 
   1.0.0:
+    release_date: '2023-08-22'
     changes:
-      release_summary: '| Release Date: 2023-08-22
-
-        | Initial Release on Galaxy
-
-        '
+      release_summary: Initial Release on Galaxy
     fragments:
       - v1.0.0_summary.yaml
-    release_date: '2023-08-22'
