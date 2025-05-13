@@ -313,12 +313,12 @@ def _get_valid_filename(software_found):
     """
 
     # Check if Title contains filename and extension
-    if re.match(r'^[^/\\\0]+\.[^/\\\0]+$', software_found['Title']):
-        return software_found['Title']
-    else:
-        # Check if Description contains filename and extension
-        if re.match(r'^[^/\\\0]+\.[^/\\\0]+$', software_found['Description']):
+    if re.match(r'^\d+$', software_found['Title']):
+        # Check if Description attribute exists and that it does not contain empty spaces
+        if software_found['Description'] and ' ' not in software_found['Description']:
             return software_found['Description']
         else:
-            # Default to Title if Description does not help
             return software_found['Title']
+    else:
+        # Default to Title if Description does not help
+        return software_found['Title']

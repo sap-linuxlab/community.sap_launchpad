@@ -128,9 +128,15 @@ def _check_similar_files(dest, filename):
         bool: True if similar files exist, False otherwise.
         filename_similar_names: A list of similar filenames if they exist, empty list otherwise.
     """
-    # pattern = dest + '/**/' + os.path.splitext(filename)[0]
-    filename_base = os.path.splitext(filename)[0]
-    filename_pattern = os.path.join(dest, "**", filename_base)
+
+    # Check if filename has has extension and remove it for search
+    if os.path.splitext(filename)[1]:
+        filename_base = os.path.splitext(filename)[0]
+        filename_pattern = os.path.join(dest, "**", filename_base + ".*")
+    else:
+        filename_pattern = os.path.join(dest, "**", filename + ".*")
+
+    # Find all similar files in dest and sub-folders.
     filename_similar = glob.glob(filename_pattern, recursive=True)
 
     if filename_similar:
@@ -217,7 +223,7 @@ def run_module():
         else:
             # Exact file not found, search for similar files with pattern
             filename_similar_exists, filename_similar_names = _check_similar_files(dest, filename)
-            if filename_similar_exists and not (query and search_alternatives):
+            if filename_similar_exists:
                 result['skipped'] = True
                 result['msg'] = f"Similar file(s) already exist: {', '.join(filename_similar_names)}"
                 module.exit_json(**result)
