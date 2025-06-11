@@ -3,14 +3,13 @@
 
 # Variables specific to following versions:
 # - SUSE Linux Enterprise Server 15
-# - SUSE Linux Enterprise Server 16
 
 # NOTE: SLES 15 SP5 introduced Python 3.11.
 
 # Set which Python version will be used on destination node.
 # This is python executable name, which can differ from python package name.
 __sap_software_download_python_interpreter: >-
-  {%- if ansible_distribution_major_version == '15' and ansible_distribution_version.split('.')[1] | int < 5 -%}
+  {%- if ansible_distribution_version.split('.')[1] | int < 5 -%}
     python3
   {%- else -%}
     python3.11
@@ -18,7 +17,7 @@ __sap_software_download_python_interpreter: >-
 
 # Set which Python package will be installed on destination node.
 __sap_software_download_python_package: >-
-  {%- if ansible_distribution_major_version == '15' and ansible_distribution_version.split('.')[1] | int < 5 -%}
+  {%- if ansible_distribution_version.split('.')[1] | int < 5 -%}
     python3
   {%- else -%}
     python311
@@ -27,7 +26,7 @@ __sap_software_download_python_package: >-
 # The list of required Python Modules in packages
 # This is required in order to avoid externally-managed-environment error.
 __sap_software_download_python_module_packages: >-
-    {%- if ansible_distribution_major_version == '15' and ansible_distribution_version.split('.')[1] | int < 5 -%}
+    {%- if ansible_distribution_version.split('.')[1] | int < 5 -%}
     [
       "python3-wheel",
       "python3-urllib3",
