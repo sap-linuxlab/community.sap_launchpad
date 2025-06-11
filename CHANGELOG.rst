@@ -4,6 +4,20 @@ community.sap\_launchpad Release Notes
 
 .. contents:: Topics
 
+v1.2.1
+======
+
+Release Summary
+---------------
+
+Various bug fixes
+
+Bugfixes
+--------
+- software_center_download: Improved logic for skipping existing files and getting valid filename (https://github.com/sap-linuxlab/community.sap_launchpad/pull/40)
+- sap_software_download: Add SLES 16 python313 support and update changelog (https://github.com/sap-linuxlab/community.sap_launchpad/pull/41)
+
+
 v1.2.0
 ======
 
