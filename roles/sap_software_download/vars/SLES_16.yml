@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# Variables specific to following versions:
+# - SUSE Linux Enterprise Server 16
+
+# Set which Python version will be used on destination node.
+# This is python executable name, which can differ from python package name.
+__sap_software_download_python_interpreter: python3.13
+
+# Set which Python package will be installed on destination node.
+__sap_software_download_python_package: python313
+
+# The list of required Python Modules in packages
+# This is required in order to avoid externally-managed-environment error.
+__sap_software_download_python_module_packages:
+  - "python313-wheel"
+  - "python313-urllib3"
+  - "python313-requests"
+  - "python313-beautifulsoup4"
+  - "python313-lxml"
