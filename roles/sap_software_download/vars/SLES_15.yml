@@ -26,9 +26,9 @@ __sap_software_download_python_package: >-
 # The list of required Python Modules in packages
 # This is required in order to avoid externally-managed-environment error.
 __sap_software_download_python_module_packages:
-    "{{ __sap_software_download_python_module_packages_3
-      if ansible_distribution_version.split('.')[1] | int < 5
-      else __sap_software_download_python_module_packages_311 }}"
+  "{{ __sap_software_download_python_module_packages_3
+    if ansible_distribution_version.split('.')[1] | int < 5
+    else __sap_software_download_python_module_packages_311 }}"
 
 # The lists of Python Modules for specific python version
 __sap_software_download_python_module_packages_3:
