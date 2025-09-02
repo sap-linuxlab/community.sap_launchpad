@@ -25,21 +25,22 @@ __sap_software_download_python_package: >-
 
 # The list of required Python Modules in packages
 # This is required in order to avoid externally-managed-environment error.
-__sap_software_download_python_module_packages: >-
-    {%- if ansible_distribution_version.split('.')[1] | int < 5 -%}
-    [
-      "python3-wheel",
-      "python3-urllib3",
-      "python3-requests",
-      "python3-beautifulsoup4",
-      "python3-lxml"
-    ]
-    {%- else -%}
-    [
-      "python311-wheel",
-      "python311-urllib3",
-      "python311-requests",
-      "python311-beautifulsoup4",
-      "python311-lxml"
-    ]
-    {%- endif -%}
+__sap_software_download_python_module_packages:
+  "{{ __sap_software_download_python_module_packages_3
+    if ansible_distribution_version.split('.')[1] | int < 5
+    else __sap_software_download_python_module_packages_311 }}"
+
+# The lists of Python Modules for specific python version
+__sap_software_download_python_module_packages_3:
+  - "python3-wheel"
+  - "python3-urllib3"
+  - "python3-requests"
+  - "python3-beautifulsoup4"
+  - "python3-lxml"
+
+__sap_software_download_python_module_packages_311:
+  - "python311-wheel"
+  - "python311-urllib3"
+  - "python311-requests"
+  - "python311-beautifulsoup4"
+  - "python311-lxml"

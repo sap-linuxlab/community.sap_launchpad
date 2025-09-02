@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Ansible Lint Action
-      uses: ansible-community/ansible-lint-action@v6.0.2
+      uses: ansible/ansible-lint@v6
