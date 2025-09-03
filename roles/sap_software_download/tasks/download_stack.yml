@@ -9,7 +9,6 @@
     transaction_name: "{{ sap_software_download_mp_transaction }}"
     dest: "{{ sap_software_download_directory }}"
   register: __sap_software_download_stack_results_venv
-  retries: 1
   environment:
     PATH: "{{ __sap_software_download_venv.path }}/bin:{{ ansible_env.PATH }}"
     PYTHONPATH: "{{ __sap_software_download_venv.path }}/lib/{{ sap_software_download_python_interpreter }}/site-packages"
@@ -27,7 +26,6 @@
     transaction_name: "{{ sap_software_download_mp_transaction }}"
     dest: "{{ sap_software_download_directory }}"
   register: __sap_software_download_stack_results_default
-  retries: 1
   vars:
     ansible_python_interpreter: "{{ '/usr/bin/' ~ sap_software_download_python_interpreter }}"
   ignore_errors: true  # Errors are ignored and validated afterwards

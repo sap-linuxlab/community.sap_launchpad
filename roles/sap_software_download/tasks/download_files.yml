@@ -14,8 +14,6 @@
   loop_control:
     label: "{{ item }} : {{ __sap_software_download_files_results_venv.msg | d('') }}"
   register: __sap_software_download_files_results_venv
-  retries: 1
-  until: __sap_software_download_files_results_venv is not failed
   environment:
     PATH: "{{ __sap_software_download_venv.path }}/bin:{{ ansible_env.PATH }}"
     PYTHONPATH: "{{ __sap_software_download_venv.path }}/lib/{{ sap_software_download_python_interpreter }}/site-packages"
@@ -38,8 +36,6 @@
   loop_control:
     label: "{{ item }} : {{ __sap_software_download_files_results_default.msg | d('') }}"
   register: __sap_software_download_files_results_default
-  retries: 1
-  until: __sap_software_download_files_results_default is not failed
   vars:
     ansible_python_interpreter: "{{ '/usr/bin/' ~ sap_software_download_python_interpreter }}"
   ignore_errors: true  # Errors are ignored and validated afterwards

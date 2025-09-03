@@ -254,12 +254,15 @@ def _download_file(url, filepath, retry=0, **kwargs):
     logger.debug("checksum: %s; url: %s", checksum, res.request.url)
     if (not checksum) or _is_checksum_matched(filepath, checksum):
         return
+
+    # If checksum validation fails, the file on disk is considered invalid.
+    # Remove it to ensure the next attempt (retry or external) starts fresh.
     logger.warning("checksum mismatch: %s: %s", filepath, checksum)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+
     if retry >= MAX_RETRY_TIMES:
-        # Remove partial file if exists.
-        if os.path.exists(filepath):
-            os.remove(filepath)
-        raise RuntimeError(f'failed to download {url}: md5 mismatch')
+        raise RuntimeError(f'failed to download {url}: checksum mismatch after {MAX_RETRY_TIMES} retries')
     return _download_file(url, filepath, retry+1, **kwargs)
 
 
