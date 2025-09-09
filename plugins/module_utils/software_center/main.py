@@ -58,7 +58,7 @@ def run_software_download(params):
             result['msg'] = f"File already exists: {filename}"
             return result
 
-        filename_similar_exists, filename_similar_names = download._check_similar_files(dest, filename)
+        filename_similar_exists, filename_similar_names = download.check_similar_files(dest, filename)
         if filename_similar_exists:
             result['skipped'] = True
             result['msg'] = f"Similar file(s) already exist: {', '.join(filename_similar_names)}"
@@ -73,12 +73,27 @@ def run_software_download(params):
         # If checksum validation is requested, we perform the check here,
         # now that we have an authenticated session.
         if validate_checksum and os.path.exists(filepath):
-            validation_result = download.validate_local_file_checksum(client, filepath, query=query, download_link=download_link, deduplicate=deduplicate)
-            if validation_result['validated'] is True:
+            validation_result = download.validate_local_file_checksum(
+                client,
+                filepath,
+                query=query,
+                download_link=download_link,
+                deduplicate=deduplicate,
+                search_alternatives=search_alternatives
+            )
+
+            is_valid = validation_result['validated']
+            # If an alternative file was used for the check, the local file is by definition outdated,
+            # even if the checksums happen to match (e.g., user renamed the file).
+            # We should force a re-download of the correct alternative file.
+            if validation_result['alternative_found']:
+                is_valid = False
+
+            if is_valid is True:
                 result['skipped'] = True
                 result['msg'] = f"File already exists and checksum is valid: {filename}"
                 return result
-            elif validation_result['validated'] is False:
+            elif is_valid is False:
                 # The existing file is invalid, remove it to allow for re-download.
                 # The final message will explain why the re-download occurred.
                 os.remove(filepath)
@@ -118,7 +133,7 @@ def run_software_download(params):
                     result['msg'] = f"File with correct/alternative name already exists: {download_filename}"
                     return result
 
-        final_url = download._is_download_link_available(client, download_link)
+        final_url = download.is_download_link_available(client, download_link)
         if final_url:
             if dry_run:
                 msg = f"SAP Software is available to download: {download_filename}"
@@ -128,7 +143,7 @@ def run_software_download(params):
             else:
                 # The link is already resolved, just download it.
                 filepath = os.path.join(dest, download_filename)
-                download._stream_file_to_disk(client, final_url, filepath)
+                download.stream_file_to_disk(client, final_url, filepath)
                 result['changed'] = True
 
                 if validation_result and validation_result.get('validated') is False:
@@ -148,6 +163,6 @@ def run_software_download(params):
         result['failed'] = True
         result['msg'] = f"An unexpected error occurred: {type(e).__name__} - {e}"
     finally:
-        download._clear_download_key_cookie(client)
+        download.clear_download_key_cookie(client)
 
     return result

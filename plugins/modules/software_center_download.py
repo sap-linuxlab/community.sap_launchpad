@@ -6,7 +6,14 @@ DOCUMENTATION = r'''
 ---
 module: software_center_download
 
-short_description: SAP software download
+short_description: Downloads software from the SAP Software Center.
+
+description:
+  - This module automates downloading files from the SAP Software Center.
+  - It can find a file using a search query or download it directly using a specific download link and filename.
+  - If a file is not found via search, it can look for alternative versions.
+  - It supports checksum validation to ensure file integrity and avoid re-downloading valid files.
+  - The module can also perform a dry run to check for file availability without downloading.
 
 version_added: 1.0.0
 
@@ -51,7 +58,8 @@ options:
     type: str
   deduplicate:
     description:
-      - How to handle multiple search results.
+      - "Specifies how to handle multiple search results for the same filename. Choices are `first` (oldest) or `last` (newest)."
+    choices: [ 'first', 'last' ]
     required: false
     type: str
   search_alternatives:
@@ -88,27 +96,43 @@ EXAMPLES = r'''
     download_link: 'https://softwaredownloads.sap.com/file/0010000000048502015'
     download_filename: 'IW_FNDGC100.SAR'
     dest: "/tmp/"
+- name: Download a file, searching for alternatives and validating checksum
+  community.sap_launchpad.software_center_download:
+    suser_id: 'SXXXXXXXX'
+    suser_password: 'password'
+    search_query: 'IMDB_SERVER20_023_0-80002031.SAR'
+    dest: "/sap_media"
+    search_alternatives: true
+    deduplicate: "last"
+    validate_checksum: true
 '''
 
 RETURN = r'''
 msg:
-  description: the status of the process
+  description: A message indicating the status of the download operation.
   returned: always
   type: str
+  sample: "Successfully downloaded SAP software: SAPCAR_1324-80000936.EXE"
 filename:
-  description: the name of the original or alternative file found to download.
-  returned: always
+  description: The name of the file that was downloaded or checked. This may be an alternative if one was found.
+  returned: on success or failure after finding a file
   type: str
+  sample: "SAPCAR_1324-80000936.EXE"
 alternative:
-  description: true if alternative file was found
+  description: A boolean indicating if an alternative file was downloaded instead of the one from the original search query.
+  returned: on success
+  type: bool
+changed:
+  description: A boolean indicating if a file was downloaded or changed on the remote host.
+  returned: always
+  type: bool
+skipped:
+  description: A boolean indicating if the download was skipped (e.g., file already exists and checksum is valid).
   returned: always
   type: bool
 '''
 
-
 from ansible.module_utils.basic import AnsibleModule
-
-# Import the main runner function from the module_utils
 from ..module_utils.software_center import main as software_center_runner
 
 
@@ -124,7 +148,7 @@ def run_module():
         download_filename=dict(type='str', required=False, default=''),
         dest=dict(type='str', required=True),
         dry_run=dict(type='bool', required=False, default=False),
-        deduplicate=dict(type='str', required=False, default=''),
+        deduplicate=dict(type='str', required=False, default='', choices=['first', 'last', '']),
         search_alternatives=dict(type='bool', required=False, default=False),
         validate_checksum=dict(type='bool', required=False, default=False)
     )

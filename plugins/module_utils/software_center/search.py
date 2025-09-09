@@ -133,18 +133,27 @@ def _search_software_fuzzy(client, query):
 
 def _filter_fuzzy_search(fuzzy_results, filename):
     # Filters fuzzy search output using the original filename.
-    suggested_filename = _prepare_search_filename_specific(filename)
-    fuzzy_results_filtered = [
-        file for file in fuzzy_results
-        if file.get('Title', '').startswith(suggested_filename)
-    ]
-
-    if len(fuzzy_results_filtered) == 0:
-        suggested_filename = _prepare_search_filename_nonspecific(filename)
+    if '*' in filename:
+        prefix, suffix = filename.split('*')
+        suffix_base = os.path.splitext(suffix)[0]
+        fuzzy_results_filtered = [
+            file for file in fuzzy_results
+            if file.get('Title', '').startswith(prefix) and os.path.splitext(file.get('Title', ''))[0].endswith(suffix_base)
+        ]
+        suggested_filename = prefix
+    else:
+        suggested_filename = _prepare_search_filename_specific(filename)
         fuzzy_results_filtered = [
             file for file in fuzzy_results
             if file.get('Title', '').startswith(suggested_filename)
         ]
+
+        if len(fuzzy_results_filtered) == 0:
+            suggested_filename = _prepare_search_filename_nonspecific(filename)
+            fuzzy_results_filtered = [
+                file for file in fuzzy_results
+                if file.get('Title', '').startswith(suggested_filename)
+            ]
 
     fuzzy_results_sorted = _sort_fuzzy_results(fuzzy_results_filtered, filename)
     return fuzzy_results_sorted, suggested_filename
@@ -199,7 +208,7 @@ def _prepare_search_filename_specific(filename):
     elif filename_base.startswith('SAPHANACOCKPIT'):
         return filename_base.split('-')[0].rsplit('_', 1)[0]
     else:
-        return filename
+        return filename_name
 
 
 def _prepare_search_filename_nonspecific(filename):
@@ -291,6 +300,7 @@ def _get_next_page_query(desc):
 
 def _get_valid_filename(software_found):
     # Ensures that CD Media have correct filenames from description.
+    # The API sometimes returns a numeric ID as the 'Title' for CD Media, while the actual filename is in the 'Description'.
     # Example: S4CORE105_INST_EXPORT_1.zip downloads as 19118000000000004323
     if re.match(r'^\d+$', software_found['Title']):
         if software_found['Description'] and ' ' not in software_found['Description']:

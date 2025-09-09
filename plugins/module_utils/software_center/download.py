@@ -12,14 +12,22 @@ from . import search
 
 _HAS_DOWNLOAD_AUTHORIZATION = None
 
-def validate_local_file_checksum(client, local_filepath, query=None, download_link=None, deduplicate=None):
+
+def validate_local_file_checksum(client, local_filepath, query=None, download_link=None, deduplicate=None, search_alternatives=False):
     # Validates a local file against the remote checksum from the server.
-    # Returns a dictionary with the validation status and a descriptive message.
+    # Returns a dictionary with the validation status and additional context.
+    result = {
+        'validated': None,
+        'message': '',
+        'remote_filename': os.path.basename(local_filepath),
+        'alternative_found': False
+    }
     try:
         if query:
-            # As we are validating an existing file, search_alternatives is forced to False.
-            file_details = search.find_file(client, query, deduplicate, search_alternatives=False)
+            file_details = search.find_file(client, query, deduplicate, search_alternatives=search_alternatives)
             download_link = file_details['download_link']
+            result['remote_filename'] = file_details['filename']
+            result['alternative_found'] = file_details['alternative_found']
 
         download_link_final = _resolve_download_link(client, download_link)
 
@@ -29,23 +37,27 @@ def validate_local_file_checksum(client, local_filepath, query=None, download_li
             headers = res.headers
             res.close()  # We only need the headers, so close the connection.
         finally:
-            _clear_download_key_cookie(client)
+            clear_download_key_cookie(client)
 
         remote_etag = headers.get('ETag')
 
         if not remote_etag:
-            return {'validated': None, 'message': f"Checksum validation skipped: ETag header not found for URL '{download_link_final}'. Headers received: {headers}"}
+            result['message'] = f"Checksum validation skipped: ETag header not found for URL '{download_link_final}'. Headers received: {headers}"
+            return result
 
         if _is_checksum_matched(local_filepath, remote_etag):
-            return {'validated': True, 'message': 'Local file checksum is valid.'}
+            result['validated'] = True
+            result['message'] = 'Local file checksum is valid.'
         else:
-            return {'validated': False, 'message': 'Local file checksum is invalid.'}
+            result['validated'] = False
+            result['message'] = 'Local file checksum is invalid.'
 
     except exceptions.SapLaunchpadError as e:
-        return {'validated': None, 'message': f'Checksum validation skipped: {e}'}
+        result['message'] = f'Checksum validation skipped: {e}'
+    return result
 
 
-def _check_similar_files(dest, filename):
+def check_similar_files(dest, filename):
     # Checks for similar files in the download path based on the given filename.
     if os.path.splitext(filename)[1]:
         filename_base = os.path.splitext(filename)[0]
@@ -90,7 +102,7 @@ def _check_download_authorization(client):
         )
 
 
-def _is_download_link_available(client, url, retry=0):
+def is_download_link_available(client, url, retry=0):
     # Verifies if a download link is active and returns the final, resolved URL.
     # Returns None if the link is not available.
     # IMPORTANT: This function leaves download cookies in the session on success.
@@ -119,7 +131,7 @@ def _resolve_download_link(client, url, retry=0):
         try:
             meta = {}
             while 'SAMLResponse' not in meta:
-                endpoint, meta = auth._get_sso_endpoint_meta(client, endpoint, data=meta)
+                endpoint, meta = auth.get_sso_endpoint_meta(client, endpoint, data=meta)
 
             # This POST will result in a redirect to the actual file URL.
             res = client.post(endpoint, data=meta, stream=True)
@@ -138,7 +150,7 @@ def _resolve_download_link(client, url, retry=0):
     return endpoint
 
 
-def _stream_file_to_disk(client, url, filepath, retry=0, **kwargs):
+def stream_file_to_disk(client, url, filepath, retry=0, **kwargs):
     # Streams a large file to disk and verifies its checksum.
     kwargs.update({'stream': True})
     try:
@@ -152,10 +164,10 @@ def _stream_file_to_disk(client, url, filepath, retry=0, **kwargs):
         if retry >= C.MAX_RETRY_TIMES:
             raise exceptions.DownloadError(f"Connection failed after {C.MAX_RETRY_TIMES} retries: {e}")
         time.sleep(60 * (retry + 1))
-        return _stream_file_to_disk(client, url, filepath, retry + 1, **kwargs)
+        return stream_file_to_disk(client, url, filepath, retry + 1, **kwargs)
 
     res.close()
-    _clear_download_key_cookie(client)
+    clear_download_key_cookie(client)
 
     checksum = res.headers.get('ETag', '').replace('"', '')
     if not checksum or _is_checksum_matched(filepath, checksum):
@@ -166,11 +178,13 @@ def _stream_file_to_disk(client, url, filepath, retry=0, **kwargs):
 
     if retry >= C.MAX_RETRY_TIMES:
         raise exceptions.DownloadError(f'Failed to download {url}: checksum mismatch after {C.MAX_RETRY_TIMES} retries')
-    return _stream_file_to_disk(client, url, filepath, retry + 1, **kwargs)
+    return stream_file_to_disk(client, url, filepath, retry + 1, **kwargs)
 
 
-def _clear_download_key_cookie(client):
+def clear_download_key_cookie(client):
     # Clears download-specific cookies to prevent the cookie header from becoming too large.
+    # The software download server generates a cookie for every single file.
+    # If we don't clear it after download, the cookie header will become too long and the server will reject the request.
     for c in list(client.session.cookies):
         if c.domain == '.softwaredownloads.sap.com' and c.name != 'SESSIONID':
             client.session.cookies.clear(name=c.name, domain=c.domain, path='/')

@@ -29,7 +29,7 @@ def login(client, username, password):
     meta = {}
 
     while ('SAMLResponse' not in meta and 'login_hint' not in meta):
-        endpoint, meta = _get_sso_endpoint_meta(client, endpoint, data=meta)
+        endpoint, meta = get_sso_endpoint_meta(client, endpoint, data=meta)
         if 'j_username' in meta:
             meta['j_username'] = username
             meta['j_password'] = password
@@ -37,7 +37,7 @@ def login(client, username, password):
             raise ValueError('SAP ID Service has requested `Change Your Password`, possibly the password is too old. Please reset manually and try again.')
 
     if 'authn' in endpoint:
-        support_endpoint, support_meta = _get_sso_endpoint_meta(client, endpoint, data=meta)
+        support_endpoint, support_meta = get_sso_endpoint_meta(client, endpoint, data=meta)
         client.post(support_endpoint, data=support_meta)
 
     if 'gigya' in endpoint:
@@ -56,12 +56,12 @@ def login(client, username, password):
             'loginToken': login_token,
             'samlContext': params['samlContext']
         }
-        endpoint, meta = _get_sso_endpoint_meta(client, idp_endpoint,
+        endpoint, meta = get_sso_endpoint_meta(client, idp_endpoint,
                                                 params=context,
                                                 allow_redirects=False)
 
         while (endpoint != C.URL_LAUNCHPAD + '/'):
-            endpoint, meta = _get_sso_endpoint_meta(client, endpoint,
+            endpoint, meta = get_sso_endpoint_meta(client, endpoint,
                                                     data=meta,
                                                     headers=C.GIGYA_HEADERS,
                                                     allow_redirects=False)
@@ -69,7 +69,7 @@ def login(client, username, password):
         client.post(endpoint, data=meta, headers=C.GIGYA_HEADERS)
 
 
-def _get_sso_endpoint_meta(client, url, **kwargs):
+def get_sso_endpoint_meta(client, url, **kwargs):
     # Scrapes an HTML page to find the next SSO form action URL and its input fields.
     method = 'POST' if kwargs.get('data') or kwargs.get('json') else 'GET'
     res = client.request(method, url, **kwargs)
@@ -213,8 +213,7 @@ def _get_sdk_build_number(client, api_key):
     if _GIGYA_SDK_BUILD_NUMBER is not None:
         return _GIGYA_SDK_BUILD_NUMBER
 
-    res = client.get('https://cdns.gigya.com/js/gigya.js',
-                   params={'apiKey': api_key})
+    res = client.get(C.URL_GIGYA_JS, params={'apiKey': api_key})
     gigya_js_content = res.text
     match = re.search(r'gigya.build\s*=\s*{[\s\S]+"number"\s*:\s*(\d+),', gigya_js_content)
     if not match:

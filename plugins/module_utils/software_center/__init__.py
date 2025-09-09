@@ -1,1 +1,1 @@
-# This file makes the `software_center` directory a Python package.
+# This file makes the `software_center` directory into a Python package.
