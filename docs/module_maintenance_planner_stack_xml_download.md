@@ -1,7 +1,9 @@
 # maintenance_planner_stack_xml_download Ansible Module
 
 ## Description
-The Ansible Module `maintenance_planner_stack_xml_download` is used to obtain Stack file belonging to Maintenance Plan transaction.
+The Ansible Module `maintenance_planner_stack_xml_download` connects to the SAP Maintenance Planner to download the `stack.xml` file associated with a specific transaction.
+- The `stack.xml` file contains the plan for a system update or installation and is used by tools like Software Update Manager (SUM).
+- The file is saved to the specified destination directory.
 
 ## Dependencies
 This module requires the following Python modules to be installed on the target node (the machine where SAP software will be downloaded):
@@ -15,6 +17,28 @@ This module requires the following Python modules to be installed on the target 
 Installation instructions are available at [Installation of prerequisites](#installation-of-prerequisites)
 
 ## Execution
+
+### Execution Flow
+The module follows a clear logic flow to download the stack XML file from a Maintenance Planner transaction.
+
+1.  **Authentication**:
+    *   The module first authenticates with the provided S-User credentials to establish a general session with the SAP Launchpad.
+    *   It then performs a second authentication step against the `userapps.support.sap.com` service, which is required to access the Maintenance Planner API.
+
+2.  **Transaction Lookup**:
+    *   The module fetches a list of all Maintenance Planner transactions available to the user.
+    *   It searches this list for a transaction that matches the provided `transaction_name` (checking both the name and the display ID). If no match is found, the module fails.
+
+3.  **Stack XML Retrieval**:
+    *   Using the ID of the found transaction, the module makes an API call to download the raw content of the `stack.xml` file.
+
+4.  **File Creation**:
+    *   The module validates that the provided `dest` path is an existing directory.
+    *   It determines the filename from the response headers or creates a default name based on the transaction name.
+    *   It writes the retrieved XML content to the destination file.
+
+5.  **Return Data**:
+    *   The module returns a success message indicating the full path where the `stack.xml` file was saved.
 
 ### Example
 Obtain Stack file
@@ -134,4 +158,4 @@ The name or display ID of a transaction from the SAP Maintenance Planner.
 - _Required:_ `true`<br>
 - _Type:_ `string`<br>
 
-The directory where downloaded SAP software files will be stored.
+The path to an existing destination directory where the stack.xml file will be saved.

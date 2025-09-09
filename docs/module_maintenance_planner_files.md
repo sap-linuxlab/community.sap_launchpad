@@ -1,7 +1,9 @@
 # maintenance_planner_files Ansible Module
 
 ## Description
-The Ansible Module `maintenance_planner_files` is used to obtain list of SAP Software files belonging to Maintenance Plan transaction.
+The Ansible Module `maintenance_planner_files` connects to the SAP Maintenance Planner to retrieve a list of all downloadable files associated with a specific transaction.
+- It returns a list containing direct download links and filenames for each file.
+- This is useful for automating the download of a complete stack file set defined in a Maintenance Planner transaction.
 
 ## Dependencies
 This module requires the following Python modules to be installed on the target node (the machine where SAP software will be downloaded):
@@ -15,6 +17,27 @@ This module requires the following Python modules to be installed on the target 
 Installation instructions are available at [Installation of prerequisites](#installation-of-prerequisites)
 
 ## Execution
+
+### Execution Flow
+The module follows a clear logic flow to retrieve the file list from a Maintenance Planner transaction.
+
+1.  **Authentication**:
+    *   The module first authenticates with the provided S-User credentials to establish a general session with the SAP Launchpad.
+    *   It then performs a second authentication step against the `userapps.support.sap.com` service, which is required to access the Maintenance Planner API.
+
+2.  **Transaction Lookup**:
+    *   The module fetches a list of all Maintenance Planner transactions available to the user.
+    *   It searches this list for a transaction that matches the provided `transaction_name` (checking both the name and the display ID). If no match is found, the module fails.
+
+3.  **File List Retrieval**:
+    *   Using the ID of the found transaction, the module makes an API call to retrieve the stack XML file that defines all the downloadable files for that transaction.
+    *   It parses this XML to extract a list of direct download links and their corresponding filenames.
+
+4.  **URL Validation (Optional)**:
+    *   If `validate_url` is set to `true`, the module will perform a `HEAD` request for each download link to verify that it is active and accessible. If any link is invalid, the module will fail.
+
+5.  **Return Data**:
+    *   The module returns the final list of files as the `download_basket`, with each item containing a `DirectLink` and a `Filename`.
 
 ### Example
 Obtain list of SAP Software files
@@ -138,3 +161,8 @@ The password for the SAP S-User specified in `suser_id`.
 - _Type:_ `string`<br>
 
 The name or display ID of a transaction from the SAP Maintenance Planner.
+
+### validate_url
+- _Type:_ `boolean`<br>
+
+Validate if the download links are available and not expired.
