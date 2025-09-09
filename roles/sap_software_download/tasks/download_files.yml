@@ -9,6 +9,7 @@
     dest: "{{ sap_software_download_directory }}"
     search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
     deduplicate: "{{ sap_software_download_deduplicate | d('') }}"
+    validate_checksum: "{{ sap_software_download_validate_checksum | d(false) }}"
   # Loop condition acts as when conditional
   loop: "{{ sap_software_download_files if sap_software_download_use_venv | d(true) else [] }}"
   loop_control:
@@ -31,6 +32,7 @@
     dest: "{{ sap_software_download_directory }}"
     search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
     deduplicate: "{{ sap_software_download_deduplicate | d('') }}"
+    validate_checksum: "{{ sap_software_download_validate_checksum | d(false) }}"
   # Loop condition acts as when conditional
   loop: "{{ sap_software_download_files if not sap_software_download_use_venv | d(true) else [] }}"
   loop_control:

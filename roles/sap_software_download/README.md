@@ -325,4 +325,11 @@ Specifies how to handle duplicate file results when using `sap_software_download
 If multiple files with the same name are found, this setting determines which one to download.<br>
 - `first`: Download the first file found<br>
 - `last`: Download the last file found.<br>
+
+### sap_software_download_validate_checksum
+- _Type:_ `bool`<br>
+- _Default:_ `false`<br>
+
+Enables checksum validation of existing files present in `sap_software_download_directory`.<br>
+This does not affect automatic checksum validation of downloaded files.<br>
 <!-- END Role Variables -->
