@@ -51,6 +51,7 @@ It is recommended to install dependencies in venv that can be removed after exec
 ```
 
 ### Installation of dependencies with Python system default
+**NOTE:** Python modules are installed as packages to avoid `externally-managed-environment` error.
 ```yaml
 - name: Example play to install prerequisites with Python system default
   hosts: all
@@ -62,14 +63,15 @@ It is recommended to install dependencies in venv that can be removed after exec
         - python311-pip
       state: present
 
-    - name: Install Python modules to Python system default
-      ansible.builtin.pip:
-      name:
-        - wheel
-        - urllib3
-        - requests
-        - beautifulsoup4
-        - lxml
+    - name: Install Python module packages
+      ansible.builtin.package:
+        name:
+          - python311-wheel
+          - python311-urllib3
+          - python311-requests
+          - python311-beautifulsoup4
+          - python311-lxml
+        state: present
 ```
 
 ## Additional execution methods
@@ -109,43 +111,4 @@ target_user="root"
 ansible-playbook --timeout 60 ./sample-playbook.yml \
 --connection 'ssh' --user "$target_user" --inventory "$target_host," --private-key "$target_private_key_file" \
 --ssh-extra-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand='ssh -W %h:%p $bastion_user@$bastion_host -p $bastion_port -i $bastion_private_key_file -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'"
-```
-
-## Execution of Python Modules directly
-### Setup local Python environment
-```shell
-# Change directory to Python scripts source
-cd ./plugins
-
-# Create isolated Python (protect system Python)
-pyenv install 3.9.6
-pyenv virtualenv 3.9.6 sap_launchpad
-pyenv activate sap_launchpad
-
-# Install Python Modules to current Python environment
-pip3 install beautifulsoup4 lxml requests
-
-# Run Python, import Python Modules and run Python Functions
-python3
-```
-
-### Execute Python Functions
-```python
->>> from module_utils.sap_id_sso import sap_sso_login
->>> from module_utils.sap_launchpad_software_center_download_runner import *
->>>
->>> # Debug
->>> # from module_utils.sap_api_common import debug_https
->>> # debug_https()
->>>
->>> ## Perform API login requests to SAP Support
->>> username='S0000000'
->>> password='password'
->>> sap_sso_login(username, password)
->>> ## Perform API activity requests to SAP Support (e.g. software search without deduplication, and download software)
->>> query_result = search_software_filename("HCMT_057_0-80003261.SAR",'')
->>> download_software(*query_result, output_dir='/tmp')
-...
->>> ## API responses from SAP Support
->>> exit()
 ```

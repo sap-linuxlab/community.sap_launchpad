@@ -17,8 +17,6 @@ This module requires the following Python modules to be installed on the target 
 - beautifulsoup4
 - lxml
 
-Installation instructions are available at [Installation of prerequisites](#installation-of-prerequisites)
-
 ## Execution
 
 ### Execution Flow
@@ -59,58 +57,188 @@ The module follows a sophisticated logic flow to determine whether to create, up
     *   If `download_path` is specified, the license file is also saved to that directory.
 
 ### Example
+> **NOTE:** The Python versions in these examples vary by operating system. Always use the version that is compatible with your specific system or managed node.</br>
+
+Create a new SAP system and create new license.
 ```yaml
-- name: Create a new system and generate license keys
-  community.sap_launchpad.license_keys:
-    suser_id: 'SXXXXXXXX'
-    suser_password: 'password'
-    installation_nr: '12345678'
-    system:
-      # 'nr' is omitted to create a new system
-      product: "SAP S/4HANA"
-      version: "SAP S/4HANA 2022"
-      data:
-        sysid: "S4H"
-        sysname: "s4hana-new-dev"
-        systype: "Application Server (ABAP)"
-        sysdb: "SAP HANA"
-        sysos: "Linux on x86_64 64bit"
-        sys_depl: "Private - On Premise"
-    licenses:
-      - type: "SAP S/4HANA"
-        data:
-          hwkey: "A1234567890"
-          expdate: "99991231"
-    download_path: "/tmp/licenses"
-  register: result
+---
+- name: Example play for Ansible Module license_keys
+  hosts: all
+  tasks:
+    - name: Create a new system and generate license keys
+      community.sap_launchpad.license_keys:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        installation_nr: "Your installation number"
+        system:
+          # 'nr' is omitted to create a new system
+          product: "SAP S/4HANA"
+          version: "SAP S/4HANA 2022"
+          data:
+            sysid: "S4H"
+            sysname: "s4hana-new-dev"
+            systype: "Application Server (ABAP)"
+            sysdb: "SAP HANA"
+            sysos: "Linux on x86_64 64bit"
+            sys_depl: "Private - On Premise"
+        licenses:
+          - type: "SAP S/4HANA"
+            data:
+              hwkey: "Your hardware key"
+              expdate: "99991231"
+        download_path: "/tmp/licenses"
+      register: result
 
-- name: Update an existing system and remove other licenses
-  community.sap_launchpad.license_keys:
-    suser_id: 'SXXXXXXXX'
-    suser_password: 'password'
-    installation_nr: '12345678'
-    system:
-      nr: '0000123456' # Specify the system number to update
-      product: "SAP S/4HANA"
-      version: "SAP S/4HANA 2022"
-      data:
-        sysid: "S4H"
-        sysname: "s4hana-new-dev"
-        systype: "Application Server (ABAP)"
-        sysdb: "SAP HANA"
-        sysos: "Linux on x86_64 64bit"
-        sys_depl: "Private - On Premise"
-    licenses:
-      - type: "SAP S/4HANA"
-        data:
-          hwkey: "A1234567890"
-          expdate: "99991231"
-    delete_other_licenses: true
-  register: result
+    - name: Display the license file content
+      ansible.builtin.debug:
+        var: result.license_file
+```
 
-- name: Display the license file content
-  ansible.builtin.debug:
-    var: result.license_file
+Create a new license for existing SAP system.
+```yaml
+---
+- name: Example play for Ansible Module license_keys
+  hosts: all
+  tasks:
+    - name: Update an existing system and remove other licenses
+      community.sap_launchpad.license_keys:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        installation_nr: "Your installation number"
+        system:
+          nr: '0000123456' # Specify the system number to update
+          product: "SAP S/4HANA"
+          version: "SAP S/4HANA 2022"
+          data:
+            sysid: "S4H"
+            sysname: "s4hana-new-dev"
+            systype: "Application Server (ABAP)"
+            sysdb: "SAP HANA"
+            sysos: "Linux on x86_64 64bit"
+            sys_depl: "Private - On Premise"
+        licenses:
+          - type: "SAP S/4HANA"
+            data:
+              hwkey: "Your hardware key"
+              expdate: "99991231"
+        delete_other_licenses: true
+      register: result
+
+    - name: Display the license file content
+      ansible.builtin.debug:
+        var: result.license_file
+```
+
+Install prerequisites and create new SAP system using existing System Python.</br>
+**NOTE:** Python modules are installed as packages to avoid `externally-managed-environment` error.
+```yaml
+---
+- name: Example play for Ansible Module license_keys
+  hosts: all
+  tasks:
+    - name: Install Python and Python package manager pip
+      ansible.builtin.package:
+        name:
+          - python311
+          - python311-pip
+        state: present
+
+    - name: Install Python module packages
+      ansible.builtin.package:
+        name:
+          - python311-wheel
+          - python311-urllib3
+          - python311-requests
+          - python311-beautifulsoup4
+          - python311-lxml
+        state: present
+
+    - name: Create a new system and generate license keys
+      community.sap_launchpad.license_keys:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        installation_nr: "Your installation number"
+        system:
+          # 'nr' is omitted to create a new system
+          product: "SAP S/4HANA"
+          version: "SAP S/4HANA 2022"
+          data:
+            sysid: "S4H"
+            sysname: "s4hana-new-dev"
+            systype: "Application Server (ABAP)"
+            sysdb: "SAP HANA"
+            sysos: "Linux on x86_64 64bit"
+            sys_depl: "Private - On Premise"
+        licenses:
+          - type: "SAP S/4HANA"
+            data:
+              hwkey: "Your hardware key"
+              expdate: "99991231"
+        download_path: "/tmp/licenses"
+      register: result
+
+    - name: Display the license file content
+      ansible.builtin.debug:
+        var: result.license_file
+```
+
+Install prerequisites and create new SAP system using existing Python Virtual Environment `/tmp/python_venv`.
+```yaml
+---
+- name: Example play for Ansible Module license_keys
+  hosts: all
+  tasks:
+    - name: Install Python and Python package manager pip
+      ansible.builtin.package:
+        name:
+          - python311
+          - python311-pip
+        state: present
+
+    - name: Install Python modules to Python venv
+      ansible.builtin.pip:
+        name:
+          - wheel
+          - urllib3
+          - requests
+          - beautifulsoup4
+          - lxml
+        virtualenv: "/tmp/python_venv"
+        virtualenv_command: "python3.11 -m venv"
+
+    - name: Create a new system and generate license keys
+      community.sap_launchpad.license_keys:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        installation_nr: "Your installation number"
+        system:
+          # 'nr' is omitted to create a new system
+          product: "SAP S/4HANA"
+          version: "SAP S/4HANA 2022"
+          data:
+            sysid: "S4H"
+            sysname: "s4hana-new-dev"
+            systype: "Application Server (ABAP)"
+            sysdb: "SAP HANA"
+            sysos: "Linux on x86_64 64bit"
+            sys_depl: "Private - On Premise"
+        licenses:
+          - type: "SAP S/4HANA"
+            data:
+              hwkey: "Your hardware key"
+              expdate: "99991231"
+        download_path: "/tmp/licenses"
+      register: result
+      environment:
+        PATH: "/tmp/python_venv:{{ ansible_env.PATH }}" 
+        PYTHONPATH: "/tmp/python_venv/lib/python3.11/site-packages" 
+        VIRTUAL_ENV: "/tmp/python_venv" 
+      vars:
+        ansible_python_interpreter: "/tmp/python_venv/bin/python3.11 }}"
+
+    - name: Display the license file content
+      ansible.builtin.debug:
+        var: result.license_file
 ```
 
 ### Output format
@@ -141,60 +269,6 @@ SWPRODUCTNAME=Maintenance_MYS
 SWPRODUCTLIMIT=2147483647
 SYSTEM-NR=00000000023456789
 ```
-
-## Further Information
-### Installation of prerequisites
-**All preparation steps are included in role `sap_launchpad.sap_software_download`.**</br>
-
-Prerequisite preparation using Python 3.11 Virtual Environment `/tmp/python_venv` (Recommended)
-```yaml
----
-- name: Example play to install prerequisites for sap_launchpad
-  hosts: all
-  tasks:
-    - name: Install Python and Python package manager pip
-      ansible.builtin.package:
-        name:
-          - python311
-          - python311-pip
-        state: present
-
-    - name: Pre-Steps - Install Python modules to Python venv
-      ansible.builtin.pip:
-        name:
-          - wheel
-          - urllib3
-          - requests
-          - beautifulsoup4
-          - lxml
-        virtualenv: "/tmp/python_venv"
-        virtualenv_command: "python3.11 -m venv"
-```
-
-Prerequisite preparation using Python 3.11 system default</br>
-```yaml
----
-- name: Example play to install prerequisites for sap_launchpad
-  hosts: all
-  tasks:
-    - name: Install Python and Python package manager pip
-      ansible.builtin.package:
-        name:
-          - python311
-          - python311-pip
-        state: present
-
-    - name: Install Python module packages
-      ansible.builtin.package:
-        name:
-          - python311-wheel
-          - python311-urllib3
-          - python311-requests
-          - python311-beautifulsoup4
-          - python311-lxml
-        state: present
-```
-**NOTE:** Python modules are installed as packages to avoid `externally-managed-environment` error.
 
 ## License
 Apache 2.0

@@ -16,8 +16,6 @@ This module requires the following Python modules to be installed on the target 
 - beautifulsoup4
 - lxml
 
-Installation instructions are available at [Installation of prerequisites](#installation-of-prerequisites)
-
 ## Execution
 
 ### Execution Flow
@@ -58,110 +56,87 @@ The module follows a sophisticated logic flow to determine whether to download, 
     *   **After every download**, the module automatically validates the downloaded file's checksum against the one provided by the server. If they don't match, it will delete the corrupt file and retry the download.
 
 ### Example
+> **NOTE:** The Python versions in these examples vary by operating system. Always use the version that is compatible with your specific system or managed node.</br>
+> To simplify this process, the Ansible Role `sap_launchpad.sap_software_download` will install the correct Python version and required modules for you.</br>
+
 Download SAP Software file
 ```yaml
-- name: Download SAP Software file using search_query
-  community.sap_launchpad.software_center_download:
-    suser_id: "Enter SAP S-User ID"
-    suser_password: "Enter SAP S-User Password"
-    search_query: "Enter SAP Software file name"
-    dest: "Enter download path (e.g. /software)"
+---
+- name: Example play for Ansible Module software_center_download
+  hosts: all
+  tasks:
+    - name: Download SAP Software file using search_query
+      community.sap_launchpad.software_center_download:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        search_query: "Enter SAP Software file name"
+        dest: "Enter download path (e.g. /software)"
 ```
 
 Download SAP Software file using download_link and download_filename
 ```yaml
-- name: Download SAP Software file using download_link and download_filename
-  community.sap_launchpad.software_center_download:
-    suser_id: "Enter SAP S-User ID"
-    suser_password: "Enter SAP S-User Password"
-    download_link: 'https://softwaredownloads.sap.com/file/0010000000048502015'
-    download_filename: 'IW_FNDGC100.SAR'
-    dest: "Enter download path (e.g. /software)"
+---
+- name: Example play for Ansible Module software_center_download
+  hosts: all
+  tasks:
+    - name: Download SAP Software file using download_link and download_filename
+      community.sap_launchpad.software_center_download:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        download_link: 'https://softwaredownloads.sap.com/file/0010000000048502015'
+        download_filename: 'IW_FNDGC100.SAR'
+        dest: "Enter download path (e.g. /software)"
 ```
 
 Download list of SAP Software files, but search for alternatives if not found
 ```yaml
-- name: Download list of SAP Software files
-  community.sap_launchpad.software_center_download:
-    suser_id: "Enter SAP S-User ID"
-    suser_password: "Enter SAP S-User Password"
-    search_query: "{{ item }}"
-    dest: "Enter download path (e.g. /software)"
-    search_alternatives: true
-    deduplicate: "last"
-  loop:
-    - "Enter SAP Software file name 1"
-    - "Enter SAP Software file name 2"
-  loop_control:
-    label: "{{ item }} : {{ __module_results.msg | d('') }}"
-  register: __module_results
-  retries: 1
-  until: __module_results is not failed
+---
+- name: Example play for Ansible Module software_center_download
+  hosts: all
+  tasks:
+    - name: Download list of SAP Software files
+      community.sap_launchpad.software_center_download:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        search_query: "{{ item }}"
+        dest: "Enter download path (e.g. /software)"
+        search_alternatives: true
+        deduplicate: "last"
+      loop:
+        - "Enter SAP Software file name 1"
+        - "Enter SAP Software file name 2"
+      loop_control:
+        label: "{{ item }} : {{ __module_results.msg | d('') }}"
+      register: __module_results
+      retries: 1
+      until: __module_results is not failed
 ```
 
 Download SAP Software file using Python Virtual Environment `/tmp/venv`
 ```yaml
-- name: Download list of SAP Software files
-  community.sap_launchpad.software_center_download:
-    suser_id: "Enter SAP S-User ID"
-    suser_password: "Enter SAP S-User Password"
-    search_query: "{{ item }}"
-    dest: "Enter download path (e.g. /software)"
-  loop:
-    - "Enter SAP Software file name 1"
-    - "Enter SAP Software file name 2"
-  loop_control:
-    label: "{{ item }} : {{ __module_results.msg | d('') }}"
-  register: __module_results
-  retries: 1
-  until: __module_results is not failed
-  environment:
-    PATH: "/tmp/venv:{{ ansible_env.PATH }}" 
-    PYTHONPATH: "/tmp/venv/lib/python3.11/site-packages" 
-    VIRTUAL_ENV: "/tmp/venv" 
-  vars:
-    ansible_python_interpreter: "/tmp/venv/bin/python3.11 }}"
-```
-
-### Output format
-#### msg
-- _Type:_ `string`<br>
-
-A message indicating the status of the download operation.
-
-## Further Information
-### Installation of prerequisites
-**All preparation steps are included in role `sap_launchpad.sap_software_download`.**</br>
-
-Prerequisite preparation using Python 3.11 Virtual Environment `/tmp/python_venv` (Recommended)
-```yaml
 ---
-- name: Example play to install prerequisites for sap_launchpad
+- name: Example play for Ansible Module software_center_download
   hosts: all
   tasks:
-    - name: Install Python and Python package manager pip
-      ansible.builtin.package:
-        name:
-          - python311
-          - python311-pip
-        state: present
-
-    - name: Pre-Steps - Install Python modules to Python venv
-      ansible.builtin.pip:
-        name:
-          - wheel
-          - urllib3
-          - requests
-          - beautifulsoup4
-          - lxml
-        virtualenv: "/tmp/python_venv"
-        virtualenv_command: "python3.11 -m venv"
+    - name: Download SAP Software file using search_query
+      community.sap_launchpad.software_center_download:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        search_query: "Enter SAP Software file name"
+        dest: "Enter download path (e.g. /software)"
+      environment:
+        PATH: "/tmp/venv:{{ ansible_env.PATH }}" 
+        PYTHONPATH: "/tmp/venv/lib/python3.11/site-packages" 
+        VIRTUAL_ENV: "/tmp/venv" 
+      vars:
+        ansible_python_interpreter: "/tmp/venv/bin/python3.11 }}"
 ```
 
-Prerequisite preparation using Python 3.11 system default</br>
+Install prerequisites and download SAP Software file using existing System Python.</br>
+**NOTE:** Python modules are installed as packages to avoid `externally-managed-environment` error.
 ```yaml
 ---
-- name: Example play to install prerequisites for sap_launchpad
+- name: Example play for Ansible Module software_center_download
   hosts: all
   tasks:
     - name: Install Python and Python package manager pip
@@ -180,8 +155,58 @@ Prerequisite preparation using Python 3.11 system default</br>
           - python311-beautifulsoup4
           - python311-lxml
         state: present
+
+    - name: Download SAP Software file using search_query
+      community.sap_launchpad.software_center_download:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        search_query: "Enter SAP Software file name"
+        dest: "Enter download path (e.g. /software)"
 ```
-**NOTE:** Python modules are installed as packages to avoid `externally-managed-environment` error.
+
+Install prerequisites and download SAP Software file using existing Python Virtual Environment `/tmp/python_venv`.
+```yaml
+---
+- name: Example play for Ansible Module software_center_download
+  hosts: all
+  tasks:
+    - name: Install Python and Python package manager pip
+      ansible.builtin.package:
+        name:
+          - python311
+          - python311-pip
+        state: present
+
+    - name: Install Python modules to Python venv
+      ansible.builtin.pip:
+        name:
+          - wheel
+          - urllib3
+          - requests
+          - beautifulsoup4
+          - lxml
+        virtualenv: "/tmp/python_venv"
+        virtualenv_command: "python3.11 -m venv"
+
+    - name: Download SAP Software file using search_query
+      community.sap_launchpad.software_center_download:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        search_query: "Enter SAP Software file name"
+        dest: "Enter download path (e.g. /software)"
+      environment:
+        PATH: "/tmp/python_venv:{{ ansible_env.PATH }}" 
+        PYTHONPATH: "/tmp/python_venv/lib/python3.11/site-packages" 
+        VIRTUAL_ENV: "/tmp/python_venv" 
+      vars:
+        ansible_python_interpreter: "/tmp/python_venv/bin/python3.11 }}"
+```
+
+### Output format
+#### msg
+- _Type:_ `string`<br>
+
+A message indicating the status of the download operation.
 
 ## License
 Apache 2.0

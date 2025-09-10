@@ -43,6 +43,7 @@ The module follows a clear logic flow to retrieve the file list from a Maintenan
 
 Obtain list of SAP Software files using existing System Python.
 ```yaml
+---
 - name: Example play for Ansible Module maintenance_planner_files
   hosts: all
   tasks:
@@ -56,6 +57,7 @@ Obtain list of SAP Software files using existing System Python.
 
 Obtain list of SAP Software files using existing Python Virtual Environment `/tmp/python_venv`.
 ```yaml
+---
 - name: Example play for Ansible Module maintenance_planner_files
   hosts: all
   tasks:

@@ -14,8 +14,6 @@ This module requires the following Python modules to be installed on the target 
 - beautifulsoup4
 - lxml
 
-Installation instructions are available at [Installation of prerequisites](#installation-of-prerequisites)
-
 ## Execution
 
 ### Execution Flow
@@ -33,66 +31,38 @@ The module follows a straightforward logic flow to retrieve system information.
     *   Each system in the list is a dictionary containing its details.
 
 ### Example
-```yaml
-- name: Get all systems for a specific installation number
-  community.sap_launchpad.systems_info:
-    suser_id: 'SXXXXXXXX'
-    suser_password: 'password'
-    filter: "Insnr eq '1234567890'"
-  register: result
+> **NOTE:** The Python versions in these examples vary by operating system. Always use the version that is compatible with your specific system or managed node.</br>
 
-- name: Display system details
-  ansible.builtin.debug:
-    var: result.systems
-
-- name: Get a specific system by SID and product description
-  community.sap_launchpad.systems_info:
-    suser_id: 'SXXXXXXXX'
-    suser_password: 'password'
-    filter: "Insnr eq '12345678' and sysid eq 'H01' and ProductDescr eq 'SAP S/4HANA'"
-  register: result
-```
-
-### Output format
-#### systems
-- _Type:_ `list` of `dictionaries`<br>
-
-A list of dictionaries, where each dictionary represents an SAP system.<br>
-The product version ID may be returned under the 'Version' or 'Prodver' key, depending on the system's age and type.
-
-## Further Information
-### Installation of prerequisites
-**All preparation steps are included in role `sap_launchpad.sap_software_download`.**</br>
-
-Prerequisite preparation using Python 3.11 Virtual Environment `/tmp/python_venv` (Recommended)
+Get SAP system details using various search filters.
 ```yaml
 ---
-- name: Example play to install prerequisites for sap_launchpad
+- name: Example play for Ansible Module systems_info
   hosts: all
   tasks:
-    - name: Install Python and Python package manager pip
-      ansible.builtin.package:
-        name:
-          - python311
-          - python311-pip
-        state: present
+    - name: Get all systems for a specific installation number
+      community.sap_launchpad.systems_info:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        filter: "Insnr eq '1234567890'"
+      register: __module_results
 
-    - name: Pre-Steps - Install Python modules to Python venv
-      ansible.builtin.pip:
-        name:
-          - wheel
-          - urllib3
-          - requests
-          - beautifulsoup4
-          - lxml
-        virtualenv: "/tmp/python_venv"
-        virtualenv_command: "python3.11 -m venv"
+    - name: Display system details
+      ansible.builtin.debug:
+        var: __module_results.systems
+
+    - name: Get a specific system by SID and product description
+      community.sap_launchpad.systems_info:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        filter: "Insnr eq '12345678' and sysid eq 'H01' and ProductDescr eq 'SAP S/4HANA'"
+      register: __module_results
 ```
 
-Prerequisite preparation using Python 3.11 system default</br>
+Install prerequisites and get SAP system details using existing System Python.</br>
+**NOTE:** Python modules are installed as packages to avoid `externally-managed-environment` error.
 ```yaml
 ---
-- name: Example play to install prerequisites for sap_launchpad
+- name: Example play for Ansible Module systems_info
   hosts: all
   tasks:
     - name: Install Python and Python package manager pip
@@ -111,8 +81,61 @@ Prerequisite preparation using Python 3.11 system default</br>
           - python311-beautifulsoup4
           - python311-lxml
         state: present
+
+    - name: Get all systems for a specific installation number
+      community.sap_launchpad.systems_info:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        filter: "Insnr eq '1234567890'"
+      register: __module_results
+
+    - name: Display system details
+      ansible.builtin.debug:
+        var: __module_results.systems
 ```
-**NOTE:** Python modules are installed as packages to avoid `externally-managed-environment` error.
+
+Install prerequisites and get SAP system details using existing Python Virtual Environment `/tmp/python_venv`.
+```yaml
+---
+- name: Example play for Ansible Module systems_info
+  hosts: all
+  tasks:
+    - name: Install Python and Python package manager pip
+      ansible.builtin.package:
+        name:
+          - python311
+          - python311-pip
+        state: present
+
+    - name: Install Python modules to Python venv
+      ansible.builtin.pip:
+        name:
+          - wheel
+          - urllib3
+          - requests
+          - beautifulsoup4
+          - lxml
+        virtualenv: "/tmp/python_venv"
+        virtualenv_command: "python3.11 -m venv"
+
+    - name: Get all systems for a specific installation number
+      community.sap_launchpad.systems_info:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        filter: "Insnr eq '1234567890'"
+      register: __module_results
+
+    - name: Display system details
+      ansible.builtin.debug:
+        var: __module_results.systems
+```
+
+### Output format
+#### systems
+- _Type:_ `list` of `dictionaries`<br>
+
+A list of dictionaries, where each dictionary represents an SAP system.<br>
+The product version ID may be returned under the 'Version' or 'Prodver' key, depending on the system's age and type.
 
 ## License
 Apache 2.0
