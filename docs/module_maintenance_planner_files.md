@@ -14,8 +14,6 @@ This module requires the following Python modules to be installed on the target 
 - beautifulsoup4
 - lxml
 
-Installation instructions are available at [Installation of prerequisites](#installation-of-prerequisites)
-
 ## Execution
 
 ### Execution Flow
@@ -40,82 +38,46 @@ The module follows a clear logic flow to retrieve the file list from a Maintenan
     *   The module returns the final list of files as the `download_basket`, with each item containing a `DirectLink` and a `Filename`.
 
 ### Example
-Obtain list of SAP Software files
+> **NOTE:** The Python versions in these examples vary by operating system. Always use the version that is compatible with your specific system or managed node.</br>
+> To simplify this process, the Ansible Role `sap_launchpad.sap_software_download` will install the correct Python version and required modules for you.</br>
+
+Obtain list of SAP Software files using existing System Python.
 ```yaml
-- name: Obtain list of SAP Software files
-  community.sap_launchpad.maintenance_planner_files:
-    suser_id: "Enter SAP S-User ID"
-    suser_password: "Enter SAP S-User Password"
-    transaction_name: "Transaction Name or Display ID from Maintenance Planner"
-  register: __module_results
-```
-
-Obtain list of SAP Software files using Python Virtual Environment `/tmp/python_venv`
-```yaml
-- name: Obtain list of SAP Software files using Python Virtual Environment
-  community.sap_launchpad.maintenance_planner_files:
-    suser_id: "Enter SAP S-User ID"
-    suser_password: "Enter SAP S-User Password"
-    transaction_name: "Transaction Name or Display ID from Maintenance Planner"
-  register: __module_results
-  environment:
-    PATH: "/tmp/python_venv:{{ ansible_env.PATH }}" 
-    PYTHONPATH: "/tmp/python_venv/lib/python3.11/site-packages" 
-    VIRTUAL_ENV: "/tmp/python_venv" 
-  vars:
-    ansible_python_interpreter: "/tmp/python_venv/bin/python3.11 }}"
-```
-
-### Output format
-#### msg
-- _Type:_ `string`<br>
-
-The status of execution.
-
-#### download_basket
-- _Type:_ `list` with elements of type `dictionary`<br>
-
-A Json list of software download links and filenames.<br>
-```yml
-- DirectLink: https://softwaredownloads.sap.com/file/0020000001739942021
-  Filename: IMDB_SERVER20_060_0-80002031.SAR
-- DirectLink: https://softwaredownloads.sap.com/file/0010000001440232021
-  Filename: KD75379.SAR
-```
-
-## Further Information
-### Installation of prerequisites
-**All preparation steps are included in role `sap_launchpad.sap_software_download`.**</br>
-
-Prerequisite preparation using Python 3.11 Virtual Environment `/tmp/python_venv` (Recommended)
-```yaml
----
-- name: Example play to install prerequisites for sap_launchpad
+- name: Example play for Ansible Module maintenance_planner_files
   hosts: all
   tasks:
-    - name: Install Python and Python package manager pip
-      ansible.builtin.package:
-        name:
-          - python311
-          - python311-pip
-        state: present
-
-    - name: Pre-Steps - Install Python modules to Python venv
-      ansible.builtin.pip:
-        name:
-          - wheel
-          - urllib3
-          - requests
-          - beautifulsoup4
-          - lxml
-        virtualenv: "/tmp/python_venv"
-        virtualenv_command: "python3.11 -m venv"
+    - name: Obtain list of SAP Software files
+      community.sap_launchpad.maintenance_planner_files:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        transaction_name: "Transaction Name or Display ID from Maintenance Planner"
+      register: __module_results
 ```
 
-Prerequisite preparation using Python 3.11 system default</br>
+Obtain list of SAP Software files using existing Python Virtual Environment `/tmp/python_venv`.
+```yaml
+- name: Example play for Ansible Module maintenance_planner_files
+  hosts: all
+  tasks:
+    - name: Obtain list of SAP Software files using Python Virtual Environment
+      community.sap_launchpad.maintenance_planner_files:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        transaction_name: "Transaction Name or Display ID from Maintenance Planner"
+      register: __module_results
+      environment:
+        PATH: "/tmp/python_venv:{{ ansible_env.PATH }}" 
+        PYTHONPATH: "/tmp/python_venv/lib/python3.11/site-packages" 
+        VIRTUAL_ENV: "/tmp/python_venv" 
+      vars:
+        ansible_python_interpreter: "/tmp/python_venv/bin/python3.11 }}"
+```
+
+Install prerequisites and obtain list of SAP Software files using existing System Python.</br>
+**NOTE:** Python modules are installed as packages to avoid `externally-managed-environment` error.
 ```yaml
 ---
-- name: Example play to install prerequisites for sap_launchpad
+- name: Example play for Ansible Module maintenance_planner_files
   hosts: all
   tasks:
     - name: Install Python and Python package manager pip
@@ -134,8 +96,69 @@ Prerequisite preparation using Python 3.11 system default</br>
           - python311-beautifulsoup4
           - python311-lxml
         state: present
+
+    - name: Obtain list of SAP Software files
+      community.sap_launchpad.maintenance_planner_files:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        transaction_name: "Transaction Name or Display ID from Maintenance Planner"
+      register: __module_results
 ```
-**NOTE:** Python modules are installed as packages to avoid `externally-managed-environment` error.
+
+Install prerequisites and obtain list of SAP Software files using existing Python Virtual Environment `/tmp/python_venv`.
+```yaml
+---
+- name: Example play for Ansible Module maintenance_planner_files
+  hosts: all
+  tasks:
+    - name: Install Python and Python package manager pip
+      ansible.builtin.package:
+        name:
+          - python311
+          - python311-pip
+        state: present
+
+    - name: Install Python modules to Python venv
+      ansible.builtin.pip:
+        name:
+          - wheel
+          - urllib3
+          - requests
+          - beautifulsoup4
+          - lxml
+        virtualenv: "/tmp/python_venv"
+        virtualenv_command: "python3.11 -m venv"
+
+    - name: Obtain list of SAP Software files using Python Virtual Environment
+      community.sap_launchpad.maintenance_planner_files:
+        suser_id: "Enter SAP S-User ID"
+        suser_password: "Enter SAP S-User Password"
+        transaction_name: "Transaction Name or Display ID from Maintenance Planner"
+      register: __module_results
+      environment:
+        PATH: "/tmp/python_venv:{{ ansible_env.PATH }}" 
+        PYTHONPATH: "/tmp/python_venv/lib/python3.11/site-packages" 
+        VIRTUAL_ENV: "/tmp/python_venv" 
+      vars:
+        ansible_python_interpreter: "/tmp/python_venv/bin/python3.11 }}"
+```
+
+### Output format
+#### msg
+- _Type:_ `string`<br>
+
+The status of execution.
+
+#### download_basket
+- _Type:_ `list` with elements of type `dictionary`<br>
+
+A Json list of software download links and filenames.<br>
+```yml
+- DirectLink: https://softwaredownloads.sap.com/file/0020000001739942021
+  Filename: IMDB_SERVER20_060_0-80002031.SAR
+- DirectLink: https://softwaredownloads.sap.com/file/0010000001440232021
+  Filename: KD75379.SAR
+```
 
 ## License
 Apache 2.0
