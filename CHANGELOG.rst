@@ -4,6 +4,24 @@ community.sap\_launchpad Release Notes
 
 .. contents:: Topics
 
+v1.3.0
+======
+
+Release Summary
+---------------
+
+Refactor Ansible Modules and adjust for ansible-core 2.19.
+
+Minor Changes
+-------------
+- collection: Refactor all Ansible Modules (https://github.com/sap-linuxlab/community.sap_launchpad/pull/51)
+- sap_software_download: Update for ansible-core 2.19 (https://github.com/sap-linuxlab/community.sap_launchpad/pull/49)
+
+Bugfixes
+--------
+- sap_software_download: Fix for failed checksums not correctly retrying (https://github.com/sap-linuxlab/community.sap_launchpad/pull/50)
+
+
 v1.2.1
 ======
 
