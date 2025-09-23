@@ -1,8 +1,8 @@
-from ansible.module_utils.basic import AnsibleModule
+#!/usr/bin/python
 
-from ..module_utils.sap_launchpad_systems_runner import *
-from ..module_utils.sap_id_sso import sap_sso_login
+from __future__ import absolute_import, division, print_function
 
+__metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
@@ -31,6 +31,7 @@ options:
       - SAP S-User Password.
     required: true
     type: str
+    no_log: true
   installation_nr:
     description: 
       - Number of the Installation for which the system should be created/updated
@@ -93,8 +94,11 @@ options:
     type: bool
     required: false
     default: false
-    
-  
+  download_path:
+    description: If specified, the generated license key file will be downloaded to this directory.
+    required: false
+    type: path
+
 author:
     - Lab for SAP Solutions
 
@@ -132,18 +136,17 @@ EXAMPLES = r'''
 
 - name: Display the license file containing the licenses
   debug:
-    msg:
-      - "{{ result.license_file }}"
+    var: result.license_file
 '''
 
 
 RETURN = r'''
 license_file:
   description: |
-    The license file containing the digital signatures of the specified licenses.
-    All licenses that were provided in the licenses attribute are returned, no matter if they were modified or not. 
-  returned: always
-  type: string
+    The license file content containing the digital signatures of the specified licenses.
+    This is returned when C(state) is 'present' and licenses are specified.
+  returned: on success
+  type: str
   sample: |
     ----- Begin SAP License -----
     SAPSYSTEM=H01
@@ -165,13 +168,15 @@ license_file:
     SWPRODUCTNAME=Maintenance_MYS
     SWPRODUCTLIMIT=2147483647
     SYSTEM-NR=00000000023456789
-    
 system_nr:
   description: The number of the system which was created/updated. 
-  returned: always
-  type: string
-  sample: 23456789
+  returned: on success
+  type: str
+  sample: "0000123456"
 '''
+
+from ansible.module_utils.basic import AnsibleModule
+from ..module_utils.systems import main as systems_runner
 
 
 def run_module():
@@ -182,127 +187,53 @@ def run_module():
         installation_nr=dict(type='str', required=True),
         system=dict(
             type='dict',
+            required=True,
             options=dict(
                 nr=dict(type='str', required=False),
                 product=dict(type='str', required=True),
                 version=dict(type='str', required=True),
-                data=dict(type='dict')
+                data=dict(type='dict', required=True)
             )
         ),
         licenses=dict(type='list', required=True, elements='dict', options=dict(
             type=dict(type='str', required=True),
-            data=dict(type='dict'),
+            data=dict(type='dict', required=True),
         )),
         delete_other_licenses=dict(type='bool', required=False, default=False),
+        download_path=dict(type='path', required=False)
     )
 
-    # Define result dictionary objects to be passed back to Ansible
-    result = dict(
-        license_file='',
-        system_nr='',
-        # as we don't have a diff mechanism but always submit the system, we don't have a way to detect changes.
-        # it might always have changed.
-        changed=True,
-    )
-
-    # Instantiate module
     module = AnsibleModule(
         argument_spec=module_args,
-        supports_check_mode=False
+        supports_check_mode=True
     )
 
-    username = module.params.get('suser_id')
-    password = module.params.get('suser_password')
-    installation_nr = module.params.get('installation_nr')
-    system = module.params.get('system')
-    system_nr = system.get('nr')
-    product = system.get('product')
-    version = system.get('version')
-    data = system.get('data')
-    licenses = module.params.get('licenses')
+    if module.check_mode:
+        module.exit_json(changed=False, msg="Check mode not supported for license key management.")
 
-    if len(licenses) == 0:
-        module.fail_json("licenses cannot be empty")
+    # Translate original parameters to the new, flat structure for the runner.
+    params = module.params.copy()
 
-    delete_other_licenses = module.params.get('delete_other_licenses')
+    # The runner expects a flat structure, so we unpack the 'system' dictionary.
+    system_info = params.pop('system')
+    params['system_nr'] = system_info.get('nr')
+    params['product_name'] = system_info.get('product')
+    params['product_version'] = system_info.get('version')
+    params['system_data'] = system_info.get('data')
 
-    sap_sso_login(username, password)
+    # The runner uses a 'state' parameter instead of 'delete_other_licenses'.
+    if params.pop('delete_other_licenses', False):
+        params['state'] = 'absent'
+    else:
+        params['state'] = 'present'
 
+    # Call the runner with the translated parameters.
+    result = systems_runner.run_license_keys(params)
 
-    try:
-        validate_installation(installation_nr, username)
-    except InstallationNotFoundError as err:
-        module.fail_json("Installation could not be found", installation_nr=err.installation_nr,
-                         available_installations=[inst['Text'] for inst in err.available_installations])
-
-    existing_system = None
-    if system_nr is not None:
-        try:
-            existing_system = get_system(system_nr, installation_nr, username)
-        except SystemNrInvalidError as err:
-            module.fail_json("System could not be found", system_nr=err.system_nr, details=err.details)
-
-    product_id = None
-    try:
-        product_id = get_product(product, installation_nr, username)
-    except ProductNotFoundError as err:
-        module.fail_json("Product could not be found", product=err.product,
-                         available_products=[product['Description'] for product in err.available_products])
-
-    version_id = None
-    try:
-        version_id = get_version(version, product_id, installation_nr, username)
-    except VersionNotFoundError as err:
-        module.fail_json("Version could not be found", version=err.version,
-                         available_versions=[version['Description'] for version in err.available_versions])
-
-    system_data = None
-    try:
-        system_data, warning = validate_system_data(data, version_id, system_nr, installation_nr, username)
-        if warning is not None:
-            module.warn(warning)
-    except DataInvalidError as err:
-        module.fail_json(f"Invalid {err.scope} data",
-                         unknown_fields=err.unknown_fields,
-                         missing_required_fields=err.missing_required_fields,
-                         fields_with_invalid_option=err.fields_with_invalid_option)
-
-    license_data = None
-    try:
-        license_data = validate_licenses(licenses, version_id, installation_nr, username)
-    except LicenseTypeInvalidError as err:
-        module.fail_json(f"Invalid license type", license_type=err.license_type, available_license_types=err.available_license_types)
-    except DataInvalidError as err:
-        module.fail_json(f"Invalid {err.scope} data",
-                         unknown_fields=err.unknown_fields,
-                         missing_required_fields=err.missing_required_fields,
-                         fields_with_invalid_option=err.fields_with_invalid_option)
-
-    generated_licenses = []
-    existing_licenses = []
-    new_or_changed_license_data = license_data
-
-    if existing_system is not None:
-        existing_licenses = get_existing_licenses(system_nr, username)
-        new_or_changed_license_data = keep_only_new_or_changed_licenses(existing_licenses, license_data)
-
-    if len(new_or_changed_license_data) > 0:
-        generated_licenses = generate_licenses(new_or_changed_license_data, existing_licenses, version_id,
-                                               installation_nr, username)
-
-    system_nr = submit_system(existing_system is None, system_data, generated_licenses, username)
-    key_nrs = get_license_key_numbers(license_data, system_nr, username)
-    result['license_file'] = download_licenses(key_nrs)
-    result['system_nr'] = system_nr
-
-    if delete_other_licenses:
-        existing_licenses = get_existing_licenses(system_nr, username)
-        licenses_to_delete = select_licenses_to_delete(key_nrs, existing_licenses)
-        if len(licenses_to_delete) > 0:
-            updated_licenses = delete_licenses(licenses_to_delete, existing_licenses, version_id, installation_nr, username)
-            submit_system(False, system_data, updated_licenses, username)
-
-    module.exit_json(**result)
+    if result.get('failed'):
+        module.fail_json(**result)
+    else:
+        module.exit_json(**result)
 
 
 def main():

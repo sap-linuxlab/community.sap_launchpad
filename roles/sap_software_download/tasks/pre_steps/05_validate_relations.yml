@@ -71,8 +71,10 @@
 
 - name: Relationship Validation - Define list of files
   ansible.builtin.set_fact:
-    __sap_software_download_files: "{{ sap_software_download_files if not sap_software_download_find_alternatives
-      else __sap_software_download_files_results_dryrun.results | selectattr('failed', 'false')| map(attribute='filename') | list | unique | d([])}}"
+    __sap_software_download_files:
+      "{{ sap_software_download_files
+        if not sap_software_download_find_alternatives
+        else __sap_software_download_files_results_dryrun.results | selectattr('failed', 'false') | map(attribute='filename') | list | unique | d([]) }}"
 
 
 - name: Relationship Validation - SAP HANA - Multiple IMDB_SERVER files found

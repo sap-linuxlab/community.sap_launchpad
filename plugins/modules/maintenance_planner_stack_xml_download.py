@@ -1,16 +1,17 @@
-# -*- coding: utf-8 -*-
-
-# SAP Maintenance Planner Stack XML download
+#!/usr/bin/python
 
 from __future__ import absolute_import, division, print_function
-
-__metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
 module: maintenance_planner_stack_xml_download
 
-short_description: SAP Maintenance Planner Stack XML download
+short_description: Downloads the stack.xml file from an SAP Maintenance Planner transaction.
+
+description:
+  - This module connects to the SAP Maintenance Planner to download the stack.xml file associated with a specific transaction.
+  - The stack.xml file contains the plan for a system update or installation and is used by tools like Software Update Manager (SUM).
+  - The file is saved to the specified destination directory.
 
 version_added: 1.0.0
 
@@ -32,7 +33,7 @@ options:
     type: str
   dest:
     description:
-      - Destination folder path.
+      - The path to an existing destination directory where the stack.xml file will be saved.
     required: true
     type: str
 author:
@@ -41,35 +42,29 @@ author:
 '''
 
 EXAMPLES = r'''
-- name: Execute Ansible Module 'maintenance_planner_stack_xml_download' to get files from MP
-  community.sap_launchpad.sap_launchpad_software_center_download:
+- name: Download a Stack XML file from a Maintenance Planner transaction
+  community.sap_launchpad.maintenance_planner_stack_xml_download:
     suser_id: 'SXXXXXXXX'
     suser_password: 'password'
     transaction_name: 'MP_NEW_INST_20211015_044854'
     dest: "/tmp/"
-  register: sap_mp_register
-- name: Display the list of download links and filenames
-  debug:
-    msg:
-      - "{{ sap_mp_register.download_basket }}"
+  register: sap_mp_stack_xml_result
+- name: Display the result message
+  ansible.builtin.debug:
+    msg: "{{ sap_mp_stack_xml_result.msg }}"
 '''
 
 RETURN = r'''
 msg:
-  description: the status of the process
+  description: A message indicating the status of the download operation.
   returned: always
   type: str
+  sample: "SAP Maintenance Planner Stack XML successfully downloaded to /tmp/MP_STACK_20211015_044854.xml"
 '''
-
-
-#########################
 
 import requests
 from ansible.module_utils.basic import AnsibleModule
-
-# Import runner
-from ..module_utils.sap_launchpad_maintenance_planner_runner import *
-from ..module_utils.sap_id_sso import sap_sso_login
+from ..module_utils.maintenance_planner import main as maintenance_planner_runner
 
 
 def run_module():
@@ -98,47 +93,13 @@ def run_module():
     if module.check_mode:
         module.exit_json(**result)
 
-    # Define variables based on module inputs
-    username = module.params.get('suser_id')
-    password = module.params.get('suser_password')
-    transaction_name = module.params.get('transaction_name')
-    dest = module.params.get('dest')
+    result = maintenance_planner_runner.run_stack_xml_download(module.params)
 
-    # Main run
-
-    try:
-
-        # EXEC: Retrieve login session, using Py Function from imported module in directory module_utils
-        session = sap_sso_login(username, password)
-
-        # EXEC: Authenticate against userapps.support.sap.com
-        auth_userapps()
-
-        # EXEC: Get MP stack transaction id from transaction name
-        transaction_id = get_transaction_id(transaction_name)
-
-        # EXEC: Download the MP Stack XML file
-        get_transaction_stack_xml(transaction_id, dest)
-
-        # Process return dictionary for Ansible
-        result['changed'] = True
-        result['msg'] = "SAP Maintenance Planner Stack XML download successful"
-
-    except KeyError as e:
-        # module.fail_json(msg='Maintenance planner session not found - ' + str(e), **result)
-        result['msg'] = "Maintenance planner session not found - " + str(e)
-        result['failed'] = True
-    except requests.exceptions.HTTPError as e:
-        # module.fail_json(msg='SAP SSO authentication failed' + str(e), **result)
-        result['msg'] = "SAP SSO authentication failed - " + str(e)
-        result['failed'] = True
-    except Exception as e:
-        # module.fail_json(msg='An exception has occurred' + str(e), **result)
-        result['msg'] = "An exception has occurred - " + str(e)
-        result['failed'] = True
-
-    # Return to Ansible
-    module.exit_json(**result)
+    # The runner function indicates failure via a key in the result.
+    if result.get('failed'):
+        module.fail_json(**result)
+    else:
+        module.exit_json(**result)
 
 
 def main():

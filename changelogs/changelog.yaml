@@ -1,5 +1,23 @@
 ancestor: null
 releases:
+  1.3.0:
+    release_date: '2025-09-23'
+    changes:
+      release_summary: Refactor Ansible Modules and adjust for ansible-core 2.19
+      minor_changes:
+        - collection - Refactor all Ansible Modules (https://github.com/sap-linuxlab/community.sap_launchpad/pull/51)
+        - sap_software_download - Update for ansible-core 2.19 (https://github.com/sap-linuxlab/community.sap_launchpad/pull/49)
+      bugfixes:
+        - sap_software_download - Fix for failed checksums not correctly retrying (https://github.com/sap-linuxlab/community.sap_launchpad/pull/50)
+
+  1.2.1:
+    release_date: '2025-06-11'
+    changes:
+      release_summary: Various bug fixes
+      bugfixes:
+        - software_center_download - Improved logic for skipping existing files and getting valid filename (https://github.com/sap-linuxlab/community.sap_launchpad/pull/40)
+        - sap_software_download - Add SLES 16 python313 support and update changelog (https://github.com/sap-linuxlab/community.sap_launchpad/pull/41)
+
   1.2.0:
     release_date: '2025-04-04'
     changes:

@@ -164,3 +164,11 @@ argument_specs:
           - If multiple files with the same name are found, this setting determines which one to download.
           - Value `first` - Download the first file found.
           - Value `last` - Download the last file found.
+
+      sap_software_download_validate_checksum:
+        type: bool
+        required: false
+        default: false
+        description:
+          - Enables checksum validation of existing files present in `sap_software_download_directory`.
+          - This does not affect automatic checksum validation of downloaded files.
