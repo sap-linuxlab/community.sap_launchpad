@@ -88,3 +88,7 @@ sap_software_download_ignore_validate_credentials: false
 #   `first`: Download the first file found.
 #   `last`: Download the last file found.
 # sap_software_download_deduplicate: first
+
+# Enables checksum validation of existing files present in `sap_software_download_directory`.
+# This does not affect automatic checksum validation of downloaded files.
+# sap_software_download_validate_checksum: true

@@ -1,19 +1,16 @@
-from ansible.module_utils.basic import AnsibleModule
+#!/usr/bin/python
 
-from ..module_utils.sap_launchpad_systems_runner import *
-from ..module_utils.sap_id_sso import sap_sso_login
-
-from requests.exceptions import HTTPError
+from __future__ import absolute_import, division, print_function
 
 DOCUMENTATION = r'''
 ---
 module: systems_info
 
-short_description: Queries registered systems in me.sap.com
+short_description: Retrieves information about SAP systems.
 
 description:
-- Fetch Systems from U(me.sap.com) with ODATA query filtering and returns the discovered Systems.
-- The query could easily copied from U(https://launchpad.support.sap.com/services/odata/i7p/odata/bkey)
+- This module queries the SAP Launchpad to retrieve a list of registered systems based on a filter string.
+- It allows for fetching details about systems associated with the authenticated S-User.
 
 version_added: 1.1.0
 
@@ -28,38 +25,50 @@ options:
       - SAP S-User Password.
     required: true
     type: str
+    no_log: true
   filter:
     description:
       - An ODATA filter expression to query the systems.
     required: true
     type: str
 author:
-    - Lab for SAP Solutions
+    - SAP LinuxLab
 
 '''
 
 
 EXAMPLES = r'''
-- name: get system by SID and product
+- name: Get all systems for a specific installation number
   community.sap_launchpad.systems_info:
     suser_id: 'SXXXXXXXX'
     suser_password: 'password'
-    filter: "Insnr eq '12345678' and sysid eq 'H01' and ProductDescr eq 'SAP S/4HANA'"
+    filter: "Insnr eq '1234567890'"
   register: result
 
-- name: Display the first returned system
+- name: Display system details
   debug:
-    msg:
-      - "{{ result.systems[0] }}"
+    var: result.systems
 '''
 
 
 RETURN = r'''
 systems:
-  description: the systems returned for the filter
+  description:
+    - A list of dictionaries, where each dictionary represents an SAP system.
+    - The product version ID may be returned under the 'Version' or 'Prodver' key, depending on the system's age and type.
   returned: always
   type: list
+  elements: dict
+  sample:
+    - Sysnr: "0000123456"
+      Sysid: "S4H"
+      Systxt: "S/4HANA Development System"
+      Insnr: "1234567890"
+      Version: "73554900100800000266"
 '''
+
+from ansible.module_utils.basic import AnsibleModule
+from ..module_utils.systems import main as systems_runner
 
 
 def run_module():
@@ -69,28 +78,17 @@ def run_module():
         filter=dict(type='str', required=True),
     )
 
-    result = dict(
-        systems='',
-    )
-
     module = AnsibleModule(
         argument_spec=module_args,
-        supports_check_mode=False
+        supports_check_mode=True
     )
 
-    username = module.params.get('suser_id')
-    password = module.params.get('suser_password')
-    filter = module.params.get('filter')
+    result = systems_runner.run_systems_info(module.params)
 
-    sap_sso_login(username, password)
-
-    try:
-        result["systems"] = get_systems(filter)
-    except HTTPError as err:
-        module.fail_json("Error while querying systems", status_code=err.response.status_code,
-                         response=err.response.content)
-
-    module.exit_json(**result)
+    if result.get('failed'):
+        module.fail_json(**result)
+    else:
+        module.exit_json(**result)
 
 
 def main():

@@ -35,8 +35,6 @@ The target node must meet the following requirements:
     *   For example, on some systems, these packages might be named `python3` and `python3-pip`. 
 <!-- END Prerequisites -->
 
-<!-- END Prerequisites -->
-
 ## Execution
 <!-- BEGIN Execution -->
 <!-- END Execution -->
@@ -63,7 +61,7 @@ The target node must meet the following requirements:
 
 ### Example
 <!-- BEGIN Execution Example -->
-Download of SAP Software files using input list
+Download of SAP Software files using input list.
 ```yaml
 ---
 - name: Ansible Play for downloading SAP Software
@@ -77,12 +75,13 @@ Download of SAP Software files using input list
         sap_software_download_suser_id: "Enter SAP S-User ID"
         sap_software_download_suser_password: "Enter SAP S-User Password"
         sap_software_download_directory: "/software"
+        sap_software_download_validate_checksum: true
         sap_software_download_files:
           - 'SAPCAR_1115-70006178.EXE'
           - 'SAPEXE_100-80005509.SAR'
 ```
 
-Download of SAP Software files using Maintenance Plan
+Download of SAP Software files using Maintenance Plan.
 ```yaml
 ---
 - name: Ansible Play for downloading SAP Software
@@ -96,15 +95,17 @@ Download of SAP Software files using Maintenance Plan
         sap_software_download_suser_id: "Enter SAP S-User ID"
         sap_software_download_suser_password: "Enter SAP S-User Password"
         sap_software_download_directory: "/software"
-        sap_software_download_mp_transaction: 'Transaction Name or Display ID from Maintenance Planner'
+        sap_software_download_validate_checksum: true
+        sap_software_download_mp_transaction: 'MY-TRANSACTION-NAME'
 ```
 
 Combined download of SAP Software files and Maintenance Plan transaction together with settings:
-- Use default Python instead of Python virtual environment
-- No validation of S-User credentials
-- No validation of relationships
-- No warnings for unavailable files
-- No warnings for unavailable Maintenance Plan transaction
+- Use default Python instead of Python virtual environment.
+- No validation of S-User credentials.
+- No validation of relationships.
+- No warnings for unavailable files.
+- No warnings for unavailable Maintenance Plan transaction.
+- Validate checksum of already existing files with same name.
 ```yaml
 - name: Ansible Play for downloading SAP Software
   hosts: localhost
@@ -123,10 +124,11 @@ Combined download of SAP Software files and Maintenance Plan transaction togethe
         sap_software_download_ignore_plan_not_found: true
         sap_software_download_validate_relationships: false
         sap_software_download_deduplicate: first
+        sap_software_download_validate_checksum: true
         sap_software_download_files:
           - 'SAPCAR_1115-70006178.EXE'
           - 'SAPEXE_100-80005509.SAR'
-        sap_software_download_mp_transaction: 'Transaction Name or Display ID from Maintenance Planner'
+        sap_software_download_mp_transaction: 'MY-TRANSACTION-NAME'
 ```
 Download of SAP Software files using Python version `3.13`.
 ```yaml
@@ -150,6 +152,7 @@ Download of SAP Software files using Python version `3.13`.
         sap_software_download_suser_id: "Enter SAP S-User ID"
         sap_software_download_suser_password: "Enter SAP S-User Password"
         sap_software_download_directory: "/software"
+        sap_software_download_validate_checksum: true
         sap_software_download_files:
           - 'SAPCAR_1115-70006178.EXE'
           - 'SAPEXE_100-80005509.SAR'
@@ -325,4 +328,11 @@ Specifies how to handle duplicate file results when using `sap_software_download
 If multiple files with the same name are found, this setting determines which one to download.<br>
 - `first`: Download the first file found<br>
 - `last`: Download the last file found.<br>
+
+### sap_software_download_validate_checksum
+- _Type:_ `bool`<br>
+- _Default:_ `false`<br>
+
+Enables checksum validation of existing files present in `sap_software_download_directory`.<br>
+This does not affect automatic checksum validation of downloaded files.<br>
 <!-- END Role Variables -->

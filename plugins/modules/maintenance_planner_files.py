@@ -1,16 +1,17 @@
-# -*- coding: utf-8 -*-
-
-# SAP Maintenance Planner files retrieval
+#!/usr/bin/python
 
 from __future__ import absolute_import, division, print_function
-
-__metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
 module: maintenance_planner_files
 
-short_description: SAP Maintenance Planner files retrieval
+short_description: Retrieves a list of files from an SAP Maintenance Planner transaction.
+
+description:
+  - This module connects to the SAP Maintenance Planner to retrieve a list of all downloadable files associated with a specific transaction.
+  - It returns a list containing direct download links and filenames for each file.
+  - This is useful for automating the download of a complete stack file set defined in a Maintenance Planner transaction.
 
 version_added: 1.0.0
 
@@ -36,40 +37,42 @@ author:
 '''
 
 EXAMPLES = r'''
-- name: Execute Ansible Module 'maintenance_planner_files' to get files from MP
-  community.sap_launchpad.sap_launchpad_software_center_download:
+- name: Retrieve a list of downloadable files from a Maintenance Planner transaction
+  community.sap_launchpad.maintenance_planner_files:
     suser_id: 'SXXXXXXXX'
     suser_password: 'password'
     transaction_name: 'MP_NEW_INST_20211015_044854'
   register: sap_mp_register
 - name: Display the list of download links and filenames
-  debug:
-    msg:
-      - "{{ sap_mp_register.download_basket }}"
+  ansible.builtin.debug:
+    msg: "Files found for transaction: {{ sap_mp_register.download_basket }}"
 '''
 
 RETURN = r'''
 msg:
-  description: the status of the process
+  description: A message indicating the status of the operation.
   returned: always
   type: str
+  sample: "Successfully retrieved file list from SAP Maintenance Planner."
 download_basket:
-  description: a json list of software download links and filenames from the MP transaction
+  description: A list of files retrieved from the Maintenance Planner transaction.
   returned: always
-  type: json list
+  type: list
+  elements: dict
+  contains:
+    DirectLink:
+      description: The direct URL to download the file.
+      type: str
+      sample: "https://softwaredownloads.sap.com/file/0020000001234562023"
+    Filename:
+      description: The name of the file.
+      type: str
+      sample: "SAPCAR_1324-80000936.EXE"
 '''
-
-
-#########################
 
 import requests
 from ansible.module_utils.basic import AnsibleModule
-
-# Import runner
-from ..module_utils.sap_launchpad_maintenance_planner_runner import *
-from ..module_utils.sap_launchpad_software_center_download_runner import \
-    is_download_link_available
-from ..module_utils.sap_id_sso import sap_sso_login
+from ..module_utils.maintenance_planner import main as maintenance_planner_runner
 
 
 def run_module():
@@ -84,9 +87,7 @@ def run_module():
 
     # Define result dictionary objects to be passed back to Ansible
     result = dict(
-        download_basket={},
         changed=False,
-        msg=''
     )
 
     # Instantiate module
@@ -97,59 +98,15 @@ def run_module():
 
     # Check mode
     if module.check_mode:
+        module.exit_json(changed=False, download_basket={})
+
+    result = maintenance_planner_runner.run_files(module.params)
+
+    # The runner function indicates failure via a key in the result.
+    if result.get('failed'):
+        module.fail_json(**result)
+    else:
         module.exit_json(**result)
-
-    # Define variables based on module inputs
-    username = module.params.get('suser_id')
-    password = module.params.get('suser_password')
-    transaction_name = module.params.get('transaction_name')
-    validate_url = module.params.get('validate_url')
-
-    # Main run
-
-    try:
-        # EXEC: Retrieve login session, using Py Function from imported module in directory module_utils
-        session = sap_sso_login(username, password)
-
-        # EXEC: Authenticate against userapps.support.sap.com
-        auth_userapps()
-
-        # EXEC: Get MP stack transaction id from transaction name
-        transaction_id = get_transaction_id(transaction_name)
-
-        # EXEC: Get a json list of download_links and download_filenames
-        download_basket_details = get_transaction_filename_url(transaction_id)
-
-        if validate_url:
-            for pair in download_basket_details:
-                url = pair[0]
-                if not is_download_link_available(url):
-                    module.fail_json(failed=True, msg='Download link is not available: {}'.format(url))
-
-        # Process return dictionary for Ansible
-        result['download_basket'] = [{'DirectLink': i[0], 'Filename': i[1]} for i in download_basket_details]
-        result['changed'] = True
-        result['msg'] = "Successful SAP maintenance planner stack generation"
-
-    except ValueError as e:
-        # module.fail_json(msg='Stack files not found - ' + str(e), **result)
-        result['msg'] = "Stack files not found - " + str(e)
-        result['failed'] = True
-    except KeyError as e:
-        # module.fail_json(msg='Maintenance planner session not found - ' + str(e), **result)
-        result['msg'] = "Maintenance planner session not found - " + str(e)
-        result['failed'] = True
-    except requests.exceptions.HTTPError as e:
-        # module.fail_json(msg='SAP SSO authentication failed' + str(e), **result)
-        result['msg'] = "SAP SSO authentication failed - " + str(e)
-        result['failed'] = True
-    except Exception as e:
-        # module.fail_json(msg='An exception has occurred' + str(e), **result)
-        result['msg'] = "An exception has occurred - " + str(e)
-        result['failed'] = True
-
-    # Return to Ansible
-    module.exit_json(**result)
 
 
 def main():

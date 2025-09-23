@@ -73,9 +73,11 @@ See [Installing collections](https://docs.ansible.com/ansible/latest/collections
 ### Ansible Modules
 | Name | Summary |
 | :-- | :-- |
-| [sap_launchpad.software_center_download](./docs/module_software_center_download.md) | Search and download SAP Software file |
-| [sap_launchpad.maintenance_planner_files](./docs/module_maintenance_planner_files.md) | Get list of files from Maintenance Planner |
-| [sap_launchpad.maintenance_planner_stack_xml_download](./docs/module_maintenance_planner_stack_xml_download.md) | Get stack file from Maintenance Planner |
+| [sap_launchpad.software_center_download](./docs/module_software_center_download.md) | Downloads software from the SAP Software Center |
+| [sap_launchpad.maintenance_planner_files](./docs/module_maintenance_planner_files.md) | Retrieves a list of files from an SAP Maintenance Planner transaction|
+| [sap_launchpad.maintenance_planner_stack_xml_download](./docs/module_maintenance_planner_stack_xml_download.md) | Downloads the stack.xml file from an SAP Maintenance Planner transaction |
+| [sap_launchpad.license_keys](./docs/module_license_keys.md) | Creates systems and license keys |
+| [sap_launchpad.systems_info](./docs/module_systems_info.md) | Retrieves information about SAP systems |
 
 ### Ansible Roles
 | Name | Summary |
