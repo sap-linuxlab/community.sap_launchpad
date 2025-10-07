@@ -3,8 +3,13 @@ import pathlib
 from .. import auth, exceptions
 from ..client import ApiClient
 from . import api
-from requests.exceptions import HTTPError
 
+try:
+    from requests.exceptions import HTTPError
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
+    HTTPError = None
 
 def run_files(params):
     # Runner for maintenance_planner_files module.
@@ -13,6 +18,11 @@ def run_files(params):
         changed=False,
         msg=''
     )
+
+    if not HAS_REQUESTS:
+        result['failed'] = True
+        result['msg'] = "The 'requests' library is required for this module."
+        return result
 
     client = ApiClient()
     username = params['suser_id']
@@ -55,6 +65,11 @@ def run_stack_xml_download(params):
         changed=False,
         msg=''
     )
+
+    if not HAS_REQUESTS:
+        result['failed'] = True
+        result['msg'] = "The 'requests' library is required for this module."
+        return result
 
     client = ApiClient()
     username = params['suser_id']

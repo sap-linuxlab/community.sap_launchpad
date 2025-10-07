@@ -1,12 +1,12 @@
 import json
 import time
+import traceback
+from functools import wraps
 
 from urllib.parse import urljoin
-from requests.exceptions import HTTPError
 
 from .. import constants as C
 from .. import exceptions
-
 
 class InstallationNotFoundError(Exception):
     def __init__(self, installation_nr, available_installations):
@@ -54,12 +54,33 @@ class DataInvalidError(Exception):
         super().__init__(message)
 
 
+try:
+    from requests.exceptions import HTTPError
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
+    REQUESTS_IMPORT_ERROR = traceback.format_exc()
+    HTTPError = None
+
+
+def require_requests(func):
+    # A decorator to check for the 'requests' library before executing a function.
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not HAS_REQUESTS:
+            raise exceptions.SapLaunchpadError(f"The 'requests' library is required. Error: {REQUESTS_IMPORT_ERROR}")
+        return func(*args, **kwargs)
+    return wrapper
+
+
+@require_requests
 def get_systems(client, filter_str):
     # Retrieves a list of systems based on an OData filter string.
     query_path = f"Systems?$filter={filter_str}"
     return client.get(_url(query_path), headers=_headers({})).json()['d']['results']
 
 
+@require_requests
 def get_system(client, system_nr, installation_nr, username):
     # Retrieves details for a single, specific system.
     filter_str = f"Uname eq '{username}' and Insnr eq '{installation_nr}' and Sysnr eq '{system_nr}'"
@@ -85,6 +106,7 @@ def get_system(client, system_nr, installation_nr, username):
     return system
 
 
+@require_requests
 def get_product_id(client, product_name, installation_nr, username):
     # Finds the internal product ID for a given product name.
     query_path = f"SysProducts?$filter=Uname eq '{username}' and Insnr eq '{installation_nr}' and Sysnr eq '' and Nocheck eq ''"
@@ -95,6 +117,7 @@ def get_product_id(client, product_name, installation_nr, username):
     return product['Product']
 
 
+@require_requests
 def get_version_id(client, version_name, product_id, installation_nr, username):
     # Finds the internal version ID for a given product version name.
     query_path = f"SysVersions?$filter=Uname eq '{username}' and Insnr eq '{installation_nr}' and Product eq '{product_id}' and Nocheck eq ''"
@@ -105,6 +128,7 @@ def get_version_id(client, version_name, product_id, installation_nr, username):
     return version['Version']
 
 
+@require_requests
 def validate_installation(client, installation_nr, username):
     # Checks if the user has access to the specified installation number.
     query_path = f"Installations?$filter=Ubname eq '{username}' and ValidateOnly eq ''"
@@ -113,6 +137,7 @@ def validate_installation(client, installation_nr, username):
         raise InstallationNotFoundError(installation_nr, [i['Insnr'] for i in installations])
 
 
+@require_requests
 def validate_system_data(client, data, version_id, system_nr, installation_nr, username):
     # Validates user-provided system data against the fields supported by the API for a given product version.
     query_path = f"SystData?$filter=Pvnr eq '{version_id}' and Insnr eq '{installation_nr}'"
@@ -136,6 +161,7 @@ def validate_system_data(client, data, version_id, system_nr, installation_nr, u
     return final_fields_lower, warning
 
 
+@require_requests
 def validate_licenses(client, licenses, version_id, installation_nr, username):
     # Validates user-provided license data against the license types and fields supported by the API.
     query_path = f"LicenseType?$filter=PRODUCT eq '{version_id}' and INSNR eq '{installation_nr}' and Uname eq '{username}' and Nocheck eq 'X'"
@@ -156,6 +182,7 @@ def validate_licenses(client, licenses, version_id, installation_nr, username):
     return license_data
 
 
+@require_requests
 def get_existing_licenses(client, system_nr, username):
     # Retrieves all existing license keys for a given system.
     # When updating the licenses based on the results here, the backend expects a completely different format.
@@ -172,6 +199,7 @@ def get_existing_licenses(client, system_nr, username):
     ]
 
 
+@require_requests
 def generate_licenses(client, license_data, existing_licenses, version_id, installation_nr, username):
     # Generates new license keys for a system.
     body = {
@@ -187,6 +215,7 @@ def generate_licenses(client, license_data, existing_licenses, version_id, insta
     return json.loads(response['d']['Result'])
 
 
+@require_requests
 def submit_system(client, is_new, system_data, generated_licenses, username):
     # Submits all system and license data to create or update a system.
     # The SAP Backend requires a completely different format for the license data (`matdata`)
@@ -216,6 +245,7 @@ def submit_system(client, is_new, system_data, generated_licenses, username):
     return licdata[0]['VALUE']
 
 
+@require_requests
 def get_license_key_numbers(client, license_data, system_nr, username):
     # Retrieves the unique key numbers for a list of recently created licenses.
     key_nrs = []
@@ -240,12 +270,14 @@ def get_license_key_numbers(client, license_data, system_nr, username):
     return key_nrs
 
 
+@require_requests
 def download_licenses(client, key_nrs):
     # Downloads the license key file content for a list of key numbers.
     keys_json = json.dumps([{"Keynr": key_nr} for key_nr in key_nrs])
     return client.get(_url(f"FileContent(Keynr='{keys_json}')/$value")).content
 
 
+@require_requests
 def delete_licenses(client, licenses_to_delete, existing_licenses, version_id, installation_nr, username):
     # Deletes a list of specified licenses from a system.
     body = {
@@ -271,6 +303,7 @@ def _headers(additional_headers):
     return {**{'Accept': 'application/json'}, **additional_headers}
 
 
+@require_requests
 def _get_csrf_token(client):
     # Fetches the CSRF token required for POST/write operations.
     # Add Origin and a more specific Referer header, as the service may require them to issue a CSRF token.

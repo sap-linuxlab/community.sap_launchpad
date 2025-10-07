@@ -71,7 +71,6 @@ download_basket:
       sample: "SAPCAR_1324-80000936.EXE"
 '''
 
-import requests
 from ansible.module_utils.basic import AnsibleModule
 from ..module_utils.maintenance_planner import main as maintenance_planner_runner
 

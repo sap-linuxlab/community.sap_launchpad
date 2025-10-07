@@ -1,4 +1,4 @@
-import csv
+
 import json
 import os
 import re
@@ -168,7 +168,7 @@ def _prepare_search_filename_specific(filename):
         if filename_base.startswith(swpm_version):
             return swpm_version
 
-    # Example: SUM11SP04_2-80006858.SAR returns SUM11SP04 
+    # Example: SUM11SP04_2-80006858.SAR returns SUM11SP04
     if filename_base.startswith('SUM'):
         return filename.split('-')[0].split('_')[0]
 
@@ -294,7 +294,7 @@ def _get_next_page_query(desc):
     # Extracts the next page query URL for paginated search results.
     if '|' not in desc:
         return None
-    _, url = desc.split('|')
+    _prefix, url = desc.split('|')
     return url.strip()
 
 

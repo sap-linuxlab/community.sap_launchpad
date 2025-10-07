@@ -1,18 +1,52 @@
 import re
 import time
+import traceback
 from html import unescape
+from functools import wraps
 from urllib.parse import urljoin
-from bs4 import BeautifulSoup
-from lxml import etree
 
 from .. import constants as C
 from .. import exceptions
 from ..auth import get_sso_endpoint_meta
 
+try:
+    from bs4 import BeautifulSoup
+    HAS_BS4 = True
+except ImportError:
+    HAS_BS4 = False
+    BS4_IMPORT_ERROR = traceback.format_exc()
+
+try:
+    from lxml import etree
+    HAS_LXML = True
+except ImportError:
+    HAS_LXML = False
+    LXML_IMPORT_ERROR = traceback.format_exc()
+
 # Module-level cache
 _MP_XSRF_TOKEN = None
 _MP_TRANSACTIONS = None
 _MP_NAMESPACE = 'http://xml.sap.com/2012/01/mnp'
+
+
+def require_bs4(func):
+    # A decorator to check for the 'beautifulsoup4' library before executing a function.
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not HAS_BS4:
+            raise exceptions.SapLaunchpadError(f"The 'beautifulsoup4' library is required. Error: {BS4_IMPORT_ERROR}")
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def require_lxml(func):
+    # A decorator to check for the 'lxml' library before executing a function.
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not HAS_LXML:
+            raise exceptions.SapLaunchpadError(f"The 'lxml' library is required. Error: {LXML_IMPORT_ERROR}")
+        return func(*args, **kwargs)
+    return wrapper
 
 
 def auth_userapps(client):
@@ -32,6 +66,7 @@ def auth_userapps(client):
     client.post(endpoint, data=meta)
 
 
+@require_bs4
 def get_transactions(client):
     # Retrieves a list of all available Maintenance Planner transactions.
     global _MP_TRANSACTIONS
@@ -67,6 +102,7 @@ def get_transaction_id(client, name):
     raise exceptions.FileNotFoundError(f"Transaction '{name}' not found by name or display ID.")
 
 
+@require_lxml
 def get_transaction_filename_url(client, trans_id):
     # Parses the files XML to get a list of (URL, Filename) tuples.
     xml = _get_download_files_xml(client, trans_id)
@@ -175,6 +211,7 @@ def _get_transaction(client, key, value):
     raise exceptions.FileNotFoundError(f"Transaction with {key}='{value}' not found.")
 
 
+@require_lxml
 def _build_mnp_xml(**params):
     # Constructs the MNP XML payload for API requests.
     mnp = f'{{{_MP_NAMESPACE}}}'

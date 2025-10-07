@@ -149,7 +149,8 @@ def run_software_download(params):
                 if validation_result and validation_result.get('validated') is False:
                     result['msg'] = f"Successfully re-downloaded {download_filename} due to an invalid checksum."
                 elif alternative_found:
-                    result['msg'] = f"Successfully downloaded alternative SAP software: {download_filename} - original file {query} is not available to download"
+                    result['msg'] = (f"Successfully downloaded alternative SAP software: {download_filename} "
+                                     f"- original file {query} is not available to download")
                 else:
                     result['msg'] = f"Successfully downloaded SAP software: {download_filename}"
         else:

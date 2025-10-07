@@ -64,7 +64,6 @@ msg:
   sample: "SAP Maintenance Planner Stack XML successfully downloaded to /tmp/MP_STACK_20211015_044854.xml"
 '''
 
-import requests
 from ansible.module_utils.basic import AnsibleModule
 from ..module_utils.maintenance_planner import main as maintenance_planner_runner
 

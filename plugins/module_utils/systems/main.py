@@ -1,6 +1,4 @@
-import os
 import pathlib
-from requests.exceptions import HTTPError
 
 from .. import auth, exceptions
 from ..client import ApiClient
@@ -10,6 +8,7 @@ from . import api
 def run_systems_info(params):
     # Main runner function for the systems_info module.
     result = {'changed': False, 'failed': False, 'systems': []}
+
     client = ApiClient()
     try:
         auth.login(client, params['suser_id'], params['suser_password'])
@@ -23,6 +22,7 @@ def run_systems_info(params):
 def run_license_keys(params):
     # Main runner function for the license_keys module.
     result = {'changed': False, 'failed': False, 'warnings': []}
+
     client = ApiClient()
     username = params['suser_id']
     password = params['suser_password']
