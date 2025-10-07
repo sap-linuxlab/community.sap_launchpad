@@ -10,21 +10,23 @@ from . import exceptions
 
 try:
     from bs4 import BeautifulSoup
-    HAS_BS4 = True
 except ImportError:
     HAS_BS4 = False
     BS4_IMPORT_ERROR = traceback.format_exc()
     BeautifulSoup = None
+else:
+    HAS_BS4 = True
+    BS4_IMPORT_ERROR = None
 
 try:
     from requests.models import HTTPError
-    HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
     REQUESTS_IMPORT_ERROR = traceback.format_exc()
     HTTPError = None
-
-_GIGYA_SDK_BUILD_NUMBER = None
+else:
+    HAS_REQUESTS = True
+    REQUESTS_IMPORT_ERROR = None
 
 
 def require_bs4(func):

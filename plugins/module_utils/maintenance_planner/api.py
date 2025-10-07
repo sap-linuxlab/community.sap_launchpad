@@ -11,17 +11,21 @@ from ..auth import get_sso_endpoint_meta
 
 try:
     from bs4 import BeautifulSoup
-    HAS_BS4 = True
 except ImportError:
     HAS_BS4 = False
     BS4_IMPORT_ERROR = traceback.format_exc()
+else:
+    HAS_BS4 = True
+    BS4_IMPORT_ERROR = None
 
 try:
     from lxml import etree
-    HAS_LXML = True
 except ImportError:
     HAS_LXML = False
     LXML_IMPORT_ERROR = traceback.format_exc()
+else:
+    HAS_LXML = True
+    LXML_IMPORT_ERROR = None
 
 # Module-level cache
 _MP_XSRF_TOKEN = None

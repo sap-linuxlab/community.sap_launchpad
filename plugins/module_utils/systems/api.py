@@ -8,6 +8,7 @@ from urllib.parse import urljoin
 from .. import constants as C
 from .. import exceptions
 
+
 class InstallationNotFoundError(Exception):
     def __init__(self, installation_nr, available_installations):
         self.installation_nr = installation_nr
@@ -56,11 +57,13 @@ class DataInvalidError(Exception):
 
 try:
     from requests.exceptions import HTTPError
-    HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
     REQUESTS_IMPORT_ERROR = traceback.format_exc()
     HTTPError = None
+else:
+    HAS_REQUESTS = True
+    REQUESTS_IMPORT_ERROR = None
 
 
 def require_requests(func):

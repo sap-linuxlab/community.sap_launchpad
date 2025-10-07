@@ -12,11 +12,13 @@ from . import search
 
 try:
     from requests.exceptions import ConnectionError, HTTPError
-    HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
     REQUESTS_IMPORT_ERROR = traceback.format_exc()
     ConnectionError, HTTPError = None, None
+else:
+    HAS_REQUESTS = True
+    REQUESTS_IMPORT_ERROR = None
 
 _HAS_DOWNLOAD_AUTHORIZATION = None
 

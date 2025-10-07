@@ -31,6 +31,11 @@ options:
       - Transaction Name or Transaction Display ID from Maintenance Planner.
     required: true
     type: str
+  validate_url:
+    description:
+      - Validates if the download URLs are accessible before returning them.
+    type: bool
+    default: false
 author:
     - Matthias Winzeler (@MatthiasWinzeler)
     - Marcel Mamula (@marcelmamula)

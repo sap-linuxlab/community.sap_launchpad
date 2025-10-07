@@ -32,21 +32,25 @@ options:
     description:
       - "Deprecated. Use 'search_query' instead."
     required: false
+    default: ''
     type: str
   search_query:
     description:
       - Filename of the SAP software to download.
     required: false
+    default: ''
     type: str
   download_link:
     description:
       - Direct download link to the SAP software.
     required: false
+    default: ''
     type: str
   download_filename:
     description:
       - Download filename of the SAP software.
     required: false
+    default: ''
     type: str
   dest:
     description:
@@ -57,24 +61,28 @@ options:
     description:
       - "Specifies how to handle multiple search results for the same filename.
       - Choices are `first` (oldest) or `last` (newest)."
-    choices: [ 'first', 'last' ]
+    choices: [ 'first', 'last', '' ]
     required: false
+    default: ''
     type: str
   search_alternatives:
     description:
       - Enable search for alternative packages, when filename is not available.
     required: false
+    default: false
     type: bool
   dry_run:
     description:
       - Check availability of SAP Software without downloading.
     required: false
+    default: false
     type: bool
   validate_checksum:
     description:
       - If a file with the same name already exists at the destination, validate its checksum against the remote file.
       - If the checksum is invalid, the local file will be removed and re-downloaded.
     required: false
+    default: false
     type: bool
 author:
     - Matthias Winzeler (@MatthiasWinzeler)

@@ -10,7 +10,6 @@ try:
     import requests
     from requests.adapters import HTTPAdapter
     _RequestsSession = requests.Session
-    HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
     REQUESTS_IMPORT_ERROR = traceback.format_exc()
@@ -18,16 +17,20 @@ except ImportError:
     requests = None
     HTTPAdapter = object
     _RequestsSession = object
+else:
+    HAS_REQUESTS = True
+    REQUESTS_IMPORT_ERROR = None
 
 try:
     import urllib3
-    HAS_URLLIB3 = True
 except ImportError:
     HAS_URLLIB3 = False
     URLLIB3_IMPORT_ERROR = traceback.format_exc()
     # Placeholder to prevent errors on module load
     urllib3 = None
-
+else:
+    HAS_URLLIB3 = True
+    URLLIB3_IMPORT_ERROR = None
 
 class _SessionAllowBasicAuthRedirects(_RequestsSession):
     # By default, the `Authorization` header for Basic Auth will be removed
