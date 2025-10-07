@@ -302,7 +302,7 @@ def _cdc_api_request(client, endpoint, saml_params, query_params):
 
     error_code = json_response['errorCode']
     if error_code != 0:
-        http_error_msg = '{} Error: {} for url: {}'.format(
+        http_error_msg = '{0} Error: {1} for url: {2}'.format(
             json_response['statusCode'], json_response['errorMessage'], res.url)
         raise HTTPError(http_error_msg, response=res)
     return json_response
