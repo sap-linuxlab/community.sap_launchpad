@@ -1,16 +1,24 @@
 ---
-# Collection wide lint-file
-# DO NOT CHANGE
+## Collection wide ansible-lint configuration file.
+# Changes for ansible-lint v25.7.0+
+# - Always executed from collection root using collection configuration.
+# - .ansible-lint-ignore can be used to ignore files, not folders.
+## Execution examples:
+# ansible-lint
+# ansible-lint roles/sap_swpm
+# ansible-lint roles/sap_install_media_detect -c roles/sap_install_media_detect/.ansible-lint
+
 exclude_paths:
   - .ansible/
   - .cache/
   - .github/
-  # - docs/
   - changelogs/
   - playbooks/
   - tests/
+
 enable_list:
   - yaml
+
 skip_list:
   # We don't want to enforce new Ansible versions for Galaxy:
   - meta-runtime[unsupported-version]
@@ -22,3 +30,11 @@ skip_list:
   - schema
   # Allow templating inside name because it creates more detailed output:
   - name[template]
+
+  # - command-instead-of-module
+  # - command-instead-of-shell
+  # - line-length
+  # - risky-shell-pipe
+  # - no-changed-when
+  # - no-handler
+  # - ignore-errors
