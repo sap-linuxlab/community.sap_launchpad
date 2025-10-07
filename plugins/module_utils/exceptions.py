@@ -24,4 +24,3 @@ class DownloadError(SapLaunchpadError):
 class FileNotFoundError(SapLaunchpadError):
     # Raised when a searched file cannot be found.
     pass
-

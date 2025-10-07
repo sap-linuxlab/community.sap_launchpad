@@ -109,7 +109,10 @@ def run_license_keys(params):
                     return result
 
                 license_data = api.validate_licenses(client, user_licenses, version_id, installation_nr, username)
-                new_or_changed = [l for l in license_data if not any(l['HWKEY'] == el['HWKEY'] and l['LICENSETYPE'] == el['LICENSETYPE'] for el in existing_licenses)]
+                new_or_changed = [
+                    l for l in license_data
+                    if not any(l['HWKEY'] == el['HWKEY'] and l['LICENSETYPE'] == el['LICENSETYPE'] for el in existing_licenses)
+                ]
 
                 if not new_or_changed:
                     result['msg'] = "System and licenses are already in the desired state."
@@ -126,7 +129,11 @@ def run_license_keys(params):
                     licenses_to_delete = existing_licenses
                 else:
                     validated_to_keep = api.validate_licenses(client, user_licenses_to_keep, version_id, installation_nr, username)
-                    key_nrs_to_keep = [l['KEYNR'] for l in existing_licenses if any(k['HWKEY'] == l['HWKEY'] and k['LICENSETYPE'] == l['LICENSETYPE'] for k in validated_to_keep)]
+                    key_nrs_to_keep = [
+                        l['KEYNR'] for l in existing_licenses if any(
+                            k['HWKEY'] == l['HWKEY'] and k['LICENSETYPE'] == l['LICENSETYPE'] for k in validated_to_keep
+                        )
+                    ]
                     licenses_to_delete = [l for l in existing_licenses if l['KEYNR'] not in key_nrs_to_keep]
 
                 if not licenses_to_delete:

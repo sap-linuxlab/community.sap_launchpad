@@ -22,6 +22,7 @@ class _SessionAllowBasicAuthRedirects(requests.Session):
             if not re.match(r'.*sap.com$', request_hostname):
                 del prepared_request.headers['Authorization']
 
+
 def _is_updated_urllib3():
     # `method_whitelist` argument for Retry is deprecated since 1.26.0,
     # and will be removed in v2.0.0.

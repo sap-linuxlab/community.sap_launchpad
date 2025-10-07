@@ -20,7 +20,7 @@ The error HTTP 401 refers to either:
 - Unauthorized, the SAP User ID being used belongs to an SAP Company Number (SCN) with one or more Installation Number/s which do not have license agreements for these files
 - Unauthorized, the SAP User ID being used does not have SAP Download authorizations
 - Unauthorized, the SAP User ID is part of an SAP Universal ID and must use the password of the SAP Universal ID
-  - In addition, if a SAP Universal ID is used then the recommendation is to check and reset the SAP User ID ‘Account Password’ in the [SAP Universal ID Account Manager](https://account.sap.com/manage/accounts), which will help to avoid any potential conflicts.
+  - In addition, if a SAP Universal ID is used then the recommendation is to check and reset the SAP User ID `Account Password` in the [SAP Universal ID Account Manager](https://account.sap.com/manage/accounts), which will help to avoid any potential conflicts.
 
 This is documented under [Execution - Credentials](https://github.com/sap-linuxlab/community.sap_launchpad#requirements-dependencies-and-testing).
 

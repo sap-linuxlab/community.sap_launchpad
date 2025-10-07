@@ -32,7 +32,8 @@ options:
     required: true
     type: str
 author:
-    - SAP LinuxLab
+    - Matthias Winzeler (@MatthiasWinzeler)
+    - Marcel Mamula (@marcelmamula)
 
 '''
 

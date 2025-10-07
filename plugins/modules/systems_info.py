@@ -25,14 +25,14 @@ options:
       - SAP S-User Password.
     required: true
     type: str
-    no_log: true
   filter:
     description:
       - An ODATA filter expression to query the systems.
     required: true
     type: str
 author:
-    - SAP LinuxLab
+    - Matthias Winzeler (@MatthiasWinzeler)
+    - Marcel Mamula (@marcelmamula)
 
 '''
 

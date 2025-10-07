@@ -1,0 +1,3 @@
+# Requirements for ansible-test sanity
+requests
+beautifulsoup4

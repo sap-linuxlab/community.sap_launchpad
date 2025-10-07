@@ -33,9 +33,6 @@ options:
       - "Deprecated. Use 'search_query' instead."
     required: false
     type: str
-    deprecated:
-        alternative: search_query
-        removed_in: "1.2.0"
   search_query:
     description:
       - Filename of the SAP software to download.
@@ -58,7 +55,8 @@ options:
     type: str
   deduplicate:
     description:
-      - "Specifies how to handle multiple search results for the same filename. Choices are `first` (oldest) or `last` (newest)."
+      - "Specifies how to handle multiple search results for the same filename.
+      - Choices are `first` (oldest) or `last` (newest)."
     choices: [ 'first', 'last' ]
     required: false
     type: str
@@ -74,11 +72,14 @@ options:
     type: bool
   validate_checksum:
     description:
-      - If a file with the same name already exists at the destination, validate its checksum against the remote file. If the checksum is invalid, the local file will be removed and re-downloaded.
+      - If a file with the same name already exists at the destination, validate its checksum against the remote file.
+      - If the checksum is invalid, the local file will be removed and re-downloaded.
     required: false
     type: bool
 author:
-    - SAP LinuxLab
+    - Matthias Winzeler (@MatthiasWinzeler)
+    - Sean Freeman (@sean-freeman)
+    - Marcel Mamula (@marcelmamula)
 
 '''
 

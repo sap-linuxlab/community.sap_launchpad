@@ -57,14 +57,14 @@ def login(client, username, password):
             'samlContext': params['samlContext']
         }
         endpoint, meta = get_sso_endpoint_meta(client, idp_endpoint,
-                                                params=context,
-                                                allow_redirects=False)
+                                               params=context,
+                                               allow_redirects=False)
 
         while (endpoint != C.URL_LAUNCHPAD + '/'):
             endpoint, meta = get_sso_endpoint_meta(client, endpoint,
-                                                    data=meta,
-                                                    headers=C.GIGYA_HEADERS,
-                                                    allow_redirects=False)
+                                                   data=meta,
+                                                   headers=C.GIGYA_HEADERS,
+                                                   allow_redirects=False)
 
         client.post(endpoint, data=meta, headers=C.GIGYA_HEADERS)
 
@@ -120,8 +120,8 @@ def _gigya_websdk_bootstrap(client, params):
     })
 
     client.get(C.URL_ACCOUNT_CDC_API + '/accounts.webSdkBootstrap',
-             params=params,
-             headers=C.GIGYA_HEADERS)
+               params=params,
+               headers=C.GIGYA_HEADERS)
 
 
 def _gigya_login(client, username, password, api_key):

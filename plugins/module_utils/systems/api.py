@@ -49,7 +49,9 @@ class DataInvalidError(Exception):
         self.unknown_fields = unknown_fields
         self.missing_required_fields = missing_required_fields
         self.fields_with_invalid_option = fields_with_invalid_option
-        super().__init__(f"Invalid data for {scope}: Unknown fields: {unknown_fields}, Missing required fields: {missing_required_fields}, Invalid options: {fields_with_invalid_option}")
+        message = (f"Invalid data for {scope}: Unknown fields: {unknown_fields}, "
+                   f"Missing required fields: {missing_required_fields}, Invalid options: {fields_with_invalid_option}")
+        super().__init__(message)
 
 
 def get_systems(client, filter_str):
@@ -76,7 +78,9 @@ def get_system(client, system_nr, installation_nr, username):
 
     system = systems[0]
     if 'Prodver' not in system and 'Version' not in system:
-        raise exceptions.SapLaunchpadError(f"System {system_nr} was found, but it is missing a required Product Version ID (checked for 'Prodver' and 'Version' keys). System details: {system}")
+        message = (f"System {system_nr} was found, but it is missing a required Product Version ID "
+                   f"(checked for 'Prodver' and 'Version' keys). System details: {system}")
+        raise exceptions.SapLaunchpadError(message)
 
     return system
 
