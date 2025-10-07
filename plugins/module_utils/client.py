@@ -3,7 +3,6 @@ import re
 from urllib.parse import urlparse
 
 from .constants import COMMON_HEADERS
-from . import exceptions
 
 try:
     import requests
