@@ -28,6 +28,8 @@ else:
     HAS_REQUESTS = True
     REQUESTS_IMPORT_ERROR = None
 
+_GIGYA_SDK_BUILD_NUMBER = None
+
 
 def require_bs4(func):
     # A decorator to check for the 'beautifulsoup4' library before executing a function.

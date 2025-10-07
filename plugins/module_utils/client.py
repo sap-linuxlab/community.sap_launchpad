@@ -32,6 +32,7 @@ else:
     HAS_URLLIB3 = True
     URLLIB3_IMPORT_ERROR = None
 
+
 class _SessionAllowBasicAuthRedirects(_RequestsSession):
     # By default, the `Authorization` header for Basic Auth will be removed
     # if the redirect is to a different host.
