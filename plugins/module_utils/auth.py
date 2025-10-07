@@ -1,6 +1,5 @@
 import json
 import re
-import traceback
 from functools import wraps
 
 from urllib.parse import parse_qs, quote_plus, urljoin
@@ -12,21 +11,17 @@ try:
     from bs4 import BeautifulSoup
 except ImportError:
     HAS_BS4 = False
-    BS4_IMPORT_ERROR = traceback.format_exc()
     BeautifulSoup = None
 else:
     HAS_BS4 = True
-    BS4_IMPORT_ERROR = None
 
 try:
     from requests.models import HTTPError
 except ImportError:
     HAS_REQUESTS = False
-    REQUESTS_IMPORT_ERROR = traceback.format_exc()
     HTTPError = None
 else:
     HAS_REQUESTS = True
-    REQUESTS_IMPORT_ERROR = None
 
 _GIGYA_SDK_BUILD_NUMBER = None
 
@@ -36,7 +31,7 @@ def require_bs4(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not HAS_BS4:
-            raise exceptions.SapLaunchpadError(f"The 'beautifulsoup4' library is required. Error: {BS4_IMPORT_ERROR}")
+            raise ImportError("The 'beautifulsoup4' library is required but was not found.")
         return func(*args, **kwargs)
     return wrapper
 
@@ -46,7 +41,7 @@ def require_requests(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not HAS_REQUESTS:
-            raise exceptions.SapLaunchpadError(f"The 'requests' library is required. Error: {REQUESTS_IMPORT_ERROR}")
+            raise ImportError("The 'requests' library is required but was not found.")
         return func(*args, **kwargs)
     return wrapper
 
@@ -131,8 +126,7 @@ def get_sso_endpoint_meta(client, url, **kwargs):
 
     form = soup.find('form')
     if not form:
-        raise ValueError(
-            f'Unable to find form: {res.url}\nContent:\n{res.text}')
+        raise ValueError('Unable to find form: {0}\nContent:\n{1}'.format(res.url, res.text))
     inputs = form.find_all('input')
 
     endpoint = urljoin(res.url, form['action'])
@@ -157,7 +151,7 @@ def _get_gigya_login_params(client, url, data):
 @require_requests
 def _gigya_websdk_bootstrap(client, params):
     # Performs the initial bootstrap call to the Gigya WebSDK.
-    page_url = f'{C.URL_ACCOUNT_SAML_PROXY}?apiKey=' + params['apiKey']
+    page_url = C.URL_ACCOUNT_SAML_PROXY + '?apiKey=' + params['apiKey']
     params.update({
         'pageURL': page_url,
         'sdk': 'js_latest',
@@ -182,7 +176,7 @@ def _gigya_login(client, username, password, api_key):
         'include': 'login_token'
     }
 
-    login_url = f"{C.URL_ACCOUNT_CDC_API}/accounts.login"
+    login_url = "{0}/accounts.login".format(C.URL_ACCOUNT_CDC_API)
     res = client.post(login_url, data=login_payload)
     login_response = res.json()
 
@@ -196,7 +190,7 @@ def _gigya_login(client, username, password, api_key):
                 'Please log in to https://account.sap.com manually to reset it.'
             )
         error_message = login_response.get('errorDetails', 'Unknown authentication error')
-        raise exceptions.AuthenticationError(f"Gigya authentication failed: {error_message} (errorCode: {error_code})")
+        raise exceptions.AuthenticationError("Gigya authentication failed: {0} (errorCode: {1})".format(error_message, error_code))
 
     return login_response.get('login_token')
 
@@ -229,9 +223,9 @@ def _get_uid(client, saml_params, login_token):
 @require_requests
 def _get_uid_details(client, uid, id_token):
     # Fetches detailed account information for a given UID.
-    url = f'{C.URL_ACCOUNT_CORE_API}/accounts/{uid}'
+    url = '{0}/accounts/{1}'.format(C.URL_ACCOUNT_CORE_API, uid)
     headers = C.GIGYA_HEADERS.copy()
-    headers['Authorization'] = f'Bearer {id_token}'
+    headers['Authorization'] = 'Bearer {0}'.format(id_token)
 
     uid_details_response = client.get(url, headers=headers).json()
     return uid_details_response
@@ -251,11 +245,11 @@ def _is_uid_linked_multiple_sids(uid_details):
 @require_requests
 def _select_account(client, uid, sid, id_token):
     # Selects a specific S-User ID when a Universal ID is linked to multiple accounts.
-    url = f'{C.URL_ACCOUNT_CORE_API}/accounts/{uid}/selectedAccount'
+    url = '{0}/accounts/{1}/selectedAccount'.format(C.URL_ACCOUNT_CORE_API, uid)
     data = {'idsName': sid, 'automatic': 'false'}
 
     headers = C.GIGYA_HEADERS.copy()
-    headers['Authorization'] = f'Bearer {id_token}'
+    headers['Authorization'] = 'Bearer {0}'.format(id_token)
     return client.request('PUT', url, headers=headers, json=data)
 
 
@@ -282,7 +276,7 @@ def _cdc_api_request(client, endpoint, saml_params, query_params):
     # Helper to make requests to the Gigya/CDC API, handling common parameters and errors.
     url = '/'.join((C.URL_ACCOUNT_CDC_API, endpoint))
 
-    query = '&'.join([f'{k}={v}' for k, v in saml_params.items()])
+    query = '&'.join(['{0}={1}'.format(k, v) for k, v in saml_params.items()])
     page_url = quote_plus('?'.join((C.URL_ACCOUNT_SAML_PROXY, query)))
 
     api_key = saml_params['apiKey']

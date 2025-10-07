@@ -2,7 +2,6 @@ import glob
 import hashlib
 import os
 import time
-import traceback
 from functools import wraps
 
 from .. import auth
@@ -14,11 +13,9 @@ try:
     from requests.exceptions import ConnectionError, HTTPError
 except ImportError:
     HAS_REQUESTS = False
-    REQUESTS_IMPORT_ERROR = traceback.format_exc()
     ConnectionError, HTTPError = None, None
 else:
     HAS_REQUESTS = True
-    REQUESTS_IMPORT_ERROR = None
 
 _HAS_DOWNLOAD_AUTHORIZATION = None
 
@@ -28,7 +25,7 @@ def require_requests(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not HAS_REQUESTS:
-            raise exceptions.SapLaunchpadError(f"The 'requests' library is required. Error: {REQUESTS_IMPORT_ERROR}")
+            raise ImportError("The 'requests' library is required but was not found.")
         return func(*args, **kwargs)
     return wrapper
 
@@ -63,7 +60,8 @@ def validate_local_file_checksum(client, local_filepath, query=None, download_li
         remote_etag = headers.get('ETag')
 
         if not remote_etag:
-            result['message'] = f"Checksum validation skipped: ETag header not found for URL '{download_link_final}'. Headers received: {headers}"
+            result['message'] = ("Checksum validation skipped: ETag header not found for URL '{0}'. Headers received: {1}"
+                                 .format(download_link_final, headers))
             return result
 
         if _is_checksum_matched(local_filepath, remote_etag):
@@ -74,7 +72,7 @@ def validate_local_file_checksum(client, local_filepath, query=None, download_li
             result['message'] = 'Local file checksum is invalid.'
 
     except exceptions.SapLaunchpadError as e:
-        result['message'] = f'Checksum validation skipped: {e}'
+        result['message'] = 'Checksum validation skipped: {0}'.format(e)
     return result
 
 
@@ -165,7 +163,7 @@ def _resolve_download_link(client, url, retry=0):
             client.session.cookies.clear(domain='.softwaredownloads.sap.com')
             # Retry on 403 (Forbidden) as it can be a temporary token issue.
             if (isinstance(e, HTTPError) and e.response.status_code != 403) or retry >= C.MAX_RETRY_TIMES:
-                raise exceptions.DownloadError(f"Could not resolve download URL after {C.MAX_RETRY_TIMES} retries: {e}")
+                raise exceptions.DownloadError("Could not resolve download URL after {0} retries: {1}".format(C.MAX_RETRY_TIMES, e))
 
             time.sleep(60 * (retry + 1))
             return _resolve_download_link(client, url, retry + 1)
@@ -187,7 +185,7 @@ def stream_file_to_disk(client, url, filepath, retry=0, **kwargs):
         if os.path.exists(filepath):
             os.remove(filepath)
         if retry >= C.MAX_RETRY_TIMES:
-            raise exceptions.DownloadError(f"Connection failed after {C.MAX_RETRY_TIMES} retries: {e}")
+            raise exceptions.DownloadError("Connection failed after {0} retries: {1}".format(C.MAX_RETRY_TIMES, e))
         time.sleep(60 * (retry + 1))
         return stream_file_to_disk(client, url, filepath, retry + 1, **kwargs)
 
@@ -202,7 +200,7 @@ def stream_file_to_disk(client, url, filepath, retry=0, **kwargs):
         os.remove(filepath)
 
     if retry >= C.MAX_RETRY_TIMES:
-        raise exceptions.DownloadError(f'Failed to download {url}: checksum mismatch after {C.MAX_RETRY_TIMES} retries')
+        raise exceptions.DownloadError('Failed to download {0}: checksum mismatch after {1} retries'.format(url, C.MAX_RETRY_TIMES))
     return stream_file_to_disk(client, url, filepath, retry + 1, **kwargs)
 
 

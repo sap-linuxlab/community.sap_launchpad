@@ -1,5 +1,4 @@
 import re
-import traceback
 
 from urllib.parse import urlparse
 
@@ -12,25 +11,21 @@ try:
     _RequestsSession = requests.Session
 except ImportError:
     HAS_REQUESTS = False
-    REQUESTS_IMPORT_ERROR = traceback.format_exc()
     # Placeholders to prevent errors on module load
     requests = None
     HTTPAdapter = object
     _RequestsSession = object
 else:
     HAS_REQUESTS = True
-    REQUESTS_IMPORT_ERROR = None
 
 try:
     import urllib3
 except ImportError:
     HAS_URLLIB3 = False
-    URLLIB3_IMPORT_ERROR = traceback.format_exc()
     # Placeholder to prevent errors on module load
     urllib3 = None
 else:
     HAS_URLLIB3 = True
-    URLLIB3_IMPORT_ERROR = None
 
 
 class _SessionAllowBasicAuthRedirects(_RequestsSession):
@@ -74,9 +69,9 @@ class ApiClient:
     # previous global session and request functions.
     def __init__(self):
         if not HAS_REQUESTS:
-            raise exceptions.SapLaunchpadError(f"The 'requests' library is required. Error: {REQUESTS_IMPORT_ERROR}")
+            raise ImportError("The 'requests' library is required but was not found.")
         if not HAS_URLLIB3:
-            raise exceptions.SapLaunchpadError(f"The 'urllib3' library is required. Error: {URLLIB3_IMPORT_ERROR}")
+            raise ImportError("The 'urllib3' library is required but was not found.")
 
         self.session = _SessionAllowBasicAuthRedirects()
 

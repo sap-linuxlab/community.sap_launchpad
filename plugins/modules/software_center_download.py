@@ -141,7 +141,7 @@ skipped:
   type: bool
 '''
 
-from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import AnsibleModule, missing_required_lib
 from ..module_utils.software_center import main as software_center_runner
 
 
@@ -179,6 +179,8 @@ def run_module():
 
     # The runner function indicates failure via a key in the result.
     if result.get('failed'):
+        if result.get('missing_dependency'):
+            module.fail_json(msg=missing_required_lib(result['missing_dependency']))
         module.fail_json(**result)
     else:
         module.exit_json(**result)

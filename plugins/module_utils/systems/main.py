@@ -9,10 +9,20 @@ def run_systems_info(params):
     # Main runner function for the systems_info module.
     result = {'changed': False, 'failed': False, 'systems': []}
 
-    client = ApiClient()
     try:
+        client = ApiClient()
         auth.login(client, params['suser_id'], params['suser_password'])
         result['systems'] = api.get_systems(client, params['filter'])
+    except ImportError as e:
+        result['failed'] = True
+        if 'requests' in str(e):
+            result['missing_dependency'] = 'requests'
+        elif 'urllib3' in str(e):
+            result['missing_dependency'] = 'urllib3'
+        elif 'beautifulsoup4' in str(e):
+            result['missing_dependency'] = 'beautifulsoup4'
+        else:
+            result['msg'] = "An unexpected import error occurred: {0}".format(e)
     except (exceptions.SapLaunchpadError, api.SystemNotFoundError) as e:
         result['failed'] = True
         result['msg'] = str(e)
@@ -23,14 +33,14 @@ def run_license_keys(params):
     # Main runner function for the license_keys module.
     result = {'changed': False, 'failed': False, 'warnings': []}
 
-    client = ApiClient()
-    username = params['suser_id']
-    password = params['suser_password']
-    installation_nr = params['installation_nr']
-    system_nr = params['system_nr']
-    state = params['state']
-
     try:
+        client = ApiClient()
+        username = params['suser_id']
+        password = params['suser_password']
+        installation_nr = params['installation_nr']
+        system_nr = params['system_nr']
+        state = params['state']
+
         auth.login(client, username, password)
         api.validate_installation(client, installation_nr, username)
 
@@ -43,14 +53,15 @@ def run_license_keys(params):
                 existing_systems = api.get_systems(client, filter_str)
                 if len(existing_systems) == 1:
                     system_nr = existing_systems[0]['Sysnr']
-                    result['warnings'].append(f"A system with SID '{sid}' already exists. Using system number {system_nr} for update.")
+                    result['warnings'].append("A system with SID '{0}' already exists. Using system number {1} for update.".format(sid, system_nr))
                 elif len(existing_systems) > 1:
                     # Ambiguous situation: multiple systems with the same SID.
                     # Force user to provide system_nr to select one.
                     system_nrs_found = [s['Sysnr'] for s in existing_systems]
                     result['failed'] = True
-                    result['msg'] = (f"Multiple systems with SID '{sid}' found under installation '{installation_nr}': "
-                                     f"{', '.join(system_nrs_found)}. Please provide a specific 'system_nr' to select which system to update.")
+                    msg_template = ("Multiple systems with SID '{0}' found under installation '{1}': {2}. "
+                                    "Please provide a specific 'system_nr' to select which system to update.")
+                    result['msg'] = msg_template.format(sid, installation_nr, ', '.join(system_nrs_found))
                     return result
 
         is_new_system = not system_nr
@@ -73,7 +84,7 @@ def run_license_keys(params):
 
             result['changed'] = True
             result['system_nr'] = system_nr
-            result['msg'] = f"System {system_nr} created successfully."
+            result['msg'] = "System {0} created successfully.".format(system_nr)
 
         else:  # Existing system
             system = api.get_system(client, system_nr, installation_nr, username)
@@ -81,18 +92,18 @@ def run_license_keys(params):
             # We check for 'Version' first, then fall back to 'Prodver' for compatibility.
             version_id = system.get('Version') or system.get('Prodver')
             if not version_id:
-                raise exceptions.SapLaunchpadError(f"System {system_nr} is missing a required Product Version ID.")
+                raise exceptions.SapLaunchpadError("System {0} is missing a required Product Version ID.".format(system_nr))
             existing_licenses = api.get_existing_licenses(client, system_nr, username)
 
             # The API requires a sysdata payload even for an edit operation.
             # It must contain at least the installation number, system number, product version, and system ID.
             sysid = system.get('sysid')
             if not sysid:
-                raise exceptions.SapLaunchpadError(f"System {system_nr} is missing a required System ID ('sysid').")
+                raise exceptions.SapLaunchpadError("System {0} is missing a required System ID ('sysid').".format(system_nr))
 
             systype = system.get('systype')
             if not systype:
-                raise exceptions.SapLaunchpadError(f"System {system_nr} is missing a required System Type ('systype').")
+                raise exceptions.SapLaunchpadError("System {0} is missing a required System Type ('systype').".format(system_nr))
 
             sysdata_for_edit = [
                 {"name": "insnr", "value": installation_nr},
@@ -121,7 +132,7 @@ def run_license_keys(params):
                 generated = api.generate_licenses(client, new_or_changed, existing_licenses, version_id, installation_nr, username)
                 api.submit_system(client, False, sysdata_for_edit, generated, username)
                 result['changed'] = True
-                result['msg'] = f"System {system_nr} licenses updated successfully."
+                result['msg'] = "System {0} licenses updated successfully.".format(system_nr)
 
             elif state == 'absent':
                 user_licenses_to_keep = params.get('licenses', [])
@@ -143,7 +154,7 @@ def run_license_keys(params):
                 deleted_licenses = api.delete_licenses(client, licenses_to_delete, existing_licenses, version_id, installation_nr, username)
                 api.submit_system(client, False, sysdata_for_edit, deleted_licenses, username)
                 result['changed'] = True
-                result['msg'] = f"Successfully deleted licenses from system {system_nr}."
+                result['msg'] = "Successfully deleted licenses from system {0}.".format(system_nr)
 
         # Download/return license file content if applicable
         if state == 'present':
@@ -160,20 +171,31 @@ def run_license_keys(params):
                     dest_path = pathlib.Path(params['download_path'])
                     if not dest_path.is_dir():
                         result['failed'] = True
-                        result['msg'] = f"Destination for license file does not exist or is not a directory: {dest_path}"
+                        result['msg'] = "Destination for license file does not exist or is not a directory: {0}".format(dest_path)
                         return result
 
-                    output_file = dest_path / f"{system_nr}_licenses.txt"
+                    output_file = dest_path / "{0}_licenses.txt".format(system_nr)
                     try:
                         with open(output_file, 'w', encoding='utf-8') as f:
                             f.write(content_str)
 
                         current_msg = result.get('msg', '')
-                        download_msg = f"License file downloaded to {output_file}."
-                        result['msg'] = f"{current_msg} {download_msg}".strip()
+                        download_msg = "License file downloaded to {0}.".format(output_file)
+                        result['msg'] = "{0} {1}".format(current_msg, download_msg).strip()
                     except IOError as e:
                         result['failed'] = True
-                        result['msg'] = f"Failed to write license file: {e}"
+                        result['msg'] = "Failed to write license file: {0}".format(e)
+
+    except ImportError as e:
+        result['failed'] = True
+        if 'requests' in str(e):
+            result['missing_dependency'] = 'requests'
+        elif 'urllib3' in str(e):
+            result['missing_dependency'] = 'urllib3'
+        elif 'beautifulsoup4' in str(e):
+            result['missing_dependency'] = 'beautifulsoup4'
+        else:
+            result['msg'] = "An unexpected import error occurred: {0}".format(e)
 
     except (exceptions.SapLaunchpadError,
             api.InstallationNotFoundError,
@@ -187,6 +209,6 @@ def run_license_keys(params):
         result['msg'] = str(e)
     except Exception as e:
         result['failed'] = True
-        result['msg'] = f"An unexpected error occurred: {type(e).__name__} - {e}"
+        result['msg'] = "An unexpected error occurred: {0} - {1}".format(type(e).__name__, e)
 
     return result

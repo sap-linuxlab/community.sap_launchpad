@@ -64,7 +64,7 @@ msg:
   sample: "SAP Maintenance Planner Stack XML successfully downloaded to /tmp/MP_STACK_20211015_044854.xml"
 '''
 
-from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import AnsibleModule, missing_required_lib
 from ..module_utils.maintenance_planner import main as maintenance_planner_runner
 
 
@@ -98,6 +98,8 @@ def run_module():
 
     # The runner function indicates failure via a key in the result.
     if result.get('failed'):
+        if result.get('missing_dependency'):
+            module.fail_json(msg=missing_required_lib(result['missing_dependency']))
         module.fail_json(**result)
     else:
         module.exit_json(**result)

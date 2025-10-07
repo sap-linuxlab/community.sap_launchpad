@@ -1,6 +1,5 @@
 import re
 import time
-import traceback
 from html import unescape
 from functools import wraps
 from urllib.parse import urljoin
@@ -13,19 +12,25 @@ try:
     from bs4 import BeautifulSoup
 except ImportError:
     HAS_BS4 = False
-    BS4_IMPORT_ERROR = traceback.format_exc()
+    BeautifulSoup = None
 else:
     HAS_BS4 = True
-    BS4_IMPORT_ERROR = None
 
 try:
     from lxml import etree
 except ImportError:
     HAS_LXML = False
-    LXML_IMPORT_ERROR = traceback.format_exc()
+    etree = None
 else:
     HAS_LXML = True
-    LXML_IMPORT_ERROR = None
+
+try:
+    from requests.exceptions import HTTPError
+except ImportError:
+    HAS_REQUESTS = False
+    HTTPError = None
+else:
+    HAS_REQUESTS = True
 
 # Module-level cache
 _MP_XSRF_TOKEN = None
@@ -38,7 +43,7 @@ def require_bs4(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not HAS_BS4:
-            raise exceptions.SapLaunchpadError(f"The 'beautifulsoup4' library is required. Error: {BS4_IMPORT_ERROR}")
+            raise ImportError("The 'beautifulsoup4' library is required but was not found.")
         return func(*args, **kwargs)
     return wrapper
 
@@ -48,7 +53,17 @@ def require_lxml(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not HAS_LXML:
-            raise exceptions.SapLaunchpadError(f"The 'lxml' library is required. Error: {LXML_IMPORT_ERROR}")
+            raise ImportError("The 'lxml' library is required but was not found.")
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def require_requests(func):
+    # A decorator to check for the 'requests' library before executing a function.
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not HAS_REQUESTS:
+            raise ImportError("The 'requests' library is required but was not found.")
         return func(*args, **kwargs)
     return wrapper
 
@@ -103,11 +118,12 @@ def get_transaction_id(client, name):
         if t.get('trans_display_id') == name:
             return t['trans_id']
 
-    raise exceptions.FileNotFoundError(f"Transaction '{name}' not found by name or display ID.")
+    raise exceptions.FileNotFoundError("Transaction '{0}' not found by name or display ID.".format(name))
 
 
 @require_lxml
-def get_transaction_filename_url(client, trans_id):
+@require_requests
+def get_transaction_filename_url(client, trans_id, validate_url=False):
     # Parses the files XML to get a list of (URL, Filename) tuples.
     xml = _get_download_files_xml(client, trans_id)
     e = etree.fromstring(xml.encode('utf-16'))
@@ -116,13 +132,22 @@ def get_transaction_filename_url(client, trans_id):
         namespaces={'mnp': _MP_NAMESPACE}
     )
     if not stack_files:
-        raise exceptions.FileNotFoundError(f"No stack files found in transaction ID {trans_id}.")
+        raise exceptions.FileNotFoundError("No stack files found in transaction ID {0}.".format(trans_id))
 
     files = []
     for f in stack_files:
         file_id = urljoin(C.URL_SOFTWARE_DOWNLOAD, '/file/' + f.get('id'))
         file_name = f.get('label')
         files.append((file_id, file_name))
+
+    if validate_url:
+        for pair in files:
+            url = pair[0]
+            try:
+                client.head(url)
+            except HTTPError:
+                raise exceptions.DownloadError('Download link is not available: {0}'.format(url))
+
     return files
 
 
@@ -212,13 +237,13 @@ def _get_transaction(client, key, value):
     for t in transactions:
         if t.get(key) == value:
             return t
-    raise exceptions.FileNotFoundError(f"Transaction with {key}='{value}' not found.")
+    raise exceptions.FileNotFoundError("Transaction with {0}='{1}' not found.".format(key, value))
 
 
 @require_lxml
 def _build_mnp_xml(**params):
     # Constructs the MNP XML payload for API requests.
-    mnp = f'{{{_MP_NAMESPACE}}}'
+    mnp = '{{{0}}}'.format(_MP_NAMESPACE)
 
     request_keys = ['action', 'trans_name', 'sub_action', 'navigation']
     request_attrs = {k: params.get(k, '') for k in request_keys}
@@ -226,8 +251,8 @@ def _build_mnp_xml(**params):
     entity_keys = ['call_for', 'sessionid']
     entity_attrs = {k: params.get(k, '') for k in entity_keys}
 
-    request = etree.Element(f'{mnp}request', nsmap={"mnp": _MP_NAMESPACE}, attrib=request_attrs)
-    entity = etree.SubElement(request, f'{mnp}entity', attrib=entity_attrs)
+    request = etree.Element('{0}request'.format(mnp), nsmap={"mnp": _MP_NAMESPACE}, attrib=request_attrs)
+    entity = etree.SubElement(request, '{0}entity'.format(mnp), attrib=entity_attrs)
     entity.text = ''
 
     if 'entities' in params and isinstance(params['entities'], etree._Element):

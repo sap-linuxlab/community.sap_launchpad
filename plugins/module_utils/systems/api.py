@@ -1,6 +1,5 @@
 import json
 import time
-import traceback
 from functools import wraps
 
 from urllib.parse import urljoin
@@ -13,35 +12,37 @@ class InstallationNotFoundError(Exception):
     def __init__(self, installation_nr, available_installations):
         self.installation_nr = installation_nr
         self.available_installations = available_installations
-        super().__init__(f"Installation number '{installation_nr}' not found. Available installations: {available_installations}")
+        super(InstallationNotFoundError, self).__init__(
+            "Installation number '{0}' not found. Available installations: {1}".format(installation_nr, available_installations)
+        )
 
 
 class SystemNotFoundError(Exception):
     def __init__(self, system_nr, details):
         self.system_nr = system_nr
         self.details = details
-        super().__init__(f"System with number '{system_nr}' not found. Details: {details}")
+        super(SystemNotFoundError, self).__init__("System with number '{0}' not found. Details: {1}".format(system_nr, details))
 
 
 class ProductNotFoundError(Exception):
     def __init__(self, product, available_products):
         self.product = product
         self.available_products = available_products
-        super().__init__(f"Product '{product}' not found. Available products: {available_products}")
+        super(ProductNotFoundError, self).__init__("Product '{0}' not found. Available products: {1}".format(product, available_products))
 
 
 class VersionNotFoundError(Exception):
     def __init__(self, version, available_versions):
         self.version = version
         self.available_versions = available_versions
-        super().__init__(f"Version '{version}' not found. Available versions: {available_versions}")
+        super(VersionNotFoundError, self).__init__("Version '{0}' not found. Available versions: {1}".format(version, available_versions))
 
 
 class LicenseTypeInvalidError(Exception):
     def __init__(self, license_type, available_license_types):
         self.license_type = license_type
         self.available_license_types = available_license_types
-        super().__init__(f"License type '{license_type}' is invalid. Available types: {available_license_types}")
+        super(LicenseTypeInvalidError, self).__init__("License type '{0}' is invalid. Available types: {1}".format(license_type, available_license_types))
 
 
 class DataInvalidError(Exception):
@@ -50,20 +51,19 @@ class DataInvalidError(Exception):
         self.unknown_fields = unknown_fields
         self.missing_required_fields = missing_required_fields
         self.fields_with_invalid_option = fields_with_invalid_option
-        message = (f"Invalid data for {scope}: Unknown fields: {unknown_fields}, "
-                   f"Missing required fields: {missing_required_fields}, Invalid options: {fields_with_invalid_option}")
-        super().__init__(message)
+        message = ("Invalid data for {0}: Unknown fields: {1}, Missing required fields: {2}, "
+                   "Invalid options: {3}".format(scope, unknown_fields, missing_required_fields,
+                                                 fields_with_invalid_option))
+        super(DataInvalidError, self).__init__(message)
 
 
 try:
     from requests.exceptions import HTTPError
 except ImportError:
     HAS_REQUESTS = False
-    REQUESTS_IMPORT_ERROR = traceback.format_exc()
     HTTPError = None
 else:
     HAS_REQUESTS = True
-    REQUESTS_IMPORT_ERROR = None
 
 
 def require_requests(func):
@@ -71,7 +71,7 @@ def require_requests(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not HAS_REQUESTS:
-            raise exceptions.SapLaunchpadError(f"The 'requests' library is required. Error: {REQUESTS_IMPORT_ERROR}")
+            raise ImportError("The 'requests' library is required but was not found.")
         return func(*args, **kwargs)
     return wrapper
 
@@ -79,14 +79,14 @@ def require_requests(func):
 @require_requests
 def get_systems(client, filter_str):
     # Retrieves a list of systems based on an OData filter string.
-    query_path = f"Systems?$filter={filter_str}"
+    query_path = "Systems?$filter={0}".format(filter_str)
     return client.get(_url(query_path), headers=_headers({})).json()['d']['results']
 
 
 @require_requests
 def get_system(client, system_nr, installation_nr, username):
     # Retrieves details for a single, specific system.
-    filter_str = f"Uname eq '{username}' and Insnr eq '{installation_nr}' and Sysnr eq '{system_nr}'"
+    filter_str = "Uname eq '{0}' and Insnr eq '{1}' and Sysnr eq '{2}'".format(username, installation_nr, system_nr)
     try:
         systems = get_systems(client, filter_str)
     except HTTPError as err:
@@ -102,8 +102,8 @@ def get_system(client, system_nr, installation_nr, username):
 
     system = systems[0]
     if 'Prodver' not in system and 'Version' not in system:
-        message = (f"System {system_nr} was found, but it is missing a required Product Version ID "
-                   f"(checked for 'Prodver' and 'Version' keys). System details: {system}")
+        message = ("System {0} was found, but it is missing a required Product Version ID "
+                   "(checked for 'Prodver' and 'Version' keys). System details: {1}".format(system_nr, system))
         raise exceptions.SapLaunchpadError(message)
 
     return system
@@ -112,7 +112,7 @@ def get_system(client, system_nr, installation_nr, username):
 @require_requests
 def get_product_id(client, product_name, installation_nr, username):
     # Finds the internal product ID for a given product name.
-    query_path = f"SysProducts?$filter=Uname eq '{username}' and Insnr eq '{installation_nr}' and Sysnr eq '' and Nocheck eq ''"
+    query_path = "SysProducts?$filter=Uname eq '{0}' and Insnr eq '{1}' and Sysnr eq '' and Nocheck eq ''".format(username, installation_nr)
     products = client.get(_url(query_path), headers=_headers({})).json()['d']['results']
     product = next((p for p in products if p['Description'] == product_name), None)
     if product is None:
@@ -123,7 +123,7 @@ def get_product_id(client, product_name, installation_nr, username):
 @require_requests
 def get_version_id(client, version_name, product_id, installation_nr, username):
     # Finds the internal version ID for a given product version name.
-    query_path = f"SysVersions?$filter=Uname eq '{username}' and Insnr eq '{installation_nr}' and Product eq '{product_id}' and Nocheck eq ''"
+    query_path = "SysVersions?$filter=Uname eq '{0}' and Insnr eq '{1}' and Product eq '{2}' and Nocheck eq ''".format(username, installation_nr, product_id)
     versions = client.get(_url(query_path), headers=_headers({})).json()['d']['results']
     version = next((v for v in versions if v['Description'] == version_name), None)
     if version is None:
@@ -134,7 +134,7 @@ def get_version_id(client, version_name, product_id, installation_nr, username):
 @require_requests
 def validate_installation(client, installation_nr, username):
     # Checks if the user has access to the specified installation number.
-    query_path = f"Installations?$filter=Ubname eq '{username}' and ValidateOnly eq ''"
+    query_path = "Installations?$filter=Ubname eq '{0}' and ValidateOnly eq ''".format(username)
     installations = client.get(_url(query_path), headers=_headers({})).json()['d']['results']
     if not any(i['Insnr'] == installation_nr for i in installations):
         raise InstallationNotFoundError(installation_nr, [i['Insnr'] for i in installations])
@@ -143,7 +143,7 @@ def validate_installation(client, installation_nr, username):
 @require_requests
 def validate_system_data(client, data, version_id, system_nr, installation_nr, username):
     # Validates user-provided system data against the fields supported by the API for a given product version.
-    query_path = f"SystData?$filter=Pvnr eq '{version_id}' and Insnr eq '{installation_nr}'"
+    query_path = "SystData?$filter=Pvnr eq '{0}' and Insnr eq '{1}'".format(version_id, installation_nr)
     results = client.get(_url(query_path), headers=_headers({})).json()['d']['results'][0]
     possible_fields = json.loads(results['Output'])
     final_fields = _validate_user_data_against_supported_fields("system", data, possible_fields)
@@ -153,7 +153,7 @@ def validate_system_data(client, data, version_id, system_nr, installation_nr, u
     final_fields['Uname'] = username
     final_fields['Sysnr'] = system_nr
     final_fields_for_check = [{"name": k, "value": v} for k, v in final_fields.items()]
-    query_path = f"SystemDataCheck?$filter=Nocheck eq '' and Data eq '{json.dumps(final_fields_for_check)}'"
+    query_path = "SystemDataCheck?$filter=Nocheck eq '' and Data eq '{0}'".format(json.dumps(final_fields_for_check))
     results = client.get(_url(query_path), headers=_headers({})).json()['d']['results']
 
     warning = None
@@ -167,7 +167,7 @@ def validate_system_data(client, data, version_id, system_nr, installation_nr, u
 @require_requests
 def validate_licenses(client, licenses, version_id, installation_nr, username):
     # Validates user-provided license data against the license types and fields supported by the API.
-    query_path = f"LicenseType?$filter=PRODUCT eq '{version_id}' and INSNR eq '{installation_nr}' and Uname eq '{username}' and Nocheck eq 'X'"
+    query_path = "LicenseType?$filter=PRODUCT eq '{0}' and INSNR eq '{1}' and Uname eq '{2}' and Nocheck eq 'X'".format(version_id, installation_nr, username)
     results = client.get(_url(query_path), headers=_headers({})).json()['d']['results']
     available_license_types = {r["LICENSETYPE"] for r in results}
     license_data = []
@@ -177,7 +177,7 @@ def validate_licenses(client, licenses, version_id, installation_nr, username):
         if result is None:
             raise LicenseTypeInvalidError(lic['type'], available_license_types)
 
-        final_fields = _validate_user_data_against_supported_fields(f'license {lic["type"]}', lic['data'], json.loads(result["Selfields"]))
+        final_fields = _validate_user_data_against_supported_fields('license {0}'.format(lic["type"]), lic['data'], json.loads(result["Selfields"]))
         final_fields = {k.upper(): v for k, v in final_fields.items()}
         final_fields["LICENSETYPE"] = result['PRODID']
         final_fields["LICENSETYPETEXT"] = result['LICENSETYPE']
@@ -190,7 +190,7 @@ def get_existing_licenses(client, system_nr, username):
     # Retrieves all existing license keys for a given system.
     # When updating the licenses based on the results here, the backend expects a completely different format.
     # This function transforms the response to the format the backend expects for subsequent update calls.
-    query_path = f"LicenseKeys?$filter=Uname eq '{username}' and Sysnr eq '{system_nr}'"
+    query_path = "LicenseKeys?$filter=Uname eq '{0}' and Sysnr eq '{1}'".format(username, system_nr)
     results = client.get(_url(query_path), headers=_headers({})).json()['d']['results']
     return [
         {
@@ -242,8 +242,8 @@ def submit_system(client, is_new, system_data, generated_licenses, username):
     licdata = json.loads(response['d']['licdata'])
     if not licdata:
         raise exceptions.SapLaunchpadError(
-            "The API call to submit the system was successful, but the response did not contain the expected system number. "
-            f"The 'licdata' field in the API response was empty: {response['d']['licdata']}"
+            "The API call to submit the system was successful, but the response did not contain the expected system number. " +
+            "The 'licdata' field in the API response was empty: {0}".format(response['d']['licdata'])
         )
     return licdata[0]['VALUE']
 
@@ -253,7 +253,9 @@ def get_license_key_numbers(client, license_data, system_nr, username):
     # Retrieves the unique key numbers for a list of recently created licenses.
     key_nrs = []
     for lic in license_data:
-        query_path = f"LicenseKeys?$filter=Uname eq '{username}' and Sysnr eq '{system_nr}' and Prodid eq '{lic['LICENSETYPE']}' and Hwkey eq '{lic['HWKEY']}'"
+        query_path_template = ("LicenseKeys?$filter=Uname eq '{0}' and Sysnr eq '{1}' and "
+                               "Prodid eq '{2}' and Hwkey eq '{3}'")
+        query_path = query_path_template.format(username, system_nr, lic['LICENSETYPE'], lic['HWKEY'])
 
         # Retry logic to handle potential replication delay in the backend API after a license is submitted.
         for attempt in range(9):
@@ -266,8 +268,9 @@ def get_license_key_numbers(client, license_data, system_nr, username):
                 time.sleep(10)  # Wait 10 seconds before retrying
         else:  # This 'else' belongs to the 'for' loop, it runs if the loop completes without a 'break'
             raise exceptions.SapLaunchpadError(
-                f"Could not find license key number for license type '{lic['LICENSETYPE']}' and HW key '{lic['HWKEY']}' "
-                f"on system '{system_nr}' after submitting the changes. There might be a replication delay in the SAP backend."
+                ("Could not find license key number for license type '{0}' and HW key '{1}' "
+                 "on system '{2}' after submitting the changes. There might be a replication delay in the SAP backend.")
+                .format(lic['LICENSETYPE'], lic['HWKEY'], system_nr)
             )
 
     return key_nrs
@@ -277,7 +280,7 @@ def get_license_key_numbers(client, license_data, system_nr, username):
 def download_licenses(client, key_nrs):
     # Downloads the license key file content for a list of key numbers.
     keys_json = json.dumps([{"Keynr": key_nr} for key_nr in key_nrs])
-    return client.get(_url(f"FileContent(Keynr='{keys_json}')/$value")).content
+    return client.get(_url("FileContent(Keynr='{0}')/$value".format(keys_json))).content
 
 
 @require_requests
@@ -298,12 +301,14 @@ def delete_licenses(client, licenses_to_delete, existing_licenses, version_id, i
 
 def _url(query_path):
     # Helper to construct the full URL for the systems provisioning service.
-    return f'{C.URL_SYSTEMS_PROVISIONING}/{query_path}'
+    return '{0}/{1}'.format(C.URL_SYSTEMS_PROVISIONING, query_path)
 
 
 def _headers(additional_headers):
     # Helper to construct standard request headers.
-    return {**{'Accept': 'application/json'}, **additional_headers}
+    headers = {'Accept': 'application/json'}
+    headers.update(additional_headers)
+    return headers
 
 
 @require_requests

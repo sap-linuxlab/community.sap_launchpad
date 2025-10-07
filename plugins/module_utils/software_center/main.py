@@ -55,17 +55,17 @@ def run_software_download(params):
     if not validate_checksum:
         if os.path.exists(filepath):
             result['skipped'] = True
-            result['msg'] = f"File already exists: {filename}"
+            result['msg'] = "File already exists: {0}".format(filename)
             return result
 
         filename_similar_exists, filename_similar_names = download.check_similar_files(dest, filename)
         if filename_similar_exists:
             result['skipped'] = True
-            result['msg'] = f"Similar file(s) already exist: {', '.join(filename_similar_names)}"
+            result['msg'] = "Similar file(s) already exist: {0}".format(', '.join(filename_similar_names))
             return result
 
-    client = ApiClient()
     try:
+        client = ApiClient()
         auth.login(client, username, password)
 
         validation_result = None
@@ -91,7 +91,7 @@ def run_software_download(params):
 
             if is_valid is True:
                 result['skipped'] = True
-                result['msg'] = f"File already exists and checksum is valid: {filename}"
+                result['msg'] = "File already exists and checksum is valid: {0}".format(filename)
                 return result
             elif is_valid is False:
                 # The existing file is invalid, remove it to allow for re-download.
@@ -99,7 +99,7 @@ def run_software_download(params):
                 os.remove(filepath)
             else:  # Validation could not be performed
                 result['skipped'] = True
-                result['msg'] = f"File already exists: {filename}. {validation_result['message']}"
+                result['msg'] = "File already exists: {0}. {1}".format(filename, validation_result['message'])
                 return result
 
         alternative_found = False
@@ -119,18 +119,18 @@ def run_software_download(params):
                     validation_result = download.validate_local_file_checksum(client, alt_filepath, download_link=download_link)
                     if validation_result['validated'] is True:
                         result['skipped'] = True
-                        result['msg'] = f"Alternative file {download_filename} already exists and checksum is valid."
+                        result['msg'] = "Alternative file {0} already exists and checksum is valid.".format(download_filename)
                         return result
                     elif validation_result['validated'] is False:
                         # The existing alternative file is invalid, remove it to allow for re-download.
                         os.remove(alt_filepath)
                     else:  # Validation could not be performed
                         result['skipped'] = True
-                        result['msg'] = f"Alternative file {download_filename} already exists. {validation_result['message']}"
+                        result['msg'] = "Alternative file {0} already exists. {1}".format(download_filename, validation_result['message'])
                         return result
                 else:
                     result['skipped'] = True
-                    result['msg'] = f"File with correct/alternative name already exists: {download_filename}"
+                    result['msg'] = "File with correct/alternative name already exists: {0}".format(download_filename)
                     return result
 
         final_url = download.is_download_link_available(client, download_link)
@@ -138,7 +138,7 @@ def run_software_download(params):
             if dry_run:
                 msg = f"SAP Software is available to download: {download_filename}"
                 if alternative_found:
-                    msg = f"Alternative SAP Software is available to download: {download_filename} - original file {query} is not available"
+                    msg = "Alternative SAP Software is available to download: {0} - original file {1} is not available".format(download_filename, query)
                 result['msg'] = msg
             else:
                 # The link is already resolved, just download it.
@@ -147,22 +147,34 @@ def run_software_download(params):
                 result['changed'] = True
 
                 if validation_result and validation_result.get('validated') is False:
-                    result['msg'] = f"Successfully re-downloaded {download_filename} due to an invalid checksum."
+                    result['msg'] = "Successfully re-downloaded {0} due to an invalid checksum.".format(download_filename)
                 elif alternative_found:
-                    result['msg'] = (f"Successfully downloaded alternative SAP software: {download_filename} "
-                                     f"- original file {query} is not available to download")
+                    result['msg'] = ("Successfully downloaded alternative SAP software: {0} "
+                                     "- original file {1} is not available to download".format(download_filename, query))
                 else:
-                    result['msg'] = f"Successfully downloaded SAP software: {download_filename}"
+                    result['msg'] = "Successfully downloaded SAP software: {0}".format(download_filename)
         else:
             result['failed'] = True
-            result['msg'] = f"Download link for {download_filename} is not available."
+            result['msg'] = "Download link for {0} is not available.".format(download_filename)
 
+    except ImportError as e:
+        result['failed'] = True
+        if 'requests' in str(e):
+            result['missing_dependency'] = 'requests'
+        elif 'urllib3' in str(e):
+            result['missing_dependency'] = 'urllib3'
+        elif 'beautifulsoup4' in str(e):
+            result['missing_dependency'] = 'beautifulsoup4'
+        elif 'lxml' in str(e):
+            result['missing_dependency'] = 'lxml'
+        else:
+            result['msg'] = "An unexpected import error occurred: {0}".format(e)
     except exceptions.SapLaunchpadError as e:
         result['failed'] = True
         result['msg'] = str(e)
     except Exception as e:
         result['failed'] = True
-        result['msg'] = f"An unexpected error occurred: {type(e).__name__} - {e}"
+        result['msg'] = "An unexpected error occurred: {0} - {1}".format(type(e).__name__, e)
     finally:
         download.clear_download_key_cookie(client)
 

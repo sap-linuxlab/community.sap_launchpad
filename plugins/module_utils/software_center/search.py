@@ -21,12 +21,12 @@ def find_file(client, name, deduplicate, search_alternatives):
     if files_count == 0:
         # If no exact match is found, and alternatives are requested, perform a fuzzy search.
         if not search_alternatives:
-            raise FileNotFoundError(f'File "{name}" is not available. To find a replacement, enable "search_alternatives".')
+            raise FileNotFoundError('File "{0}" is not available. To find a replacement, enable "search_alternatives".'.format(name))
 
         software_fuzzy_found = _search_software_fuzzy(client, name)
         software_fuzzy_filtered, suggested_filename = _filter_fuzzy_search(software_fuzzy_found, name)
         if len(software_fuzzy_filtered) == 0:
-            raise FileNotFoundError(f'File "{name}" is not available and no alternatives could be found.')
+            raise FileNotFoundError('File "{0}" is not available and no alternatives could be found.'.format(name))
 
         software_fuzzy_alternatives = software_fuzzy_filtered[0].get('Title')
 
@@ -41,10 +41,10 @@ def find_file(client, name, deduplicate, search_alternatives):
 
         alternatives_count = len(software_search_alternatives_filtered)
         if alternatives_count == 0:
-            raise FileNotFoundError(f'File "{name}" is not available and no alternatives could be found.')
+            raise FileNotFoundError('File "{0}" is not available and no alternatives could be found.'.format(name))
         elif alternatives_count > 1 and deduplicate == '':
             names = [s['Title'] for s in software_search_alternatives_filtered]
-            raise FileNotFoundError(f'More than one alternative was found: {", ".join(names)}. Please use a more specific filename.')
+            raise FileNotFoundError('More than one alternative was found: {0}. Please use a more specific filename.'.format(", ".join(names)))
         elif alternatives_count > 1 and deduplicate == 'first':
             software_found = software_search_alternatives_filtered[0]
             alternative_found = True
@@ -59,7 +59,7 @@ def find_file(client, name, deduplicate, search_alternatives):
     elif files_count > 1 and deduplicate == '':
         # Handle cases where the direct search returns multiple exact matches.
         names = [s['Title'] for s in software_filtered]
-        raise FileNotFoundError(f'More than one result was found: {", ".join(names)}. Please use the correct full filename.')
+        raise FileNotFoundError('More than one result was found: {0}. Please use the correct full filename.'.format(", ".join(names)))
     elif files_count > 1 and deduplicate == 'first':
         software_found = software_filtered[0]
     elif files_count > 1 and deduplicate == 'last':
@@ -188,17 +188,17 @@ def _prepare_search_filename_specific(filename):
     # Example: IMDB_LCAPPS_122P_3300-20010426.SAR returns IMDB_LCAPPS_122
     elif filename_base.startswith('IMDB_LCAPPS_1'):
         filename_parts = filename.split('-')[0].rsplit('_', 2)
-        return f"{filename_parts[0]}_{filename_parts[1][:3]}"
+        return "{0}_{1}".format(filename_parts[0], filename_parts[1][:3])
 
     # Example: IMDB_LCAPPS_2067P_400-80002183.SAR returns IMDB_LCAPPS_206
     elif filename_base.startswith('IMDB_LCAPPS_2'):
         filename_parts = filename.split('-')[0].rsplit('_', 2)
-        return f"{filename_parts[0]}_{filename_parts[1][:3]}"
+        return "{0}_{1}".format(filename_parts[0], filename_parts[1][:3])
 
     # Example: IMDB_SERVER20_067_4-80002046.SAR returns IMDB_SERVER20_06 (SPS06)
     elif filename_base.startswith('IMDB_SERVER'):
         filename_parts = filename.split('-')[0].rsplit('_', 2)
-        return f"{filename_parts[0]}_{filename_parts[1][:2]}"
+        return "{0}_{1}".format(filename_parts[0], filename_parts[1][:2])
 
     # Example: SAPEXE_100-80005374.SAR returns SAPEXE_100
     elif filename_base.startswith('SAPEXE'):

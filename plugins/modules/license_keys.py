@@ -175,7 +175,7 @@ system_nr:
   sample: "0000123456"
 '''
 
-from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import AnsibleModule, missing_required_lib
 from ..module_utils.systems import main as systems_runner
 
 
@@ -231,6 +231,8 @@ def run_module():
     result = systems_runner.run_license_keys(params)
 
     if result.get('failed'):
+        if result.get('missing_dependency'):
+            module.fail_json(msg=missing_required_lib(result['missing_dependency']))
         module.fail_json(**result)
     else:
         module.exit_json(**result)
