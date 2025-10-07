@@ -1,3 +1,6 @@
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
 # Custom exceptions for the sap_launchpad collection.
 
 
