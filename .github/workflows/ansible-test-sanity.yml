@@ -26,10 +26,13 @@ jobs:
       # Each version listed below will spawn a separate job that runs in parallel.
       matrix:
         ansible:
-          # Supported versions (must pass)
           - 'stable-2.18'  # Python 3.11 - 3.13
           - 'stable-2.19'  # Python 3.11 - 3.13
           - 'devel'  # Test against the upcoming development version.
+        python:
+          - '3.11'
+          - '3.12'
+          - '3.13'
     steps:
       - uses: actions/checkout@v5
 
@@ -37,6 +40,7 @@ jobs:
         uses: ansible-community/ansible-test-gh-action@release/v1
         with:
           ansible-core-version: ${{ matrix.ansible }}
+          target-python-version: ${{ matrix.python }}
           testing-type: sanity
 
   sanity-eol:
@@ -51,12 +55,28 @@ jobs:
       # Each version listed below will spawn a separate job that runs in parallel.
       matrix:
         ansible:
-          # EOL versions (allowed to fail)
-          # NOTE: Ensure that meta/runtime.yml `requires_ansible` version is aligned with tested versions.
           - 'stable-2.14'  # Python 3.9 - 3.11
           - 'stable-2.15'  # Python 3.9 - 3.11
           - 'stable-2.16'  # Python 3.10 - 3.12
           - 'stable-2.17'  # Python 3.10 - 3.12
+        python:
+          - '3.9'
+          - '3.10'
+          - '3.11'
+          - '3.12'
+        exclude:
+          # Exclusions for incompatible Python versions.
+          - ansible: 'stable-2.14'
+            python: '3.12'
+
+          - ansible: 'stable-2.15'
+            python: '3.12'
+
+          - ansible: 'stable-2.16'
+            python: '3.9'
+
+          - ansible: 'stable-2.17'
+            python: '3.9'
     steps:
       - uses: actions/checkout@v5
 
@@ -64,4 +84,5 @@ jobs:
         uses: ansible-community/ansible-test-gh-action@release/v1
         with:
           ansible-core-version: ${{ matrix.ansible }}
+          target-python-version: ${{ matrix.python }}
           testing-type: sanity
