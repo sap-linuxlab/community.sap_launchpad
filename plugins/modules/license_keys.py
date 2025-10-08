@@ -12,7 +12,7 @@ short_description: Creates systems and license keys on me.sap.com/licensekey
 
 description:
  - This ansible module creates and updates systems and their license keys using the Launchpad API.
- - It is closely modeled after the interactions in the portal U(https://me.sap.com/licensekey):
+ - It is closely modeled after the interactions in the portal U(https://me.sap.com/licensekey)
  - First, a SAP system is defined by its SID, product, version and other data.
  - Then, for this system, license keys are defined by license type, HW key and potential other attributes.
  - The system and license data is then validated and submitted to the Launchpad API and the license key files returned to the caller.
@@ -31,9 +31,8 @@ options:
       - SAP S-User Password.
     required: true
     type: str
-    no_log: true
   installation_nr:
-    description: 
+    description:
       - Number of the Installation for which the system should be created/updated
     required: true
     type: str
@@ -59,7 +58,7 @@ options:
         required: true
         type: str
       data:
-        description: 
+        description:
           - The data attributes of the system. The possible attributes are defined by product and version.
           - Running the module without any data attributes will return in the error message which attributes are supported/required.
         required: true
@@ -80,13 +79,13 @@ options:
         required: true
         type: str
       data:
-        description: 
+        description:
           - The data attributes of the licenses. The possible attributes are defined by product and version.
           - Running the module without any data attributes will return in the error message which attributes are supported/required
           - In practice, most license types require at least a hardware key (hwkey) and expiry date (expdate)
         required: true
         type: dict
-      
+
   delete_other_licenses:
     description:
       - Whether licenses other than the ones specified in the licenses attributes should be deleted.
@@ -100,7 +99,8 @@ options:
     type: path
 
 author:
-    - Lab for SAP Solutions
+    - Matthias Winzeler (@MatthiasWinzeler)
+    - Marcel Mamula (@marcelmamula)
 
 '''
 
@@ -169,13 +169,13 @@ license_file:
     SWPRODUCTLIMIT=2147483647
     SYSTEM-NR=00000000023456789
 system_nr:
-  description: The number of the system which was created/updated. 
+  description: The number of the system which was created/updated.
   returned: on success
   type: str
   sample: "0000123456"
 '''
 
-from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import AnsibleModule, missing_required_lib
 from ..module_utils.systems import main as systems_runner
 
 
@@ -231,6 +231,8 @@ def run_module():
     result = systems_runner.run_license_keys(params)
 
     if result.get('failed'):
+        if result.get('missing_dependency'):
+            module.fail_json(msg=missing_required_lib(result['missing_dependency']))
         module.fail_json(**result)
     else:
         module.exit_json(**result)

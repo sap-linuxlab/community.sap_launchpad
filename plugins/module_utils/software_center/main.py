@@ -1,3 +1,7 @@
+from __future__ import absolute_import, division, print_function
+
+__metaclass__ = type
+
 import os
 
 from .. import auth
@@ -64,8 +68,8 @@ def run_software_download(params):
             result['msg'] = f"Similar file(s) already exist: {', '.join(filename_similar_names)}"
             return result
 
-    client = ApiClient()
     try:
+        client = ApiClient()
         auth.login(client, username, password)
 
         validation_result = None
@@ -149,13 +153,28 @@ def run_software_download(params):
                 if validation_result and validation_result.get('validated') is False:
                     result['msg'] = f"Successfully re-downloaded {download_filename} due to an invalid checksum."
                 elif alternative_found:
-                    result['msg'] = f"Successfully downloaded alternative SAP software: {download_filename} - original file {query} is not available to download"
+                    result['msg'] = (
+                        f"Successfully downloaded alternative SAP software: {download_filename}"
+                        f" - original file {query} is not available to download"
+                    )
                 else:
                     result['msg'] = f"Successfully downloaded SAP software: {download_filename}"
         else:
             result['failed'] = True
             result['msg'] = f"Download link for {download_filename} is not available."
 
+    except ImportError as e:
+        result['failed'] = True
+        if 'requests' in str(e):
+            result['missing_dependency'] = 'requests'
+        elif 'urllib3' in str(e):
+            result['missing_dependency'] = 'urllib3'
+        elif 'beautifulsoup4' in str(e):
+            result['missing_dependency'] = 'beautifulsoup4'
+        elif 'lxml' in str(e):
+            result['missing_dependency'] = 'lxml'
+        else:
+            result['msg'] = "An unexpected import error occurred: {0}".format(e)
     except exceptions.SapLaunchpadError as e:
         result['failed'] = True
         result['msg'] = str(e)

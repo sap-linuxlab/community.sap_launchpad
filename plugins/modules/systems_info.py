@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import, division, print_function
 
+__metaclass__ = type
+
 DOCUMENTATION = r'''
 ---
 module: systems_info
@@ -25,14 +27,14 @@ options:
       - SAP S-User Password.
     required: true
     type: str
-    no_log: true
   filter:
     description:
       - An ODATA filter expression to query the systems.
     required: true
     type: str
 author:
-    - SAP LinuxLab
+    - Matthias Winzeler (@MatthiasWinzeler)
+    - Marcel Mamula (@marcelmamula)
 
 '''
 
@@ -67,7 +69,7 @@ systems:
       Version: "73554900100800000266"
 '''
 
-from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import AnsibleModule, missing_required_lib
 from ..module_utils.systems import main as systems_runner
 
 
@@ -86,6 +88,8 @@ def run_module():
     result = systems_runner.run_systems_info(module.params)
 
     if result.get('failed'):
+        if result.get('missing_dependency'):
+            module.fail_json(msg=missing_required_lib(result['missing_dependency']))
         module.fail_json(**result)
     else:
         module.exit_json(**result)

@@ -1,14 +1,37 @@
-import requests
+from __future__ import absolute_import, division, print_function
+
+__metaclass__ = type
+
 import re
-import urllib3
 
 from urllib.parse import urlparse
-from requests.adapters import HTTPAdapter
 
 from .constants import COMMON_HEADERS
 
+try:
+    import requests
+    from requests.adapters import HTTPAdapter
+    _RequestsSession = requests.Session
+except ImportError:
+    HAS_REQUESTS = False
+    # Placeholders to prevent errors on module load
+    requests = None
+    HTTPAdapter = object
+    _RequestsSession = object
+else:
+    HAS_REQUESTS = True
 
-class _SessionAllowBasicAuthRedirects(requests.Session):
+try:
+    import urllib3
+except ImportError:
+    HAS_URLLIB3 = False
+    # Placeholder to prevent errors on module load
+    urllib3 = None
+else:
+    HAS_URLLIB3 = True
+
+
+class _SessionAllowBasicAuthRedirects(_RequestsSession):
     # By default, the `Authorization` header for Basic Auth will be removed
     # if the redirect is to a different host.
     # In our case, the DirectDownloadLink with `softwaredownloads.sap.com` domain
@@ -17,16 +40,21 @@ class _SessionAllowBasicAuthRedirects(requests.Session):
     # for sap.com domains.
     # This is only required for legacy API.
     def rebuild_auth(self, prepared_request, response):
-        if 'Authorization' in prepared_request.headers:
+        # The parent class might not be a real requests.Session if requests is not installed.
+        if HAS_REQUESTS and 'Authorization' in prepared_request.headers:
             request_hostname = urlparse(prepared_request.url).hostname
             if not re.match(r'.*sap.com$', request_hostname):
                 del prepared_request.headers['Authorization']
+
 
 def _is_updated_urllib3():
     # `method_whitelist` argument for Retry is deprecated since 1.26.0,
     # and will be removed in v2.0.0.
     # Typically, the default version on RedHat 8.2 is 1.24.2,
     # so we need to check the version of urllib3 to see if it's updated.
+    if not HAS_URLLIB3:
+        return False
+
     urllib3_version = urllib3.__version__.split('.')
     if len(urllib3_version) == 2:
         urllib3_version.append('0')
@@ -43,6 +71,11 @@ class ApiClient:
     # object-oriented interface for making API requests, replacing the
     # previous global session and request functions.
     def __init__(self):
+        if not HAS_REQUESTS:
+            raise ImportError("The 'requests' library is required but was not found.")
+        if not HAS_URLLIB3:
+            raise ImportError("The 'urllib3' library is required but was not found.")
+
         self.session = _SessionAllowBasicAuthRedirects()
 
         # Configure retry logic for the session.

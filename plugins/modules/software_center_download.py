@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import, division, print_function
 
+__metaclass__ = type
+
 DOCUMENTATION = r'''
 ---
 module: software_center_download
@@ -32,24 +34,25 @@ options:
     description:
       - "Deprecated. Use 'search_query' instead."
     required: false
+    default: ''
     type: str
-    deprecated:
-        alternative: search_query
-        removed_in: "1.2.0"
   search_query:
     description:
       - Filename of the SAP software to download.
     required: false
+    default: ''
     type: str
   download_link:
     description:
       - Direct download link to the SAP software.
     required: false
+    default: ''
     type: str
   download_filename:
     description:
       - Download filename of the SAP software.
     required: false
+    default: ''
     type: str
   dest:
     description:
@@ -58,27 +61,35 @@ options:
     type: str
   deduplicate:
     description:
-      - "Specifies how to handle multiple search results for the same filename. Choices are `first` (oldest) or `last` (newest)."
-    choices: [ 'first', 'last' ]
+      - "Specifies how to handle multiple search results for the same filename.
+      - Choices are `first` (oldest) or `last` (newest)."
+    choices: [ 'first', 'last', '' ]
     required: false
+    default: ''
     type: str
   search_alternatives:
     description:
       - Enable search for alternative packages, when filename is not available.
     required: false
+    default: false
     type: bool
   dry_run:
     description:
       - Check availability of SAP Software without downloading.
     required: false
+    default: false
     type: bool
   validate_checksum:
     description:
-      - If a file with the same name already exists at the destination, validate its checksum against the remote file. If the checksum is invalid, the local file will be removed and re-downloaded.
+      - If a file with the same name already exists at the destination, validate its checksum against the remote file.
+      - If the checksum is invalid, the local file will be removed and re-downloaded.
     required: false
+    default: false
     type: bool
 author:
-    - SAP LinuxLab
+    - Matthias Winzeler (@MatthiasWinzeler)
+    - Sean Freeman (@sean-freeman)
+    - Marcel Mamula (@marcelmamula)
 
 '''
 
@@ -132,7 +143,7 @@ skipped:
   type: bool
 '''
 
-from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import AnsibleModule, missing_required_lib
 from ..module_utils.software_center import main as software_center_runner
 
 
@@ -170,6 +181,8 @@ def run_module():
 
     # The runner function indicates failure via a key in the result.
     if result.get('failed'):
+        if result.get('missing_dependency'):
+            module.fail_json(msg=missing_required_lib(result['missing_dependency']))
         module.fail_json(**result)
     else:
         module.exit_json(**result)

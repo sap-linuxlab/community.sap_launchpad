@@ -1,6 +1,8 @@
-import os
+from __future__ import absolute_import, division, print_function
+
+__metaclass__ = type
+
 import pathlib
-from requests.exceptions import HTTPError
 
 from .. import auth, exceptions
 from ..client import ApiClient
@@ -10,10 +12,21 @@ from . import api
 def run_systems_info(params):
     # Main runner function for the systems_info module.
     result = {'changed': False, 'failed': False, 'systems': []}
-    client = ApiClient()
+
     try:
+        client = ApiClient()
         auth.login(client, params['suser_id'], params['suser_password'])
         result['systems'] = api.get_systems(client, params['filter'])
+    except ImportError as e:
+        result['failed'] = True
+        if 'requests' in str(e):
+            result['missing_dependency'] = 'requests'
+        elif 'urllib3' in str(e):
+            result['missing_dependency'] = 'urllib3'
+        elif 'beautifulsoup4' in str(e):
+            result['missing_dependency'] = 'beautifulsoup4'
+        else:
+            result['msg'] = "An unexpected import error occurred: {0}".format(e)
     except (exceptions.SapLaunchpadError, api.SystemNotFoundError) as e:
         result['failed'] = True
         result['msg'] = str(e)
@@ -23,14 +36,15 @@ def run_systems_info(params):
 def run_license_keys(params):
     # Main runner function for the license_keys module.
     result = {'changed': False, 'failed': False, 'warnings': []}
-    client = ApiClient()
-    username = params['suser_id']
-    password = params['suser_password']
-    installation_nr = params['installation_nr']
-    system_nr = params['system_nr']
-    state = params['state']
 
     try:
+        client = ApiClient()
+        username = params['suser_id']
+        password = params['suser_password']
+        installation_nr = params['installation_nr']
+        system_nr = params['system_nr']
+        state = params['state']
+
         auth.login(client, username, password)
         api.validate_installation(client, installation_nr, username)
 
@@ -109,7 +123,12 @@ def run_license_keys(params):
                     return result
 
                 license_data = api.validate_licenses(client, user_licenses, version_id, installation_nr, username)
-                new_or_changed = [l for l in license_data if not any(l['HWKEY'] == el['HWKEY'] and l['LICENSETYPE'] == el['LICENSETYPE'] for el in existing_licenses)]
+                new_or_changed = [
+                    l for l in license_data if not any(
+                        l['HWKEY'] == el['HWKEY'] and l['LICENSETYPE'] == el['LICENSETYPE']
+                        for el in existing_licenses
+                    )
+                ]
 
                 if not new_or_changed:
                     result['msg'] = "System and licenses are already in the desired state."
@@ -126,7 +145,12 @@ def run_license_keys(params):
                     licenses_to_delete = existing_licenses
                 else:
                     validated_to_keep = api.validate_licenses(client, user_licenses_to_keep, version_id, installation_nr, username)
-                    key_nrs_to_keep = [l['KEYNR'] for l in existing_licenses if any(k['HWKEY'] == l['HWKEY'] and k['LICENSETYPE'] == l['LICENSETYPE'] for k in validated_to_keep)]
+                    key_nrs_to_keep = [
+                        l['KEYNR'] for l in existing_licenses if any(
+                            k['HWKEY'] == l['HWKEY'] and k['LICENSETYPE'] == l['LICENSETYPE']
+                            for k in validated_to_keep
+                        )
+                    ]
                     licenses_to_delete = [l for l in existing_licenses if l['KEYNR'] not in key_nrs_to_keep]
 
                 if not licenses_to_delete:
@@ -167,6 +191,17 @@ def run_license_keys(params):
                     except IOError as e:
                         result['failed'] = True
                         result['msg'] = f"Failed to write license file: {e}"
+
+    except ImportError as e:
+        result['failed'] = True
+        if 'requests' in str(e):
+            result['missing_dependency'] = 'requests'
+        elif 'urllib3' in str(e):
+            result['missing_dependency'] = 'urllib3'
+        elif 'beautifulsoup4' in str(e):
+            result['missing_dependency'] = 'beautifulsoup4'
+        else:
+            result['msg'] = "An unexpected import error occurred: {0}".format(e)
 
     except (exceptions.SapLaunchpadError,
             api.InstallationNotFoundError,
