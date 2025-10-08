@@ -156,7 +156,7 @@ def _get_gigya_login_params(client, url, data):
 @require_requests
 def _gigya_websdk_bootstrap(client, params):
     # Performs the initial bootstrap call to the Gigya WebSDK.
-    page_url = f'{C.URL_ACCOUNT_SAML_PROXY}?apiKey=' + params['apiKey'],
+    page_url = f'{C.URL_ACCOUNT_SAML_PROXY}?apiKey=' + params['apiKey']
     params.update({
         'pageURL': page_url,
         'sdk': 'js_latest',
