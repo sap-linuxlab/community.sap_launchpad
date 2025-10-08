@@ -1,18 +1,75 @@
+from __future__ import absolute_import, division, print_function
+
+__metaclass__ = type
+
 import re
 import time
 from html import unescape
+from functools import wraps
 from urllib.parse import urljoin
-from bs4 import BeautifulSoup
-from lxml import etree
 
 from .. import constants as C
 from .. import exceptions
 from ..auth import get_sso_endpoint_meta
 
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    HAS_BS4 = False
+    BeautifulSoup = None
+else:
+    HAS_BS4 = True
+
+try:
+    from lxml import etree
+except ImportError:
+    HAS_LXML = False
+    etree = None
+else:
+    HAS_LXML = True
+
+try:
+    from requests.exceptions import HTTPError
+except ImportError:
+    HAS_REQUESTS = False
+    HTTPError = None
+else:
+    HAS_REQUESTS = True
+
 # Module-level cache
 _MP_XSRF_TOKEN = None
 _MP_TRANSACTIONS = None
 _MP_NAMESPACE = 'http://xml.sap.com/2012/01/mnp'
+
+
+def require_bs4(func):
+    # A decorator to check for the 'beautifulsoup4' library before executing a function.
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not HAS_BS4:
+            raise ImportError("The 'beautifulsoup4' library is required but was not found.")
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def require_lxml(func):
+    # A decorator to check for the 'lxml' library before executing a function.
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not HAS_LXML:
+            raise ImportError("The 'lxml' library is required but was not found.")
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def require_requests(func):
+    # A decorator to check for the 'requests' library before executing a function.
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not HAS_REQUESTS:
+            raise ImportError("The 'requests' library is required but was not found.")
+        return func(*args, **kwargs)
+    return wrapper
 
 
 def auth_userapps(client):
@@ -32,6 +89,7 @@ def auth_userapps(client):
     client.post(endpoint, data=meta)
 
 
+@require_bs4
 def get_transactions(client):
     # Retrieves a list of all available Maintenance Planner transactions.
     global _MP_TRANSACTIONS
@@ -67,7 +125,9 @@ def get_transaction_id(client, name):
     raise exceptions.FileNotFoundError(f"Transaction '{name}' not found by name or display ID.")
 
 
-def get_transaction_filename_url(client, trans_id):
+@require_lxml
+@require_requests
+def get_transaction_filename_url(client, trans_id, validate_url=False):
     # Parses the files XML to get a list of (URL, Filename) tuples.
     xml = _get_download_files_xml(client, trans_id)
     e = etree.fromstring(xml.encode('utf-16'))
@@ -83,6 +143,15 @@ def get_transaction_filename_url(client, trans_id):
         file_id = urljoin(C.URL_SOFTWARE_DOWNLOAD, '/file/' + f.get('id'))
         file_name = f.get('label')
         files.append((file_id, file_name))
+
+    if validate_url:
+        for pair in files:
+            url = pair[0]
+            try:
+                client.head(url)
+            except HTTPError:
+                raise exceptions.DownloadError('Download link is not available: {0}'.format(url))
+
     return files
 
 
@@ -175,6 +244,7 @@ def _get_transaction(client, key, value):
     raise exceptions.FileNotFoundError(f"Transaction with {key}='{value}' not found.")
 
 
+@require_lxml
 def _build_mnp_xml(**params):
     # Constructs the MNP XML payload for API requests.
     mnp = f'{{{_MP_NAMESPACE}}}'
