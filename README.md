@@ -97,7 +97,8 @@ This Ansible Collection was tested across different Operating Systems and SAP pr
 
 
 ## Contributing
-You can find more information about ways you can contribute at [sap-linuxlab website](https://sap-linuxlab.github.io/initiative_contributions/).
+
+We welcome contributions to this collection. For a list of all contributors and information on how you can get involved, please see our [CONTRIBUTORS document](./CONTRIBUTORS.md).
 
 
 ## Support
