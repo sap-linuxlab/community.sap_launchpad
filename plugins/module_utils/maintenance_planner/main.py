@@ -1,9 +1,12 @@
+from __future__ import absolute_import, division, print_function
+
+__metaclass__ = type
+
 import pathlib
 
 from .. import auth, exceptions
 from ..client import ApiClient
 from . import api
-from requests.exceptions import HTTPError
 
 
 def run_files(params):
@@ -14,32 +17,36 @@ def run_files(params):
         msg=''
     )
 
-    client = ApiClient()
-    username = params['suser_id']
-    password = params['suser_password']
-    transaction_name = params['transaction_name']
-    validate_url = params['validate_url']
-
     try:
+        client = ApiClient()
+        username = params['suser_id']
+        password = params['suser_password']
+        transaction_name = params['transaction_name']
+        validate_url = params['validate_url']
+
         auth.login(client, username, password)
         api.auth_userapps(client)
 
         transaction_id = api.get_transaction_id(client, transaction_name)
-        download_basket_details = api.get_transaction_filename_url(client, transaction_id)
-
-        if validate_url:
-            for pair in download_basket_details:
-                url = pair[0]
-                try:
-                    client.head(url)
-                except HTTPError:
-                    raise exceptions.DownloadError(f'Download link is not available: {url}')
+        download_basket_details = api.get_transaction_filename_url(client, transaction_id, validate_url)
 
         result['download_basket'] = [{'DirectLink': i[0], 'Filename': i[1]} for i in download_basket_details]
         result['changed'] = True
         result['msg'] = "Successfully retrieved file list from SAP Maintenance Planner."
 
-    except (exceptions.SapLaunchpadError, HTTPError) as e:
+    except ImportError as e:
+        result['failed'] = True
+        if 'requests' in str(e):
+            result['missing_dependency'] = 'requests'
+        elif 'urllib3' in str(e):
+            result['missing_dependency'] = 'urllib3'
+        elif 'beautifulsoup4' in str(e):
+            result['missing_dependency'] = 'beautifulsoup4'
+        elif 'lxml' in str(e):
+            result['missing_dependency'] = 'lxml'
+        else:
+            result['msg'] = "An unexpected import error occurred: {0}".format(e)
+    except exceptions.SapLaunchpadError as e:
         result['failed'] = True
         result['msg'] = str(e)
     except Exception as e:
@@ -56,13 +63,13 @@ def run_stack_xml_download(params):
         msg=''
     )
 
-    client = ApiClient()
-    username = params['suser_id']
-    password = params['suser_password']
-    transaction_name = params['transaction_name']
-    dest = params['dest']
-
     try:
+        client = ApiClient()
+        username = params['suser_id']
+        password = params['suser_password']
+        transaction_name = params['transaction_name']
+        dest = params['dest']
+
         auth.login(client, username, password)
         api.auth_userapps(client)
 
@@ -91,7 +98,17 @@ def run_stack_xml_download(params):
         result['changed'] = True
         result['msg'] = f"SAP Maintenance Planner Stack XML successfully downloaded to {output_file}"
 
-    except (exceptions.SapLaunchpadError, HTTPError) as e:
+    except ImportError as e:
+        result['failed'] = True
+        if 'requests' in str(e):
+            result['missing_dependency'] = 'requests'
+        elif 'urllib3' in str(e):
+            result['missing_dependency'] = 'urllib3'
+        elif 'beautifulsoup4' in str(e) or 'lxml' in str(e):
+            result['missing_dependency'] = 'beautifulsoup4 and/or lxml'
+        else:
+            result['msg'] = "An unexpected import error occurred: {0}".format(e)
+    except exceptions.SapLaunchpadError as e:
         result['failed'] = True
         result['msg'] = str(e)
     except Exception as e:

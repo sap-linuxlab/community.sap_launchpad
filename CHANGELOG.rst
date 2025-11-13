@@ -4,6 +4,19 @@ community.sap\_launchpad Release Notes
 
 .. contents:: Topics
 
+v1.3.1
+======
+
+Release Summary
+---------------
+
+Various bug fixes fixing issues identified by new workflows for sanity tests.
+
+Bugfixes
+--------
+- collection: Add ansible-test sanity workflow and fix sanity errors (https://github.com/sap-linuxlab/community.sap_launchpad/pull/55)
+
+
 v1.3.0
 ======
 

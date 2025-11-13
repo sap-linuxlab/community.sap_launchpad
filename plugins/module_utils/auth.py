@@ -1,16 +1,57 @@
+from __future__ import absolute_import, division, print_function
+
+__metaclass__ = type
+
 import json
 import re
+from functools import wraps
 
 from urllib.parse import parse_qs, quote_plus, urljoin
-from bs4 import BeautifulSoup
-from requests.models import HTTPError
 
 from . import constants as C
 from . import exceptions
 
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    HAS_BS4 = False
+    BeautifulSoup = None
+else:
+    HAS_BS4 = True
+
+try:
+    from requests.models import HTTPError
+except ImportError:
+    HAS_REQUESTS = False
+    HTTPError = None
+else:
+    HAS_REQUESTS = True
+
 _GIGYA_SDK_BUILD_NUMBER = None
 
 
+def require_bs4(func):
+    # A decorator to check for the 'beautifulsoup4' library before executing a function.
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not HAS_BS4:
+            raise ImportError("The 'beautifulsoup4' library is required but was not found.")
+        return func(*args, **kwargs)
+    return wrapper
+
+
+def require_requests(func):
+    # A decorator to check for the 'requests' library before executing a function.
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not HAS_REQUESTS:
+            raise ImportError("The 'requests' library is required but was not found.")
+        return func(*args, **kwargs)
+    return wrapper
+
+
+@require_requests
+@require_bs4
 def login(client, username, password):
     # Main authentication function.
     #
@@ -57,18 +98,20 @@ def login(client, username, password):
             'samlContext': params['samlContext']
         }
         endpoint, meta = get_sso_endpoint_meta(client, idp_endpoint,
-                                                params=context,
-                                                allow_redirects=False)
+                                               params=context,
+                                               allow_redirects=False)
 
         while (endpoint != C.URL_LAUNCHPAD + '/'):
             endpoint, meta = get_sso_endpoint_meta(client, endpoint,
-                                                    data=meta,
-                                                    headers=C.GIGYA_HEADERS,
-                                                    allow_redirects=False)
+                                                   data=meta,
+                                                   headers=C.GIGYA_HEADERS,
+                                                   allow_redirects=False)
 
         client.post(endpoint, data=meta, headers=C.GIGYA_HEADERS)
 
 
+@require_requests
+@require_bs4
 def get_sso_endpoint_meta(client, url, **kwargs):
     # Scrapes an HTML page to find the next SSO form action URL and its input fields.
     method = 'POST' if kwargs.get('data') or kwargs.get('json') else 'GET'
@@ -100,6 +143,7 @@ def get_sso_endpoint_meta(client, url, **kwargs):
     return (endpoint, metadata)
 
 
+@require_requests
 def _get_gigya_login_params(client, url, data):
     # Follows a redirect and extracts parameters from the resulting URL's query string.
     gigya_idp_res = client.post(url, data=data)
@@ -109,9 +153,10 @@ def _get_gigya_login_params(client, url, data):
     return params
 
 
+@require_requests
 def _gigya_websdk_bootstrap(client, params):
     # Performs the initial bootstrap call to the Gigya WebSDK.
-    page_url = f'{C.URL_ACCOUNT_SAML_PROXY}?apiKey=' + params['apiKey'],
+    page_url = f'{C.URL_ACCOUNT_SAML_PROXY}?apiKey=' + params['apiKey']
     params.update({
         'pageURL': page_url,
         'sdk': 'js_latest',
@@ -120,10 +165,11 @@ def _gigya_websdk_bootstrap(client, params):
     })
 
     client.get(C.URL_ACCOUNT_CDC_API + '/accounts.webSdkBootstrap',
-             params=params,
-             headers=C.GIGYA_HEADERS)
+               params=params,
+               headers=C.GIGYA_HEADERS)
 
 
+@require_requests
 def _gigya_login(client, username, password, api_key):
     # Performs a login using the standard Gigya accounts.login API.
     # This avoids a custom SAP endpoint that triggers password change notifications.
@@ -154,6 +200,7 @@ def _gigya_login(client, username, password, api_key):
     return login_response.get('login_token')
 
 
+@require_requests
 def _get_id_token(client, saml_params, login_token):
     # Exchanges a Gigya login token for a JWT ID token.
     query_params = {
@@ -166,6 +213,7 @@ def _get_id_token(client, saml_params, login_token):
     return token
 
 
+@require_requests
 def _get_uid(client, saml_params, login_token):
     # Retrieves the user's unique ID (UID) using the login token.
     query_params = {
@@ -177,6 +225,7 @@ def _get_uid(client, saml_params, login_token):
     return uid
 
 
+@require_requests
 def _get_uid_details(client, uid, id_token):
     # Fetches detailed account information for a given UID.
     url = f'{C.URL_ACCOUNT_CORE_API}/accounts/{uid}'
@@ -187,16 +236,18 @@ def _get_uid_details(client, uid, id_token):
     return uid_details_response
 
 
+@require_requests
 def _is_uid_linked_multiple_sids(uid_details):
     # Checks if a Universal ID (UID) is linked to more than one S-User ID.
     accounts = uid_details['accounts']
     linked = []
-    for _, v in accounts.items():
+    for _account_type, v in accounts.items():
         linked.extend(v['linkedAccounts'])
 
     return len(linked) > 1
 
 
+@require_requests
 def _select_account(client, uid, sid, id_token):
     # Selects a specific S-User ID when a Universal ID is linked to multiple accounts.
     url = f'{C.URL_ACCOUNT_CORE_API}/accounts/{uid}/selectedAccount'
@@ -207,6 +258,7 @@ def _select_account(client, uid, sid, id_token):
     return client.request('PUT', url, headers=headers, json=data)
 
 
+@require_requests
 def _get_sdk_build_number(client, api_key):
     # Fetches the gigya.js file to extract and cache the SDK build number.
     global _GIGYA_SDK_BUILD_NUMBER
@@ -224,6 +276,7 @@ def _get_sdk_build_number(client, api_key):
     return build_number
 
 
+@require_requests
 def _cdc_api_request(client, endpoint, saml_params, query_params):
     # Helper to make requests to the Gigya/CDC API, handling common parameters and errors.
     url = '/'.join((C.URL_ACCOUNT_CDC_API, endpoint))
@@ -251,7 +304,7 @@ def _cdc_api_request(client, endpoint, saml_params, query_params):
 
     error_code = json_response['errorCode']
     if error_code != 0:
-        http_error_msg = '{} Error: {} for url: {}'.format(
+        http_error_msg = '{0} Error: {1} for url: {2}'.format(
             json_response['statusCode'], json_response['errorMessage'], res.url)
         raise HTTPError(http_error_msg, response=res)
     return json_response

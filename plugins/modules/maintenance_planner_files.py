@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import, division, print_function
 
+__metaclass__ = type
+
 DOCUMENTATION = r'''
 ---
 module: maintenance_planner_files
@@ -31,8 +33,14 @@ options:
       - Transaction Name or Transaction Display ID from Maintenance Planner.
     required: true
     type: str
+  validate_url:
+    description:
+      - Validates if the download URLs are accessible before returning them.
+    type: bool
+    default: false
 author:
-    - SAP LinuxLab
+    - Matthias Winzeler (@MatthiasWinzeler)
+    - Marcel Mamula (@marcelmamula)
 
 '''
 
@@ -70,8 +78,7 @@ download_basket:
       sample: "SAPCAR_1324-80000936.EXE"
 '''
 
-import requests
-from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.basic import AnsibleModule, missing_required_lib
 from ..module_utils.maintenance_planner import main as maintenance_planner_runner
 
 
@@ -104,6 +111,8 @@ def run_module():
 
     # The runner function indicates failure via a key in the result.
     if result.get('failed'):
+        if result.get('missing_dependency'):
+            module.fail_json(msg=missing_required_lib(result['missing_dependency']))
         module.fail_json(**result)
     else:
         module.exit_json(**result)

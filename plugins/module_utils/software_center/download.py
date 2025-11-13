@@ -1,18 +1,40 @@
+from __future__ import absolute_import, division, print_function
+
+__metaclass__ = type
+
 import glob
 import hashlib
 import os
 import time
-
-from requests.exceptions import ConnectionError, HTTPError
+from functools import wraps
 
 from .. import auth
 from .. import constants as C
 from .. import exceptions
 from . import search
 
+try:
+    from requests.exceptions import ConnectionError, HTTPError
+except ImportError:
+    HAS_REQUESTS = False
+    ConnectionError, HTTPError = None, None
+else:
+    HAS_REQUESTS = True
+
 _HAS_DOWNLOAD_AUTHORIZATION = None
 
 
+def require_requests(func):
+    # A decorator to check for the 'requests' library before executing a function.
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not HAS_REQUESTS:
+            raise ImportError("The 'requests' library is required but was not found.")
+        return func(*args, **kwargs)
+    return wrapper
+
+
+@require_requests
 def validate_local_file_checksum(client, local_filepath, query=None, download_link=None, deduplicate=None, search_alternatives=False):
     # Validates a local file against the remote checksum from the server.
     # Returns a dictionary with the validation status and additional context.
@@ -74,6 +96,7 @@ def check_similar_files(dest, filename):
         return False, []
 
 
+@require_requests
 def _check_download_authorization(client):
     # Verifies that the authenticated user has the "Software Download" authorization.
     # Caches the result to avoid repeated API calls.
@@ -102,6 +125,7 @@ def _check_download_authorization(client):
         )
 
 
+@require_requests
 def is_download_link_available(client, url, retry=0):
     # Verifies if a download link is active and returns the final, resolved URL.
     # Returns None if the link is not available.
@@ -119,6 +143,7 @@ def is_download_link_available(client, url, retry=0):
         return None
 
 
+@require_requests
 def _resolve_download_link(client, url, retry=0):
     # Resolves a tokengen URL to the final, direct download URL.
     # This encapsulates the SAML token exchange logic and includes retries.
@@ -150,6 +175,7 @@ def _resolve_download_link(client, url, retry=0):
     return endpoint
 
 
+@require_requests
 def stream_file_to_disk(client, url, filepath, retry=0, **kwargs):
     # Streams a large file to disk and verifies its checksum.
     kwargs.update({'stream': True})
