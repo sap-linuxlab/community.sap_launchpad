@@ -230,7 +230,7 @@ Install prerequisites and create new SAP system using existing Python Virtual En
         download_path: "/tmp/licenses"
       register: result
       environment:
-        PATH: "/tmp/python_venv:{{ ansible_env.PATH }}" 
+        PATH: "/tmp/python_venv:{{ ansible_facts['env'].PATH }}" 
         PYTHONPATH: "/tmp/python_venv/lib/python3.11/site-packages" 
         VIRTUAL_ENV: "/tmp/python_venv" 
       vars:

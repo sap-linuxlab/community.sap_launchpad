@@ -71,7 +71,7 @@ Obtain Stack file using existing Python Virtual Environment `/tmp/venv`.
         dest: "Enter download path (e.g. /software)"
       register: __module_results
       environment:
-        PATH: "/tmp/venv:{{ ansible_env.PATH }}" 
+        PATH: "/tmp/venv:{{ ansiblansible_facts['env']e_env.PATH }}" 
         PYTHONPATH: "/tmp/venv/lib/python3.11/site-packages" 
         VIRTUAL_ENV: "/tmp/venv" 
       vars:
@@ -143,7 +143,7 @@ Install prerequisites and obtain Stack file using existing Python Virtual Enviro
         dest: "Enter download path (e.g. /software)"
       register: __module_results
       environment:
-        PATH: "/tmp/venv:{{ ansible_env.PATH }}" 
+        PATH: "/tmp/venv:{{ ansible_facts['env'].PATH }}" 
         PYTHONPATH: "/tmp/venv/lib/python3.11/site-packages" 
         VIRTUAL_ENV: "/tmp/venv" 
       vars:
