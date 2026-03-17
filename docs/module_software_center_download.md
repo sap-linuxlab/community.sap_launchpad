@@ -125,7 +125,7 @@ Download SAP Software file using Python Virtual Environment `/tmp/venv`
         search_query: "Enter SAP Software file name"
         dest: "Enter download path (e.g. /software)"
       environment:
-        PATH: "/tmp/venv:{{ ansible_env.PATH }}" 
+        PATH: "/tmp/venv:{{ ansible_facts['env'].PATH }}" 
         PYTHONPATH: "/tmp/venv/lib/python3.11/site-packages" 
         VIRTUAL_ENV: "/tmp/venv" 
       vars:
@@ -195,7 +195,7 @@ Install prerequisites and download SAP Software file using existing Python Virtu
         search_query: "Enter SAP Software file name"
         dest: "Enter download path (e.g. /software)"
       environment:
-        PATH: "/tmp/python_venv:{{ ansible_env.PATH }}" 
+        PATH: "/tmp/python_venv:{{ ansible_facts['env'].PATH }}" 
         PYTHONPATH: "/tmp/python_venv/lib/python3.11/site-packages" 
         VIRTUAL_ENV: "/tmp/python_venv" 
       vars:

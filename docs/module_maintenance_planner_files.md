@@ -68,7 +68,7 @@ Obtain list of SAP Software files using existing Python Virtual Environment `/tm
         transaction_name: "Transaction Name or Display ID from Maintenance Planner"
       register: __module_results
       environment:
-        PATH: "/tmp/python_venv:{{ ansible_env.PATH }}" 
+        PATH: "/tmp/python_venv:{{ ansible_facts['env'].PATH }}" 
         PYTHONPATH: "/tmp/python_venv/lib/python3.11/site-packages" 
         VIRTUAL_ENV: "/tmp/python_venv" 
       vars:
@@ -138,7 +138,7 @@ Install prerequisites and obtain list of SAP Software files using existing Pytho
         transaction_name: "Transaction Name or Display ID from Maintenance Planner"
       register: __module_results
       environment:
-        PATH: "/tmp/python_venv:{{ ansible_env.PATH }}" 
+        PATH: "/tmp/python_venv:{{ ansible_facts['env'].PATH }}" 
         PYTHONPATH: "/tmp/python_venv/lib/python3.11/site-packages" 
         VIRTUAL_ENV: "/tmp/python_venv" 
       vars:
