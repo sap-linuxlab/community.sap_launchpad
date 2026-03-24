@@ -22,7 +22,7 @@
       retries: 1
       until: __sap_software_download_files_results_dryrun_venv is not failed
       environment:
-        PATH: "{{ __sap_software_download_venv.path }}/bin:{{ ansible_env.PATH }}"
+        PATH: "{{ __sap_software_download_venv.path }}/bin:{{ ansible_facts['env'].PATH }}"
         PYTHONPATH: "{{ __sap_software_download_venv.path }}/lib/{{ sap_software_download_python_interpreter }}/site-packages"
         VIRTUAL_ENV: "{{ __sap_software_download_venv.path }}"
       vars:

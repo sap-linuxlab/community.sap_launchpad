@@ -15,7 +15,7 @@
     label: "{{ item.Filename }} : {{ __sap_software_download_files_plan_results_venv.msg | d('') }}"
   register: __sap_software_download_files_plan_results_venv
   environment:
-    PATH: "{{ __sap_software_download_venv.path }}/bin:{{ ansible_env.PATH }}"
+    PATH: "{{ __sap_software_download_venv.path }}/bin:{{ ansible_facts['env'].PATH }}"
     PYTHONPATH: "{{ __sap_software_download_venv.path }}/lib/{{ sap_software_download_python_interpreter }}/site-packages"
     VIRTUAL_ENV: "{{ __sap_software_download_venv.path }}"
   vars:

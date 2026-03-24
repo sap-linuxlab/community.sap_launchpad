@@ -19,7 +19,7 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Marcel Mamula](https://github.com/marcelmamula) | 45 | 11303 | 2025-11-11 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 47 | 11440 | 2026-03-17 |
 | [Sean Freeman](https://github.com/sean-freeman) | 35 | 2915 | 2025-03-31 |
 | [Matthias Winzeler](https://github.com/MatthiasWinzeler) | 12 | 885 | 2023-11-12 |
 | [Markus Koch](https://github.com/rhmk) | 1 | 32 | 2022-10-21 |
@@ -31,7 +31,7 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Marcel Mamula](https://github.com/marcelmamula) | 15 | 2408 | 2025-09-10 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 16 | 2438 | 2026-03-17 |
 
 ## Contributions by Module
 
@@ -42,27 +42,20 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 | [Matthias Winzeler](https://github.com/MatthiasWinzeler) | 9 | 351 | 2023-11-12 |
 | [Marcel Mamula](https://github.com/marcelmamula) | 2 | 181 | 2025-10-08 |
 
-### Module: maintenance_planner_stack_xml_download.py
-
-| Name | Commits | Lines Changed | Last Commit |
-| ---- | ------- | ------------- | ----------- |
-| [Marcel Mamula](https://github.com/marcelmamula) | 5 | 126 | 2025-10-08 |
-| [Sean Freeman](https://github.com/sean-freeman) | 3 | 156 | 2024-11-09 |
-| [Matthias Winzeler](https://github.com/MatthiasWinzeler) | 1 | 3 | 2023-11-17 |
-
-### Module: systems_info.py
-
-| Name | Commits | Lines Changed | Last Commit |
-| ---- | ------- | ------------- | ----------- |
-| [Matthias Winzeler](https://github.com/MatthiasWinzeler) | 5 | 121 | 2023-11-12 |
-| [Marcel Mamula](https://github.com/marcelmamula) | 2 | 72 | 2025-10-08 |
-
 ### Module: maintenance_planner_files.py
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
 | [Marcel Mamula](https://github.com/marcelmamula) | 4 | 134 | 2025-10-08 |
 | [Sean Freeman](https://github.com/sean-freeman) | 2 | 161 | 2024-11-09 |
+| [Matthias Winzeler](https://github.com/MatthiasWinzeler) | 1 | 3 | 2023-11-17 |
+
+### Module: maintenance_planner_stack_xml_download.py
+
+| Name | Commits | Lines Changed | Last Commit |
+| ---- | ------- | ------------- | ----------- |
+| [Marcel Mamula](https://github.com/marcelmamula) | 5 | 126 | 2025-10-08 |
+| [Sean Freeman](https://github.com/sean-freeman) | 3 | 156 | 2024-11-09 |
 | [Matthias Winzeler](https://github.com/MatthiasWinzeler) | 1 | 3 | 2023-11-17 |
 
 ### Module: software_center_download.py
@@ -74,4 +67,40 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 | [Matthias Winzeler](https://github.com/MatthiasWinzeler) | 1 | 3 | 2023-11-17 |
 | [Markus Koch](https://github.com/rhmk) | 1 | 11 | 2022-10-21 |
 | 朱聖黎 Zhu Sheng Li | 1 | 44 | 2022-04-11 |
+
+### Module: systems_info.py
+
+| Name | Commits | Lines Changed | Last Commit |
+| ---- | ------- | ------------- | ----------- |
+| [Matthias Winzeler](https://github.com/MatthiasWinzeler) | 5 | 121 | 2023-11-12 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 2 | 72 | 2025-10-08 |
+
+## Contributions by Module Utilities
+
+### Utility: auth.py
+
+| Name | Commits | Lines Changed | Last Commit |
+| ---- | ------- | ------------- | ----------- |
+| [Marcel Mamula](https://github.com/marcelmamula) | 5 | 348 | 2025-10-08 |
+
+### Utility: client.py
+
+| Name | Commits | Lines Changed | Last Commit |
+| ---- | ------- | ------------- | ----------- |
+| [Marcel Mamula](https://github.com/marcelmamula) | 2 | 164 | 2025-10-08 |
+
+### Utility: constants.py
+
+| Name | Commits | Lines Changed | Last Commit |
+| ---- | ------- | ------------- | ----------- |
+| [Marcel Mamula](https://github.com/marcelmamula) | 2 | 30 | 2025-09-09 |
+| [Sean Freeman](https://github.com/sean-freeman) | 2 | 39 | 2023-11-28 |
+| [Matthias Winzeler](https://github.com/MatthiasWinzeler) | 1 | 1 | 2023-10-27 |
+| 朱聖黎 Zhu Sheng Li | 1 | 2 | 2022-04-11 |
+
+### Utility: exceptions.py
+
+| Name | Commits | Lines Changed | Last Commit |
+| ---- | ------- | ------------- | ----------- |
+| [Marcel Mamula](https://github.com/marcelmamula) | 2 | 32 | 2025-10-08 |
 

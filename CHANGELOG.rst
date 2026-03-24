@@ -4,6 +4,19 @@ community.sap\_launchpad Release Notes
 
 .. contents:: Topics
 
+v1.3.2
+======
+
+Release Summary
+---------------
+
+Bug fixes for compatibility with ansible-core 2.20.
+
+Bugfixes
+--------
+- all - Replace inject vars with ansible_facts for 2.20 (https://github.com/sap-linuxlab/community.sap_launchpad/pull/59)
+
+
 v1.3.1
 ======
 
