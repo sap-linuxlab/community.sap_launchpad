@@ -1,5 +1,12 @@
 ancestor: null
 releases:
+  1.3.2:
+    release_date: '2026-03-24'
+    changes:
+      release_summary: Bug fixes for compatibility with ansible-core 2.20
+      bugfixes:
+        - all - Replace inject vars with ansible_facts for 2.20 (https://github.com/sap-linuxlab/community.sap_launchpad/pull/59)
+
   1.3.1:
     release_date: '2025-11-11'
     changes:
