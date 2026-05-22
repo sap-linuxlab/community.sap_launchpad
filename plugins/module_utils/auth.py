@@ -76,7 +76,7 @@ def login(client, username, password):
     while ('SAMLResponse' not in meta and 'login_hint' not in meta):
         endpoint, meta = get_sso_endpoint_meta(client, endpoint, data=meta)
         if 'j_username' in meta:
-            
+
             # If no exceptions catch the error, then execution will end in endless loop.
             # To prevent that, we track the number of attempts to the same login endpoint
             # and raise an exception after a certain threshold is reached.
