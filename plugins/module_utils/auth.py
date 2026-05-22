@@ -69,9 +69,30 @@ def login(client, username, password):
     endpoint = C.URL_LAUNCHPAD
     meta = {}
 
+    last_login_endpoint = None
+    login_attempt_count = 0
+    max_login_attempts = 3
+
     while ('SAMLResponse' not in meta and 'login_hint' not in meta):
         endpoint, meta = get_sso_endpoint_meta(client, endpoint, data=meta)
         if 'j_username' in meta:
+            
+            # If no exceptions catch the error, then execution will end in endless loop.
+            # To prevent that, we track the number of attempts to the same login endpoint
+            # and raise an exception after a certain threshold is reached.
+            if last_login_endpoint == endpoint:
+                login_attempt_count += 1
+                if login_attempt_count >= max_login_attempts:
+                    raise exceptions.AuthenticationError(
+                        'Authentication failed due to invalid credentials. '
+                        'Please verify your S-User ID and password are correct. '
+                        'If this error persists with valid credentials, the authentication error format may have changed.'
+                    )
+            else:
+                # Reset counter when we encounter a different login endpoint
+                last_login_endpoint = endpoint
+                login_attempt_count = 1
+
             meta['j_username'] = username
             meta['j_password'] = password
         if 'changePassword' in endpoint:
@@ -123,10 +144,23 @@ def get_sso_endpoint_meta(client, url, **kwargs):
     # for non-universal SID. For universal SID, the client will raise 401
     # during Gygia auth.
     error_message = soup.find('div', {'id': 'globalMessages'})
-    if error_message and 'we could not authenticate you' in error_message.text:
-        res.status_code = 401
-        res.reason = 'Unauthorized'
-        res.raise_for_status()
+    if error_message:
+        error_text = error_message.text.lower()
+        # List of potential error messages indicating authentication failure.
+        # This is not exhaustive and may need updates if SAP changes their error messaging.
+        auth_error_messages = [
+            'could not authenticate you',
+            "couldn't authenticate you",
+            'authentication failed',
+            'invalid credentials',
+            'incorrect username or password'
+        ]
+
+        # Check if any of the known authentication error messages are present in the response.
+        if any(msg in error_text for msg in auth_error_messages):
+            res.status_code = 401
+            res.reason = 'Unauthorized'
+            res.raise_for_status()
 
     form = soup.find('form')
     if not form:
