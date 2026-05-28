@@ -309,25 +309,24 @@ def _prepare_search_filename(filename):
         suggested = filename_parts[0]
         return suggested, _increment_last_digits(suggested)
 
-
     # Revision version will be kept to ensure correct component versions.
     # Example: IMDB_SERVER20_067_4-80002046.SAR returns IMDB_SERVER20_067 (Rev 67)
     # Example: IMDB_AFL20_077_0-80002045.SAR returns IMDB_AFL20_077 (Rev 77)
     # Example: IMDB_AFL100_102P_41-10012328.SAR returns MDB_AFL100_102 (Rev 102)
     # Example: IMDB_LCAPPS_122P_3300-20010426.SAR returns IMDB_LCAPPS_122 (Rev 122)
     # Example: IMDB_LCAPPS_2067P_400-80002183.SAR returns IMDB_LCAPPS_2067 (Rev 67)
-    elif filename_base.startswith(('IMDB_SERVER', 'IMDB_AFL', 'IMDB_LCAPPS_1', 'IMDB_LCAPPS_2')):       
+    elif filename_base.startswith(('IMDB_SERVER', 'IMDB_AFL', 'IMDB_LCAPPS_1', 'IMDB_LCAPPS_2')):
         # Remove P from the 3rd element (index 2) to improve fuzzy search.
         if len(filename_parts) > 2:
-            filename_parts[2] = filename_parts[2].rstrip('Pp') 
+            filename_parts[2] = filename_parts[2].rstrip('Pp')
         # Re-join the first three elements -> "IMDB_AFL100_102"
         suggested = "_".join(filename_parts[:3])
         return suggested, None
 
     # Example: IMDB_CLIENT20_021_31-80002082.SAR returns IMDB_CLIENT20_021
-    elif filename_base.startswith('IMDB_CLIENT'):       
+    elif filename_base.startswith('IMDB_CLIENT'):
         if len(filename_parts) > 2:
-            filename_parts[2] = filename_parts[2].rstrip('Pp') 
+            filename_parts[2] = filename_parts[2].rstrip('Pp')
         suggested = "_".join(filename_parts[:3])
         return suggested, _increment_last_digits(suggested)
 
