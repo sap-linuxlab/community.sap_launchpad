@@ -28,13 +28,6 @@ def find_file(client, name, deduplicate, search_alternatives):
         has_extension = '.' in name
         has_dash = '-' in name
 
-        # More than one wildcards are not allowed.
-        if wildcard_count > 1:
-            raise FileNotFoundError(
-                f'File "{name}" is not available.\n'
-                f'Only one wildcard (*) is allowed in the search query.'
-            )
-
         # No wildcards were detected.
         if wildcard_count == 0:
             # File format doesn't support fuzzy search.
@@ -61,7 +54,7 @@ def find_file(client, name, deduplicate, search_alternatives):
                 f'Wildcard search requires search_alternatives to be enabled.'
             )
 
-        # One wildcard was detected, validate wildcard position and format.
+        # Wildcard detected, validate format with regex.
         if wildcard_count > 0:
             # We have to ensure that only correct pattern is accepted: PREFIX*-ID.EXT
             # Having wildcard in other places would result in API timeouts
@@ -113,8 +106,8 @@ def find_file(client, name, deduplicate, search_alternatives):
             )
 
         # Fuzzy search already filtered by prefix and ID.
-        # Now filter by extension to handle different file types (.SAR vs .rpm)
-        # Extract extension from original query
+        # Filter by extension to handle different file types (.SAR vs .rpm)
+        # Results are already sorted from _filter_fuzzy_search
         file_right_side = name.split('-')[-1]  # 80004822.SAR
         file_id = file_right_side.split('.')[0]  # 80004822
         file_extension = file_right_side[len(file_id):]  # .SAR
