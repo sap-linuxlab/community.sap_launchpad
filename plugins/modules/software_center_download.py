@@ -65,7 +65,7 @@ options:
     type: str
   deduplicate:
     description:
-      - Specifies how to handle multiple search results when using wildcards.
+      - Specifies how to handle multiple search results.
       - Only applies when C(search_alternatives) is enabled and multiple versions are found.
       - "Choices: C(first) returns the oldest version, C(last) returns the newest version."
       - If left empty and multiple results are found, an error with all available versions will be displayed.
