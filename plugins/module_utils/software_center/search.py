@@ -124,11 +124,6 @@ def find_file(client, name, deduplicate, search_alternatives):
             if file.get('Title', '').upper().endswith(file_extension.upper())
         ]
 
-        # Sort numerically: 'first' = oldest, 'last' = newest
-        software_search_alternatives_filtered = _sort_fuzzy_results(
-            software_search_alternatives_filtered
-        )
-
         alternatives_count = len(software_search_alternatives_filtered)
         if alternatives_count == 0:
             raise FileNotFoundError(f'File "{name}" is not available and no alternatives could be found.')
@@ -377,7 +372,7 @@ def _sort_fuzzy_results(fuzzy_results_filtered):
         software_fuzzy_sorted = sorted(
             fuzzy_results_filtered,
             key=lambda item: (
-                _get_numeric_search_keyword(item.get('Title', '')) or 0
+                _get_numeric_search_keyword(item.get('Title', '')) or (0, 0)
             ),
             reverse=False,
         )
@@ -391,12 +386,29 @@ def _sort_fuzzy_results(fuzzy_results_filtered):
 
 
 def _get_numeric_search_keyword(filename):
-    # Extracts integer value of version from filename.
+    # Extracts version tuple from filename for sorting.
+    # Returns tuple (major, minor) to handle cases like SP24_0, SP24_1, SP24_10.
+    # Priority: extract the most significant version numbers.
+
+    # For SP-based files: extract (SP_version, patch_number)
+    # SWPM20SP23_4-ID -> (23, 4), SWPM20SP24_1-ID -> (24, 1)
+    sp_match = re.search(r'SP(\d+)_(\d+)-', filename)
+    if sp_match:
+        return (int(sp_match.group(1)), int(sp_match.group(2)))
+
+    # For HANA files with 3-part versions: extract (revision, patch)
+    # IMDB_SERVER20_067_4-ID -> (67, 4), IMDB_LCAPPS_2067P_400-ID -> (2067, 400)
+    hana_match = re.search(r'_(\d+)P?_(\d+)-', filename)
+    if hana_match:
+        return (int(hana_match.group(1)), int(hana_match.group(2)))
+
+    # For all other files: extract version as (version, 0) for consistent tuple sorting
+    # SAPEXE_800-ID -> (800, 0), SAPHOSTAGENT61_61-ID -> (61, 0), igsexe_13-ID -> (13, 0)
     match = re.search(r'_(\d+)-', filename)
     if match:
-        return int(match.group(1))
-    else:
-        return None
+        return (int(match.group(1)), 0)
+
+    return None
 
 
 def _remove_useless_keys(result):
