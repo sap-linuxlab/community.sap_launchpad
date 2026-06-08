@@ -61,14 +61,32 @@ def find_file(client, name, deduplicate, search_alternatives):
                 f'Wildcard search requires search_alternatives to be enabled.'
             )
 
-        # search_alternatives is enabled - validate format for fuzzy search.
-        if not (has_dash and has_extension):
-            raise FileNotFoundError(
-                f'File "{name}" is not available.\n'
-                f'Wildcard queries must follow specific format.\n'
-                f'Format: "PREFIX*-ID.EXT"\n'
-                f'Example: "SAPEXE_1*-80002630.SAR"'
-            )
+        # One wildcard was detected, validate wildcard position and format.
+        if wildcard_count > 0:
+            # We have to ensure that only correct pattern is accepted: PREFIX*-ID.EXT
+            # Having wildcard in other places would result in API timeouts
+            # or files for different components and platforms.
+            # [^-]+ = one or more non-dash characters
+            # \* = wildcard character
+            # - = single dash separator
+            # \d{8} = exactly 8 digits (SAP file IDs are always 8 digits)
+            # \. = dot character
+            # [a-zA-Z]+ = file extension (SAR, EXE, rpm, sar, etc.)
+            wildcard_pattern = r'^[^-]+\*-\d{8}\.[a-zA-Z]+$'
+            if not re.match(wildcard_pattern, name):
+                raise FileNotFoundError(
+                    f'File "{name}" is not available.\n'
+                    f'Wildcard queries must follow specific format.\n'
+                    f'Format: "PREFIX*-ID.EXT" where:\n'
+                    f' - PREFIX must have at least one character before wildcard\n'
+                    f' - Wildcard (*) must be in PREFIX position only\n'
+                    f' - Single dash (-) separates prefix and ID\n'
+                    f' - ID must be exactly 8 digits\n'
+                    f'Valid: "SAPEXE_1*-80002630.SAR"\n'
+                    f'Invalid: "*-80002630.SAR" (no prefix - too broad)\n'
+                    f'Invalid: "SAPEXE_1-*.SAR" (wildcard in ID position)\n'
+                    f'Invalid: "igsexe_*-7000.sar" (ID must be 8 digits, not 4)'
+                )
 
         try:
             software_fuzzy_found = _search_software_fuzzy(client, name)
