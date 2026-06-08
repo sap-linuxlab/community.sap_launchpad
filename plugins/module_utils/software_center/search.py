@@ -28,6 +28,13 @@ def find_file(client, name, deduplicate, search_alternatives):
         has_extension = '.' in name
         has_dash = '-' in name
 
+        # Multiple wildcards cause split() to fail in _filter_fuzzy_search.
+        if wildcard_count > 1:
+            raise FileNotFoundError(
+                f'File "{name}" is not available.\n'
+                f'Only one wildcard (*) is allowed in the search query.'
+            )
+
         # No wildcards were detected.
         if wildcard_count == 0:
             # File format doesn't support fuzzy search.
