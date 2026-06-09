@@ -320,6 +320,7 @@ The directory where downloaded SAP software files will be stored.
 ### deduplicate
 - _Type:_ `string`<br>
 - _Choices:_ `first`, `last`, `` (empty)<br>
+- _Default:_ `last`<br>
 
 Specifies how to handle multiple search results.<br>
 Only applies when `search_alternatives` is enabled and multiple versions are found.<br>

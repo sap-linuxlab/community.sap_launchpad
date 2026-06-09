@@ -71,7 +71,7 @@ options:
       - If left empty and multiple results are found, an error with all available versions will be displayed.
     choices: [ 'first', 'last', '' ]
     required: false
-    default: ''
+    default: 'last'
     type: str
   search_alternatives:
     description:
@@ -198,7 +198,7 @@ def run_module():
         download_filename=dict(type='str', required=False, default=''),
         dest=dict(type='str', required=True),
         dry_run=dict(type='bool', required=False, default=False),
-        deduplicate=dict(type='str', required=False, default='', choices=['first', 'last', '']),
+        deduplicate=dict(type='str', required=False, default='last', choices=['first', 'last', '']),
         search_alternatives=dict(type='bool', required=False, default=False),
         validate_checksum=dict(type='bool', required=False, default=False)
     )
