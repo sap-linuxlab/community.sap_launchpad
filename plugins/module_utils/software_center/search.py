@@ -218,7 +218,7 @@ def _search_software_fuzzy(client, query):
 
     # Extract ID and prepare suggested filename prefix
     filename_id = filename_base.split('-')[-1]
-    suggested_filename, suggested_filename_next, _ = _prepare_search_filename(query)
+    suggested_filename, suggested_filename_next, suggested_filename_base = _prepare_search_filename(query)
     has_wildcard = '*' in query
 
     fuzzy_results = []
