@@ -218,7 +218,7 @@ def _search_software_fuzzy(client, query):
 
     # Extract ID and prepare suggested filename prefix
     filename_id = filename_base.split('-')[-1]
-    suggested_filename, suggested_filename_next = _prepare_search_filename(query)
+    suggested_filename, suggested_filename_next, _ = _prepare_search_filename(query)
     has_wildcard = '*' in query
 
     fuzzy_results = []
@@ -277,7 +277,7 @@ def _filter_fuzzy_search(fuzzy_results, filename):
         ]
         suggested_filename = prefix
     else:
-        suggested_filename, suggested_filename_next = _prepare_search_filename(filename)
+        suggested_filename, suggested_filename_next, suggested_filename_base = _prepare_search_filename(filename)
 
         # Create result list with same version if available.
         fuzzy_results_filtered = [
@@ -295,12 +295,27 @@ def _filter_fuzzy_search(fuzzy_results, filename):
             if len(fuzzy_results_filtered) > 0:
                 suggested_filename = suggested_filename_next
 
+        # Attempt to create result list with broader base prefix.
+        if len(fuzzy_results_filtered) == 0 and suggested_filename_base:
+            fuzzy_results_filtered = [
+                file for file in fuzzy_results
+                if file.get('Title', '').startswith(suggested_filename_base)
+            ]
+            # Update return suggested filename to base if alternatives are found with it.
+            if len(fuzzy_results_filtered) > 0:
+                suggested_filename = suggested_filename_base
+
     fuzzy_results_sorted = _sort_fuzzy_results(fuzzy_results_filtered)
     return fuzzy_results_sorted, suggested_filename
 
 
 def _prepare_search_filename(filename):
-    # Prepares a suggested search keyword for known products specific to SPS version.
+    # Prepares suggested search keywords for known products.
+    # Returns triplet: (suggested, suggested_next, suggested_base)
+    # - suggested: exact version match
+    # - suggested_next: incremented version (safe)
+    # - suggested_base: broader prefix (only for known safe files)
+
     # Filename without extension.
     filename_base = os.path.splitext(filename)[0]
 
@@ -310,52 +325,70 @@ def _prepare_search_filename(filename):
     # Filename split into individual components: ['IMDB', 'AFL100', '102P', '41']
     filename_parts = filename_main.split('_')
 
-    # Example: SWPM20SP23_4-70003174.SAR returns SWPM20SP23
+    # Example: SWPM20SP23_4-70003174.SAR returns (SWPM20SP23, SWPM20SP24, SWPM20)
+    # Example: 70SWPM10SP05_1-20009701.SAR returns (70SWPM10SP05, 70SWPM10SP06, 70SWPM1)
     for swpm_version in ("70SWPM1", "70SWPM2", "SWPM1", "SWPM2"):
         if filename_base.startswith(swpm_version):
             suggested = filename_parts[0]
-            return suggested, _increment_last_digits(suggested)
+            return suggested, _increment_last_digits(suggested), swpm_version
 
-    # Example: SUM11SP04_2-80006858.SAR returns SUM11SP04
-    # Example: DBATL740O11_48-80002605.SAR returns DBATL740O11
-    if filename_base.startswith(('SUM', 'DBATL')):
+    # Example: SUM11SP04_2-80006858.SAR returns (SUM11SP04, SUM11SP05, SUM1)
+    if filename_base.startswith('SUM'):
         suggested = filename_parts[0]
-        return suggested, _increment_last_digits(suggested)
+        # Base is SUM1 or SUM2 (first 4 chars)
+        suggested_base = filename_base[:4] if filename_base[:4] in ('SUM1', 'SUM2') else None
+        return suggested, _increment_last_digits(suggested), suggested_base
+
+    # Example: DBATL740O11_48-80002605.SAR returns (DBATL740O11, DBATL740O12, None)
+    if filename_base.startswith('DBATL'):
+        suggested = filename_parts[0]
+        return suggested, _increment_last_digits(suggested), None
 
     # Revision version will be kept to ensure correct component versions.
-    # Example: IMDB_SERVER20_067_4-80002046.SAR returns IMDB_SERVER20_067 (Rev 67)
-    # Example: IMDB_AFL20_077_0-80002045.SAR returns IMDB_AFL20_077 (Rev 77)
-    # Example: IMDB_AFL100_102P_41-10012328.SAR returns MDB_AFL100_102 (Rev 102)
-    # Example: IMDB_LCAPPS_122P_3300-20010426.SAR returns IMDB_LCAPPS_122 (Rev 122)
-    # Example: IMDB_LCAPPS_2067P_400-80002183.SAR returns IMDB_LCAPPS_2067 (Rev 67)
+    # Example: IMDB_SERVER20_067_4-80002046.SAR (Rev 67) returns (IMDB_SERVER20_067, None, None)
+    # Example: IMDB_AFL20_077_0-80002045.SAR (Rev 77) returns (IMDB_AFL20_077, None, None)
+    # Example: IMDB_AFL100_102P_41-10012328.SAR (Rev 102) returns (IMDB_AFL100_102, None, None)
+    # Example: IMDB_LCAPPS_122P_3300-20010426.SAR (Rev 122) returns (IMDB_LCAPPS_122, None, None)
+    # Example: IMDB_LCAPPS_2067P_400-80002183.SAR (Rev 67) returns (IMDB_LCAPPS_2067, None, None)
     elif filename_base.startswith(('IMDB_SERVER', 'IMDB_AFL', 'IMDB_LCAPPS_1', 'IMDB_LCAPPS_2')):
         # Remove P from the 3rd element (index 2) to improve fuzzy search.
         if len(filename_parts) > 2:
             filename_parts[2] = filename_parts[2].rstrip('Pp')
         # Re-join the first three elements -> "IMDB_AFL100_102"
         suggested = "_".join(filename_parts[:3])
-        return suggested, None
+        return suggested, None, None
 
-    # Example: IMDB_CLIENT20_021_31-80002082.SAR returns IMDB_CLIENT20_021
+    # Example: IMDB_CLIENT20_021_31-80002082.SAR returns (IMDB_CLIENT20_021, IMDB_CLIENT20_022, None)
     elif filename_base.startswith('IMDB_CLIENT'):
         if len(filename_parts) > 2:
             filename_parts[2] = filename_parts[2].rstrip('Pp')
         suggested = "_".join(filename_parts[:3])
-        return suggested, _increment_last_digits(suggested)
+        return suggested, _increment_last_digits(suggested), None
 
-    # Example: SAPEXE_100-80005374.SAR returns SAPEXE_100
+    # Example: SAPEXE_100-80005374.SAR returns (SAPEXE_100, SAPEXE_101, None)
     elif filename_base.startswith('SAPEXE'):
         suggested = filename_main
-        return suggested, _increment_last_digits(suggested)
+        return suggested, _increment_last_digits(suggested), None
 
-    # Example: SAPHANACOCKPIT02_0-70002300.SAR returns SAPHANACOCKPIT02 (SPS02)
-    # Example: SAPHOSTAGENT61_61-80004831.SAR returns SAPHOSTAGENT61
+    # Example: SAPHANACOCKPIT02_0-70002300.SAR returns (SAPHANACOCKPIT02, SAPHANACOCKPIT03, None)
+    # Example: SAPHOSTAGENT61_61-80004831.SAR returns (SAPHOSTAGENT61, SAPHOSTAGENT62, None)
     elif filename_base.startswith(('SAPHANACOCKPIT', 'SAPHOSTAGENT')):
         suggested = filename_main.rsplit('_', 1)[0]
-        return suggested, _increment_last_digits(suggested)
+        return suggested, _increment_last_digits(suggested), None
+
+    # Example: SAPCAR_1100-70007726.EXE returns (SAPCAR_1100, SAPCAR_1200, SAPCAR_)
+    elif filename_base.startswith('SAPCAR_'):
+        suggested = filename_main
+        return suggested, _increment_last_digits(suggested), 'SAPCAR_'
+
+    # Example: igsexe_13-80003187.sar returns (igsexe_13, igsexe_14, None)
+    # Example: igshelper_17-10010245.sar returns (igshelper_17, igshelper_18, None)
+    elif filename_base.startswith(('igsexe_', 'igshelper_')):
+        suggested = filename_main
+        return suggested, _increment_last_digits(suggested), None
 
     else:
-        return filename_main, None
+        return filename_main, None, None
 
 
 def _sort_fuzzy_results(fuzzy_results_filtered):
