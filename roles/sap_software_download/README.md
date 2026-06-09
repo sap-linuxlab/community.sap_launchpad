@@ -323,11 +323,14 @@ If set to `false`, the role will execute dry run to validate S-User credentials.
 
 ### sap_software_download_deduplicate
 - _Type:_ `string`<br>
+- _Default:_ `last`<br>
 
 Specifies how to handle duplicate file results when using `sap_software_download_files`.<br>
 If multiple files with the same name are found, this setting determines which one to download.<br>
+
 - `first`: Download the first file found<br>
 - `last`: Download the last file found.<br>
+- `''`: No deduplication, will cause an error if multiple files with the same name are found.<br> 
 
 ### sap_software_download_validate_checksum
 - _Type:_ `bool`<br>

@@ -12,7 +12,7 @@
         search_query: "{{ item }}"
         dest: "{{ sap_software_download_directory }}"
         search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
-        deduplicate: "{{ sap_software_download_deduplicate | d('') }}"
+        deduplicate: "{{ sap_software_download_deduplicate }}"
         dry_run: true
       # Loop condition acts as when conditional
       loop: "{{ sap_software_download_files if sap_software_download_use_venv | d(true) else [] }}"
@@ -37,7 +37,7 @@
         search_query: "{{ item }}"
         dest: "{{ sap_software_download_directory }}"
         search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
-        deduplicate: "{{ sap_software_download_deduplicate | d('') }}"
+        deduplicate: "{{ sap_software_download_deduplicate }}"
         dry_run: true
       # Loop condition acts as when conditional
       loop: "{{ sap_software_download_files if not sap_software_download_use_venv | d(true) else [] }}"

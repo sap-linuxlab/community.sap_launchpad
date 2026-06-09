@@ -116,8 +116,10 @@
 - name: "Pre-Steps - Verify variable: sap_software_download_deduplicate"
   ansible.builtin.assert:
     that:
-      - sap_software_download_deduplicate in ['first', 'last']
+      - sap_software_download_deduplicate is defined
+      - sap_software_download_deduplicate is string
+      - sap_software_download_deduplicate in ['first', 'last', '']
     fail_msg: |
       Enter valid option for `sap_software_download_deduplicate` variable.
-      Options: first, last
-  when: sap_software_download_deduplicate is defined
+      Options: first, last or empty string ''.
+      NOTE: Empty string will cause an error if multiple files with the same name are found.
