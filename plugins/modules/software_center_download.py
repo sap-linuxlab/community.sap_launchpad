@@ -39,6 +39,10 @@ options:
   search_query:
     description:
       - Filename of the SAP software to download.
+      - Supports wildcard format for version matching with C(search_alternatives) enabled.
+      - "Wildcard format: C(PREFIX*-ID.EXT) where the asterisk replaces the version number."
+      - "Example: C(SWPM20SP2*-80003424.SAR) matches all versions like SWPM20SP23, SWPM20SP24, etc."
+      - Only one wildcard is allowed per query.
     required: false
     default: ''
     type: str
@@ -61,15 +65,20 @@ options:
     type: str
   deduplicate:
     description:
-      - "Specifies how to handle multiple search results for the same filename.
-      - Choices are `first` (oldest) or `last` (newest)."
+      - Specifies how to handle multiple search results.
+      - Only applies when C(search_alternatives) is enabled and multiple versions are found.
+      - "Choices: C(first) returns the oldest version, C(last) returns the newest version."
+      - If left empty and multiple results are found, an error with all available versions will be displayed.
     choices: [ 'first', 'last', '' ]
     required: false
-    default: ''
+    default: 'last'
     type: str
   search_alternatives:
     description:
-      - Enable search for alternative packages, when filename is not available.
+      - Enable search for alternative packages when the exact filename is not available.
+      - Required when using wildcard queries in C(search_query).
+      - Only works for files following the format C(PREFIX-ID.EXT) with a dash and extension.
+      - Special media files without this pattern (e.g., C(S4CORE107_INST_EXPORT_1.zip)) must use exact filenames.
     required: false
     default: false
     type: bool
@@ -94,28 +103,58 @@ author:
 '''
 
 EXAMPLES = r'''
-- name: Download using search query
+- name: Download using exact filename search
   community.sap_launchpad.software_center_download:
-    suser_id: 'SXXXXXXXX'
-    suser_password: 'password'
+    suser_id: "Enter SAP S-User ID"
+    suser_password: "Enter SAP S-User Password"
     search_query: 'SAPCAR_1324-80000936.EXE'
     dest: "/tmp/"
+
 - name: Download using direct link and filename
   community.sap_launchpad.software_center_download:
-    suser_id: 'SXXXXXXXX'
-    suser_password: 'password'
+    suser_id: "Enter SAP S-User ID"
+    suser_password: "Enter SAP S-User Password"
     download_link: 'https://softwaredownloads.sap.com/file/0010000000048502015'
     download_filename: 'IW_FNDGC100.SAR'
     dest: "/tmp/"
-- name: Download a file, searching for alternatives and validating checksum
+
+- name: Download latest version using wildcard search
   community.sap_launchpad.software_center_download:
-    suser_id: 'SXXXXXXXX'
-    suser_password: 'password'
+    suser_id: "Enter SAP S-User ID"
+    suser_password: "Enter SAP S-User Password"
+    search_query: 'SWPM20SP2*-80003424.SAR'
+    dest: "/sap_media"
+    search_alternatives: true
+    deduplicate: "last"
+
+- name: Download oldest version using wildcard search
+  community.sap_launchpad.software_center_download:
+    suser_id: "Enter SAP S-User ID"
+    suser_password: "Enter SAP S-User Password"
+    search_query: 'SAPHOSTAGENT*-80004822.SAR'
+    dest: "/sap_media"
+    search_alternatives: true
+    deduplicate: "first"
+
+- name: Download with checksum validation
+  community.sap_launchpad.software_center_download:
+    suser_id: "Enter SAP S-User ID"
+    suser_password: "Enter SAP S-User Password"
     search_query: 'IMDB_SERVER20_023_0-80002031.SAR'
     dest: "/sap_media"
     search_alternatives: true
     deduplicate: "last"
     validate_checksum: true
+
+- name: Dry run to check file availability without downloading
+  community.sap_launchpad.software_center_download:
+    suser_id: "Enter SAP S-User ID"
+    suser_password: "Enter SAP S-User Password"
+    search_query: 'SWPM20SP2*-80003424.SAR'
+    dest: "/sap_media"
+    search_alternatives: true
+    deduplicate: "last"
+    dry_run: true
 '''
 
 RETURN = r'''
@@ -159,7 +198,7 @@ def run_module():
         download_filename=dict(type='str', required=False, default=''),
         dest=dict(type='str', required=True),
         dry_run=dict(type='bool', required=False, default=False),
-        deduplicate=dict(type='str', required=False, default='', choices=['first', 'last', '']),
+        deduplicate=dict(type='str', required=False, default='last', choices=['first', 'last', '']),
         search_alternatives=dict(type='bool', required=False, default=False),
         validate_checksum=dict(type='bool', required=False, default=False)
     )

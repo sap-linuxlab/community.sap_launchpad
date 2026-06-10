@@ -157,8 +157,8 @@ argument_specs:
       sap_software_download_deduplicate:
         type: str
         required: false
-        default: "first"
-        choices: ["first", "last"]
+        default: "last"
+        choices: ["first", "last", ""]
         description:
           - Specifies how to handle duplicate file results when using `sap_software_download_files`.
           - If multiple files with the same name are found, this setting determines which one to download.

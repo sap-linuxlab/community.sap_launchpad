@@ -8,7 +8,7 @@
     search_query: "{{ item }}"
     dest: "{{ sap_software_download_directory }}"
     search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
-    deduplicate: "{{ sap_software_download_deduplicate | d('') }}"
+    deduplicate: "{{ sap_software_download_deduplicate }}"
     validate_checksum: "{{ sap_software_download_validate_checksum | d(false) }}"
   # Loop condition acts as when conditional
   loop: "{{ sap_software_download_files if sap_software_download_use_venv | d(true) else [] }}"
@@ -31,7 +31,7 @@
     search_query: "{{ item }}"
     dest: "{{ sap_software_download_directory }}"
     search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
-    deduplicate: "{{ sap_software_download_deduplicate | d('') }}"
+    deduplicate: "{{ sap_software_download_deduplicate }}"
     validate_checksum: "{{ sap_software_download_validate_checksum | d(false) }}"
   # Loop condition acts as when conditional
   loop: "{{ sap_software_download_files if not sap_software_download_use_venv | d(true) else [] }}"
@@ -52,8 +52,16 @@
   ansible.builtin.fail:
     msg: |
       Download failed for following files: {{ __failed_items | map(attribute='item') | list | join(', ') }}
+
+      {% if not sap_software_download_find_alternatives | d(false) %}
       Either set `sap_software_download_find_alternatives` to `true` to search for alternative files
       or ignore this error with `sap_software_download_ignore_file_not_found` set to `true`.
+
+      {% endif %}
+      {% for failed_item in __failed_items %}
+      {{ failed_item.item }}: {{ failed_item.msg | d('') }}
+
+      {% endfor %}
   vars:
     __failed_items: "{{ __sap_software_download_files_results.results
       | selectattr('failed', 'defined') | selectattr('failed', 'true') }}"
