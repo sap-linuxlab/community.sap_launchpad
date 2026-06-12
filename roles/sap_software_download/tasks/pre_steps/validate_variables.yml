@@ -1,0 +1,229 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: Block when 'sap_software_download_files' is defined
+  when: sap_software_download_files is defined
+  block:
+
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_files' is defined as a list
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_files | type_debug == 'list'
+        fail_msg: |
+          The variable 'sap_software_download_files' is not defined as a list.
+
+    - name: SAP Software Download - Validate Variables - Set fact if the variable 'sap_software_download_files' is not empty
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_files_provided: true
+      when: sap_software_download_files | trim | length > 0
+
+
+- name: Block when 'sap_software_download_mp_transaction' is defined
+  when: sap_software_download_mp_transaction is defined
+  block:
+
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_mp_transaction' is defined as a string
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_mp_transaction is string
+        fail_msg: |
+          The variable 'sap_software_download_mp_transaction' is not defined as a string.
+
+    - name: SAP Software Download - Validate Variables - Set fact if the variable 'sap_software_download_mp_transaction' is not empty
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_mp_provided: true
+      when: sap_software_download_mp_transaction | trim | length > 0
+
+
+- name: SAP Software Download - Validate Variables - Inform that rest of the role will be skipped when variables are empty
+  ansible.builtin.debug:
+    msg: |
+      INFO: The role execution will be skipped as there are no files to download.
+      At least one of the following variables must be defined as non-empty to proceed with the role execution:
+      - sap_software_download_files
+      - sap_software_download_mp_transaction
+  when:
+    - not __sap_software_download_fact_files_provided | d(false)
+    - not __sap_software_download_fact_mp_provided | d(false)
+
+
+- name: Block to validate required variables when at least one of the variables is provided
+  when:
+    - __sap_software_download_fact_files_provided | d(false)
+      or __sap_software_download_fact_mp_provided | d(false)
+  block:
+
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_suser_id' is defined as non-empty string
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_suser_id is defined
+          - sap_software_download_suser_id is string
+          - sap_software_download_suser_id | trim | length > 0
+        fail_msg: |
+          The variable 'sap_software_download_suser_id' is not defined as a non-empty string.
+          Enter valid S-User ID with download authorizations.
+
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_suser_password' is defined as non-empty string
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_suser_password is defined
+          - sap_software_download_suser_password is string
+          - sap_software_download_suser_password | trim | length > 0
+        fail_msg: |
+          The variable 'sap_software_download_suser_password' is not defined as a non-empty string.
+          Enter valid password for the S-User defined in the variable 'sap_software_download_suser_id'.
+      no_log: true  # Hide credentials from output
+
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_directory' is defined as non-empty string
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_directory is defined
+          - sap_software_download_directory is string
+          - sap_software_download_directory | trim | length > 0
+        fail_msg: |
+          The variable 'sap_software_download_directory' is not defined as a non-empty string.
+
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_find_alternatives' is defined as boolean
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_find_alternatives is boolean
+        fail_msg: |
+          The variable 'sap_software_download_find_alternatives' is not defined as boolean.
+      when: sap_software_download_find_alternatives is defined
+
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_ignore_file_not_found' is defined as boolean
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_ignore_file_not_found is boolean
+        fail_msg: |
+          The variable 'sap_software_download_ignore_file_not_found' is not defined as boolean.
+      when: sap_software_download_ignore_file_not_found is defined
+
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_ignore_plan_not_found' is defined as boolean
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_ignore_plan_not_found is boolean
+        fail_msg: |
+          The variable 'sap_software_download_ignore_plan_not_found' is not defined as boolean.
+      when: sap_software_download_ignore_plan_not_found is defined
+
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_validate_relationships' is defined as boolean
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_validate_relationships is boolean
+        fail_msg: |
+          The variable 'sap_software_download_validate_relationships' is not defined as boolean.
+      when: sap_software_download_validate_relationships is defined
+
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_ignore_relationship_warning' is defined as boolean
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_ignore_relationship_warning is boolean
+        fail_msg: |
+          The variable 'sap_software_download_ignore_relationship_warning' is not defined as boolean.
+      when: sap_software_download_ignore_relationship_warning is defined
+
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_ignore_validate_credentials' is defined as boolean
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_ignore_validate_credentials is boolean
+        fail_msg: |
+          The variable 'sap_software_download_ignore_validate_credentials' is not defined as boolean.
+      when: sap_software_download_ignore_validate_credentials is defined
+
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_deduplicate' is defined as valid string
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_deduplicate is string
+          - sap_software_download_deduplicate in ['last', 'first', '']
+        fail_msg: |
+          The variable 'sap_software_download_deduplicate' is not defined as a valid string.
+          Options: 'last', 'first' or empty string ''.
+          NOTE: Empty string will cause an error if multiple files with the same name are found.
+      when: sap_software_download_deduplicate is defined
+
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_validate_checksum' is defined as boolean
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_validate_checksum is boolean
+        fail_msg: |
+          The variable 'sap_software_download_validate_checksum' is not defined as boolean.
+      when: sap_software_download_validate_checksum is defined
+
+
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_use_venv' is defined as boolean
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_use_venv is boolean
+        fail_msg: |
+          The variable 'sap_software_download_use_venv' is not defined as boolean.
+      when: sap_software_download_use_venv is defined
+
+
+    - name: SAP Software Download - Validate Variables - Set fact with the variable 'sap_software_download_python_interpreter' when defined
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_python_interpreter: >-
+          {{ sap_software_download_python_interpreter
+            if sap_software_download_python_interpreter is defined
+            else __sap_software_download_python_interpreter }}
+
+    - name: SAP Software Download - Validate Variables - Fail if the Python interpreter is not defined as non-empty string
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Python interpreter is not defined as non-empty string.
+          {% if sap_software_download_python_interpreter is defined %}
+          The variable 'sap_software_download_python_interpreter' is defined but empty.
+          Ensure that it contains correct Python interpreter or revert back to defaults.
+          {% else %}
+          Unable to determine Python interpreter from defaults.
+          Ensure that the Ansible Role is executed on a supported operating system.
+          {% endif %}
+      when:
+        - __sap_software_download_fact_python_interpreter is not string
+          or __sap_software_download_fact_python_interpreter | trim | length == 0
+
+
+    - name: SAP Software Download - Validate Variables - Set fact with the variable 'sap_software_download_python_package' when defined
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_python_package: >-
+          {{ sap_software_download_python_package
+            if sap_software_download_python_package is defined
+            else __sap_software_download_python_package }}
+
+    - name: SAP Software Download - Validate Variables - Fail if the Python package is not defined as non-empty string
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Python package is not defined as non-empty string.
+          {% if sap_software_download_python_package is defined %}
+          The variable 'sap_software_download_python_package' is defined but empty.
+          Ensure that it contains correct Python package or revert back to defaults.
+          {% else %}
+          Unable to determine Python package from defaults.
+          Ensure that the Ansible Role is executed on a supported operating system.
+          {% endif %}
+      when:
+        - __sap_software_download_fact_python_package is not string
+          or __sap_software_download_fact_python_package | trim | length == 0
+
+
+    - name: SAP Software Download - Validate Variables - Set fact with the variable 'sap_software_download_python_module_packages' when defined
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_python_module_packages: >-
+          {{ sap_software_download_python_module_packages
+            if sap_software_download_python_module_packages is defined
+            else __sap_software_download_python_module_packages }}
+
+    - name: SAP Software Download - Validate Variables - Fail if the Python module packages are not defined as non-empty list
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Python module packages are not defined as non-empty list.
+          {% if sap_software_download_python_module_packages is defined %}
+          The variable 'sap_software_download_python_module_packages' is defined but empty.
+          Ensure that it contains correct list of Python module package names or revert back to defaults.
+          {% else %}
+          Unable to determine Python module packages from defaults.
+          Ensure that the Ansible Role is executed on a supported operating system.
+          {% endif %}
+      when:
+        - __sap_software_download_fact_python_module_packages | type_debug != 'list'
+          or __sap_software_download_fact_python_module_packages | length == 0
