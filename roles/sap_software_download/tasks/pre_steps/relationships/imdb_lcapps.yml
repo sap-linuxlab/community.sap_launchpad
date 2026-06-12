@@ -1,0 +1,235 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# HANA 1: IMDB_LCAPPS_122P_3500-20010426.SAR (LCAPPS for HANA 1.00.122.35 Build 100.47 PL 017)
+# - IMDB_LCAPPS1 - HANA 1.0 identifier
+# - 122 - Revision 122 (contains SPS level, e.g. SPS12)
+# - 3500 - Patch level 35
+# NOTE: Latest HANA 1.0 revision is 122.35.
+#
+# HANA 2: IMDB_LCAPPS_2089P_300-20010426.SAR (LCAPPS for HANA 2.0 Rev 89.02 Build 101.25 PL 003)
+# - IMDB_LCAPPS2 - HANA 2.0 identifier
+# - 2089 - Revision 89 (contains SPS level, e.g. SPS08)
+# - 300 - Patch level 3
+
+# Update existing fact dictionary with component details appending to 'server' details.
+# '__sap_software_download_fact_hana_lcapps_original' is set for later reuse, when we update this dictionary.
+- name: SAP Software Download - Relationship Validation - Set fact with parsed IMDB_LCAPPS file version details
+  ansible.builtin.set_fact:
+    __sap_software_download_fact_hana_components: >-
+      {{ __sap_software_download_fact_hana_components | combine({
+        'lcapps': __imdb_lcapps_details
+      }, recursive=True) }}
+
+    # Save original file name to use when replacing in the list.
+    __sap_software_download_fact_hana_lcapps_original: "{{ __sap_software_download_fact_hana_component_names['lcapps'] }}"
+  vars:
+    __imdb_lcapps_details:
+      filename: "{{ __sap_software_download_fact_hana_component_names['lcapps'] }}"
+
+      # Extract HANA version from file name based on prefix, e.g. 1 or 2
+      # LCAPPS is reversed because only 2.0 has distinct prefix, while 1.0 does not.
+      version:
+        "{{ '2' if __sap_software_download_fact_hana_component_names['lcapps'].startswith('IMDB_LCAPPS_2')
+          else '1' }}"
+
+      # Extract revision from file name, e.g. IMDB_LCAPPS_2089P_300-20010426.SAR -> 2089
+      revision: "{{ __sap_software_download_fact_hana_component_names['lcapps'].split('_')[2] | d('') }}"
+
+      # Extract patch level from file name, e.g. IMDB_LCAPPS_2089P_300-20010426.SAR -> 300
+      patch: "{{ __sap_software_download_fact_hana_component_names['lcapps'].split('_')[3].split('-')[0] | d('') }}"
+
+      # Extract File ID from file name, e.g. IMDB_LCAPPS_2089P_300-20010426.SAR -> 20010426
+      file_id: "{{ __sap_software_download_fact_hana_component_names['lcapps'].split('-')[1].split('.')[0] | d('') }}"
+
+# Validate wildcard format if wildcard is present in filename
+# This is validated inside of module, but we do it here to fail faster and avoid unnecessary API calls.
+- name: SAP Software Download - Relationship Validation - Validate wildcard format in IMDB_LCAPPS filename
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Invalid wildcard format in IMDB_LCAPPS filename.
+
+      Filename: {{ __sap_software_download_fact_hana_component_names['lcapps'] }}
+
+      Wildcard queries must follow specific format:
+      Format: "PREFIX*-ID.EXT" where:
+       - PREFIX must have at least one character before wildcard
+       - Wildcard (*) must be in PREFIX position only
+       - Single dash (-) separates prefix and ID
+       - ID must be exactly 8 digits
+       - Extension must be letters only
+
+      Valid examples:
+       - "IMDB_LCAPPS*-20010426.SAR"
+       - "IMDB_LCAPPS_2*-20010426.SAR"
+
+      Invalid examples:
+       - "*-20010426.SAR" (no prefix - too broad)
+       - "IMDB_LCAPPS-*.SAR" (wildcard in ID position)
+       - "IMDB_LCAPPS*X-20010426.SAR" (extra characters after wildcard)
+       - "IMDB_LCAPPS*-7000.SAR" (ID must be 8 digits, not 4)
+  when:
+    - "'*' in __sap_software_download_fact_hana_component_names['lcapps']"
+    - __sap_software_download_fact_hana_component_names['lcapps'] is not match('^[^-]+\\*-\\d{8}\\.[a-zA-Z]+$')
+
+
+# Prepare validation regex in following format:
+# - IMDB_LCAPPS or IMDB_LCAPPS2 based on HANA version
+# - Revision must match IMDB_SERVER revision (e.g. 089)
+# - Patch level must match IMDB_SERVER patch level (e.g. 3)
+#   and allow for up to two additional digits to cover bugfix patches (e.g. 301, 302 etc.)
+# - File ID must match the one extracted from the file name (e.g. 80001894)
+- name: SAP Software Download - Relationship Validation - Set fact with regex to validate IMDB_LCAPPS file version
+  ansible.builtin.set_fact:
+    __sap_software_download_fact_hana_lcapps_regex:
+      "(?i)^{{ __prefix }}{{ __rev }}P?_{{ __patch }}(\\d{2})?-{{ __file_id }}\\.SAR$"
+
+    # Query to be used when regex fails
+    __sap_software_download_fact_hana_lcapps_search_query:
+      "{{ __prefix }}{{ __rev }}*-{{ __file_id }}.SAR"
+  vars:
+    # HANA 1.0 prefix does not contain version, but rather revision only.
+    __prefix: "IMDB_LCAPPS_{{ '' if __sap_software_download_fact_hana_components['server']['version'] == '1' else '2' }}"
+    __rev: "{{ __sap_software_download_fact_hana_components['server']['revision'] }}"
+    __patch: "{{ __sap_software_download_fact_hana_components['server']['patch'] }}"
+    __file_id: "{{ __sap_software_download_fact_hana_components['lcapps']['file_id'] }}"
+
+
+# We do not execute dry_run with original file name,
+# instead we use regex to determine if alternative search is required.
+- name: Block for download of upgrade candidate for IMDB_LCAPPS
+  when:
+    - sap_software_download_upgrade_relationships | d(false)
+    - __sap_software_download_fact_hana_component_names['lcapps']
+      is not match(__sap_software_download_fact_hana_lcapps_regex)
+  block:
+    # Since we are using regex, it will attempt to find file based on IMDB_SERVER version,
+    # resulting in HANA 2.0 files when LCAPPS is for HANA 1.0.
+    - name: SAP Software Download - Relationship Validation - Inform about difference in files for SAP HANA 1.0 to 2.0
+      ansible.builtin.debug:
+        msg: |
+          INFO: Different SAP HANA version was detected between IMDB_SERVER and IMDB_LCAPPS files.
+          The variable 'sap_software_download_upgrade_relationships' is set to 'true',
+          so the Ansible Role will attempt to search for upgrade candidate based on IMDB_SERVER revision and patch level.
+
+          {{ __sap_software_download_fact_hana_component_names['server'] }} details:
+          Version: {{ __sap_software_download_fact_hana_components['server']['version'] }}
+
+          {{ __sap_software_download_fact_hana_component_names['lcapps'] }} details:
+          Version: {{ __sap_software_download_fact_hana_components['lcapps']['version'] }}
+      when: __sap_software_download_fact_hana_components['server']['version']
+            != __sap_software_download_fact_hana_components['lcapps']['version']
+
+    # Search is not using 'search_upgrades', because we use wildcard regex to get correct revision.
+    # Patch is not included in query because wildcard search will return latest with deduplicate 'last'.
+    - name: SAP Software Download - Relationship Validation - Retry failed IMDB_LCAPPS with IMDB_SERVER revision
+      community.sap_launchpad.software_center_download:
+        suser_id: "{{ sap_software_download_suser_id }}"
+        suser_password: "{{ sap_software_download_suser_password }}"
+        search_query: "{{ __sap_software_download_fact_hana_lcapps_search_query }}"
+        dest: "{{ sap_software_download_directory }}"
+        search_alternatives: true
+        search_upgrades: false
+        deduplicate: "last"  # We search for latest upgrade.
+        dry_run: true
+      register: __sap_software_download_register_imdb_lcapps_retry
+      retries: 1
+      until: __sap_software_download_register_imdb_lcapps_retry is not failed
+      environment: "{{ __venv_environment if sap_software_download_use_venv | d(true) else {} }}"
+      vars:
+        ansible_python_interpreter: "{{ __sap_software_download_fact_python_interpreter_path }}"
+        __venv_environment:
+          PATH: "{{ __sap_software_download_fact_venv_path }}"
+          PYTHONPATH: "{{ __sap_software_download_fact_venv_pythonpath }}"
+          VIRTUAL_ENV: "{{ __sap_software_download_register_temp_venv.path }}"
+      ignore_errors: true
+
+    - name: SAP Software Download - Relationship Validation - Fail if upgrade candidate for IMDB_LCAPPS file was not found
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Relationship validation failed because no upgrade candidate for IMDB_LCAPPS file was found.
+          Original file: {{ __sap_software_download_fact_hana_lcapps_original }}
+          Upgrade candidate searched with query: {{ __sap_software_download_register_imdb_lcapps_retry['original_query'] }}
+          No upgrade candidate found with 'search_upgrades' enabled.
+      when: __sap_software_download_register_imdb_lcapps_retry.failed
+
+
+    # Update existing fact dictionary with new file name details.
+    # This replaces filename and we use '__sap_software_download_fact_hana_lcapps_original' when required.
+    - name: SAP Software Download - Relationship Validation - Set fact with parsed IMDB_LCAPPS file version details after retry
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_hana_components: >-
+          {{ __sap_software_download_fact_hana_components | combine({
+            'lcapps': __imdb_lcapps_details
+          }, recursive=True) }}
+      vars:
+        __imdb_lcapps_details:
+          filename: "{{ __sap_software_download_register_imdb_lcapps_retry['filename'] }}"
+
+          # Extract HANA version from file name based on prefix, e.g. 1 or 2
+          version:
+            "{{ '1' if __sap_software_download_register_imdb_lcapps_retry['filename'].startswith('IMDB_LCAPPS100')
+              else '2' }}"
+
+          # Extract revision from file name, e.g. IMDB_LCAPPS_2089P_300-20010426.SAR -> 2089
+          revision: "{{ __sap_software_download_register_imdb_lcapps_retry['filename'].split('_')[2] }}"
+
+          # Extract patch level from file name, e.g. IMDB_LCAPPS_2089P_300-20010426.SAR -> 300
+          patch: "{{ __sap_software_download_register_imdb_lcapps_retry['filename'].split('_')[3].split('-')[0] }}"
+
+          # Extract File ID from file name, e.g. IMDB_LCAPPS_2089P_300-20010426.SAR -> 20010426
+          file_id: "{{ __sap_software_download_register_imdb_lcapps_retry['filename'].split('-')[1].split('.')[0] }}"
+      when: not __sap_software_download_register_imdb_lcapps_retry.failed
+
+    - name: SAP Software Download - Relationship Validation - Set fact with updated software list with new IMDB_LCAPPS file name after upgrade search
+      ansible.builtin.set_fact:
+        __sap_software_download_files: >-
+          {{ __sap_software_download_files
+          | map('replace', __sap_software_download_fact_hana_lcapps_original, __sap_software_download_register_imdb_lcapps_retry['filename'])
+          | list }}
+      when: not __sap_software_download_register_imdb_lcapps_retry.failed
+
+    # Must be run last to avoid block conditional skipping tasks
+    - name: SAP Software Download - Relationship Validation - Set fact with update name of IMDB_LCAPPS
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_hana_component_names: >-
+          {{ __sap_software_download_fact_hana_component_names
+            | combine({'lcapps': __sap_software_download_register_imdb_lcapps_retry['filename']}) }}
+
+
+- name: SAP Software Download -  Relationship Validation - Fail if IMDB_LCAPPS version is not compatible with IMDB_SERVER version
+  ansible.builtin.fail:
+    msg: |
+      FAIL: IMDB_LCAPPS version is not compatible with IMDB_SERVER version!
+
+      {{ __sap_software_download_fact_hana_component_names['server'] }} details:
+      Revision: {{ __sap_software_download_fact_hana_components['server']['revision'] }}
+      Patch: {{ __sap_software_download_fact_hana_components['server']['patch'] }}
+
+      {{ __sap_software_download_fact_hana_component_names['lcapps'] }} details:
+      Revision: {{ __sap_software_download_fact_hana_components['lcapps']['revision'] }}
+      Patch: {{ __sap_software_download_fact_hana_components['lcapps']['patch'] }}
+
+      Validation was performed using regex: {{ __sap_software_download_fact_hana_lcapps_regex }}
+  ignore_errors: "{{ sap_software_download_ignore_relationship_warning | d(false) }}"
+  when: __sap_software_download_fact_hana_component_names['lcapps'] is not match(__sap_software_download_fact_hana_lcapps_regex)
+
+
+- name: SAP Software Download - Relationship Validation - Show summary of IMDB_LCAPPS validation
+  ansible.builtin.debug:
+    msg: |
+      IMDB_LCAPPS file successfully validated against IMDB_SERVER.
+      {% if __sap_software_download_fact_hana_lcapps_original is not match(__sap_software_download_fact_hana_lcapps_regex) %}
+      Original file '{{ __sap_software_download_fact_hana_lcapps_original }}' was not found,
+      but alternative file '{{ __sap_software_download_fact_hana_components['lcapps']['filename'] }}' was found.
+      {% else %}
+      Original file '{{ __sap_software_download_fact_hana_lcapps_original }}' was found.
+      {% endif %}
+
+      {{ __sap_software_download_fact_hana_component_names['server'] }} details:
+      Revision: {{ __sap_software_download_fact_hana_components['server']['revision'] }}
+      Patch: {{ __sap_software_download_fact_hana_components['server']['patch'] }}
+
+      {{ __sap_software_download_fact_hana_component_names['lcapps'] }} details:
+      Revision: {{ __sap_software_download_fact_hana_components['lcapps']['revision'] }}
+      Patch: {{ __sap_software_download_fact_hana_components['lcapps']['patch'] }}

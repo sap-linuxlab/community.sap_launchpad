@@ -82,6 +82,16 @@ options:
     required: false
     default: false
     type: bool
+  search_upgrades:
+    description:
+      - Enable broader search to find any available version in the product family.
+      - Only applies when C(search_alternatives) is enabled.
+      - Useful when specific versions are removed from SAP Software Center (e.g., old HANA revisions).
+      - "Example: searching for C(IMDB_SERVER20_067_4) may find C(IMDB_SERVER20_080_0) if 067 is no longer available."
+      - Typically combined with C(deduplicate='last') to get the newest available version.
+    required: false
+    default: false
+    type: bool
   dry_run:
     description:
       - Check availability of SAP Software without downloading.
@@ -146,6 +156,16 @@ EXAMPLES = r'''
     deduplicate: "last"
     validate_checksum: true
 
+- name: Download latest available HANA revision when specific revision is not available
+  community.sap_launchpad.software_center_download:
+    suser_id: "Enter SAP S-User ID"
+    suser_password: "Enter SAP S-User Password"
+    search_query: 'IMDB_SERVER20_067_4-80002046.SAR'
+    dest: "/sap_media"
+    search_alternatives: true
+    search_upgrades: true
+    deduplicate: "last"
+
 - name: Dry run to check file availability without downloading
   community.sap_launchpad.software_center_download:
     suser_id: "Enter SAP S-User ID"
@@ -168,10 +188,26 @@ filename:
   returned: on success or failure after finding a file
   type: str
   sample: "SAPCAR_1324-80000936.EXE"
+original_query:
+  description: The original search query or download filename that was requested.
+  returned: always
+  type: str
+  sample: "IMDB_SERVER20_077_0-80002031.SAR"
 alternative:
   description: A boolean indicating if an alternative file was downloaded instead of the one from the original search query.
   returned: on success
   type: bool
+search_method:
+  description: Indicates how the file was found in the search process.
+  returned: on success
+  type: str
+  sample: "alternative_base"
+  choices:
+    - exact: Exact match found for the search query
+    - direct_link: File downloaded using direct download link (no search performed)
+    - alternative_default: Alternative found using same version prefix
+    - alternative_increment: Alternative found using incremented version
+    - alternative_base: Alternative found using broader base prefix (search_upgrades enabled)
 changed:
   description: A boolean indicating if a file was downloaded or changed on the remote host.
   returned: always
@@ -200,6 +236,7 @@ def run_module():
         dry_run=dict(type='bool', required=False, default=False),
         deduplicate=dict(type='str', required=False, default='last', choices=['first', 'last', '']),
         search_alternatives=dict(type='bool', required=False, default=False),
+        search_upgrades=dict(type='bool', required=False, default=False),
         validate_checksum=dict(type='bool', required=False, default=False)
     )
 

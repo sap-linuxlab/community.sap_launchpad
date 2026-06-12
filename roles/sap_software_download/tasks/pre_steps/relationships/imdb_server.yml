@@ -1,0 +1,299 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# IMDB_SERVER file name contains predictable structure, but other HANA components are not necessarily following patch level!
+#
+# HANA 1: IMDB_SERVER100_122_35-10009569.SAR (SAP HANA 1.0 SPS 12 Database Maintenance Revision 122.35)
+# - IMDB_SERVER100 - HANA 1.0 identifier
+# - 122 - Revision 122 (contains SPS level, e.g. SPS12)
+# - 35 - Patch level 35
+# NOTE: Latest HANA 1.0 revision is 122.35.
+#
+# HANA 2: IMDB_SERVER20_089_3-80002031.SAR (SAP HANA 2 SPS08 Revision 089.03)
+# - IMDB_SERVER20 - HANA 2.0 identifier
+# - 089 - Revision 89 (contains SPS level, e.g. SPS08)
+# - 3 - Patch level 3
+
+# Create dictionary with counts of all known components to drive which validation to execute.
+- name: SAP Software Download - Relationship Validation - Set fact with count of SAP HANA components in the file list
+  ansible.builtin.set_fact:
+    __sap_software_download_fact_hana_component_counts:
+      server: "{{ __sap_software_download_files | select('match', '^IMDB_SERVER.*') | list | length }}"
+      afl: "{{ __sap_software_download_files | select('match', '^IMDB_AFL.*') | list | length }}"
+      lcapps: "{{ __sap_software_download_files | select('match', '^IMDB_LCAPPS.*') | list | length }}"
+      client: "{{ __sap_software_download_files | select('match', '^IMDB_CLIENT.*') | list | length }}"
+
+# Relationship validation is designed for single SAP HANA system installation,
+# so we fail if multiple files for same component are found.
+- name: SAP Software Download - Relationship Validation - Fail if multiple SAP HANA component files are detected
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Multiple SAP HANA component files detected in input list.
+      Relationship validation is designed for single SAP HANA system installation.
+      Set 'sap_software_download_validate_relationships: false' to disable this validation.
+
+      {% if __sap_software_download_fact_hana_component_counts['server'] | int > 1 %}
+      Found multiple IMDB_SERVER files:
+      {{ sap_software_download_files | select('match', '^IMDB_SERVER.*') | list | join(', ') }}
+      {% endif %}
+      {% if __sap_software_download_fact_hana_component_counts['afl'] | int > 1 %}
+      Found multiple IMDB_AFL files:
+      {{ sap_software_download_files | select('match', '^IMDB_AFL.*') | list | join(', ') }}
+      {% endif %}
+      {% if __sap_software_download_fact_hana_component_counts['lcapps'] | int > 1 %}
+      Found multiple IMDB_LCAPPS files:
+      {{ sap_software_download_files | select('match', '^IMDB_LCAPPS.*') | list | join(', ') }}
+      {% endif %}
+      {% if __sap_software_download_fact_hana_component_counts['client'] | int > 1 %}
+      Found multiple IMDB_CLIENT files:
+      {{ sap_software_download_files | select('match', '^IMDB_CLIENT.*') | list | join(', ') }}
+      {% endif %}
+  when:
+    - __sap_software_download_fact_hana_component_counts['server'] | int > 1
+      or __sap_software_download_fact_hana_component_counts['afl'] | int > 1
+      or __sap_software_download_fact_hana_component_counts['lcapps'] | int > 1
+      or __sap_software_download_fact_hana_component_counts['client'] | int > 1
+
+
+# Create dictionary with file names from software file list.
+- name: SAP Software Download - Relationship Validation - Set fact with names of SAP HANA components in the file list
+  ansible.builtin.set_fact:
+    __sap_software_download_fact_hana_component_names:
+      server: "{{ __sap_software_download_files | select('match', '^IMDB_SERVER.*') | list | first | d('') }}"
+      afl: "{{ __sap_software_download_files | select('match', '^IMDB_AFL.*') | list | first | d('') }}"
+      lcapps: "{{ __sap_software_download_files | select('match', '^IMDB_LCAPPS.*') | list | first | d('') }}"
+      client: "{{ __sap_software_download_files | select('match', '^IMDB_CLIENT.*') | list | first | d('') }}"
+
+
+# Extract component details based on file name structure and enter into dictionary.
+- name: SAP Software Download - Relationship Validation - Set fact with parsed IMDB_SERVER file version details
+  ansible.builtin.set_fact:
+    __sap_software_download_fact_hana_components:
+      server:
+        filename: "{{ __sap_software_download_fact_hana_component_names['server'] }}"
+
+        # Extract HANA version from file name based on prefix, e.g. 1 or 2
+        version:
+          "{{ '1' if __sap_software_download_fact_hana_component_names['server'].startswith('IMDB_SERVER1')
+            else '2' }}"
+
+        # Extract revision from file name, e.g. IMDB_SERVER20_089_3-80002031.SAR -> 089
+        revision: "{{ __sap_software_download_fact_hana_component_names['server'].split('_')[2] | d('') }}"
+
+        # Extract patch level from file name, e.g. IMDB_SERVER20_089_3-80002031.SAR -> 3
+        patch: "{{ __sap_software_download_fact_hana_component_names['server'].split('_')[3].split('-')[0] | d('') }}"
+
+        # Extract File ID from file name, e.g. IMDB_SERVER20_089_3-80002031.SAR -> 80002031
+        file_id: "{{ __sap_software_download_fact_hana_component_names['server'].split('-')[1].split('.')[0] | d('') }}"
+
+    # Save original file name to use when replacing in the list.
+    __sap_software_download_fact_hana_server_original: "{{ __sap_software_download_fact_hana_component_names['server'] }}"
+
+# Validate wildcard format if wildcard is present in filename
+# This is validated inside of module, but we do it here to fail faster and avoid unnecessary API calls.
+- name: SAP Software Download - Relationship Validation - Validate wildcard format in IMDB_SERVER filename
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Invalid wildcard format in IMDB_SERVER filename.
+
+      Filename: {{ __sap_software_download_fact_hana_component_names['server'] }}
+
+      Wildcard queries must follow specific format:
+      Format: "PREFIX*-ID.EXT" where:
+       - PREFIX must have at least one character before wildcard
+       - Wildcard (*) must be in PREFIX position only
+       - Single dash (-) separates prefix and ID
+       - ID must be exactly 8 digits
+       - Extension must be letters only
+
+      Valid examples:
+       - "IMDB_SERVER20*-80002031.SAR"
+       - "IMDB_SERVER20_089_*-80002031.SAR"
+
+      Invalid examples:
+       - "*-80002031.SAR" (no prefix - too broad)
+       - "IMDB_SERVER20-*.SAR" (wildcard in ID position)
+       - "IMDB_SERVER20*X-80002031.SAR" (extra characters after wildcard)
+       - "IMDB_SERVER20*-7000.SAR" (ID must be 8 digits, not 4)
+  when:
+    - "'*' in __sap_software_download_fact_hana_component_names['server']"
+    - __sap_software_download_fact_hana_component_names['server'] is not match('^[^-]+\\*-\\d{8}\\.[a-zA-Z]+$')
+
+
+# Combines both Python venv and default Python using environment variable.
+# Alternative search without 'search_upgrades' results in very strict search.
+# If this search fails, we fall back to broader search with 'search_upgrades' if enabled.
+- name: SAP Software Download - Relationship Validation - Check availability of IMDB_SERVER file using dry run
+  community.sap_launchpad.software_center_download:
+    suser_id: "{{ sap_software_download_suser_id }}"
+    suser_password: "{{ sap_software_download_suser_password }}"
+    search_query: "{{ __sap_software_download_fact_hana_component_names['server'] }}"
+    dest: "{{ sap_software_download_directory }}"
+    search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
+    search_upgrades: false
+    deduplicate: "{{ sap_software_download_deduplicate }}"
+    dry_run: true
+  register: __sap_software_download_register_imdb_server_dry_run
+  retries: 1
+  until: __sap_software_download_register_imdb_server_dry_run is not failed
+  environment: "{{ __venv_environment if sap_software_download_use_venv | d(true) else {} }}"
+  vars:
+    ansible_python_interpreter: "{{ __sap_software_download_fact_python_interpreter_path }}"
+    __venv_environment:
+      PATH: "{{ __sap_software_download_fact_venv_path }}"
+      PYTHONPATH: "{{ __sap_software_download_fact_venv_pythonpath }}"
+      VIRTUAL_ENV: "{{ __sap_software_download_register_temp_venv.path }}"
+  ignore_errors: true  # Errors are ignored and validated afterwards
+
+
+- name: Block for successful dry run with alternative suggesting it uses wildcards
+  when:
+    - __sap_software_download_register_imdb_server_dry_run is not failed
+    - __sap_software_download_register_imdb_server_dry_run.alternative | d(false)
+  block:
+    # If wildcard was used and alternative found, update component name with resolved filename
+    - name: SAP Software Download - Relationship Validation - Update IMDB_SERVER name if alternative found from wildcard
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_hana_component_names: >-
+          {{ __sap_software_download_fact_hana_component_names
+            | combine({'server': __sap_software_download_register_imdb_server_dry_run.filename}) }}
+
+    # Re-parse SERVER details from resolved filename if alternative was found
+    - name: SAP Software Download - Relationship Validation - Re-parse IMDB_SERVER details after wildcard resolution
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_hana_components:
+          server:
+            filename: "{{ __sap_software_download_fact_hana_component_names['server'] }}"
+            version:
+              "{{ '1' if __sap_software_download_fact_hana_component_names['server'].startswith('IMDB_SERVER1')
+                else '2' }}"
+            revision: "{{ __sap_software_download_fact_hana_component_names['server'].split('_')[2] | d('') }}"
+            patch: "{{ __sap_software_download_fact_hana_component_names['server'].split('_')[3].split('-')[0] | d('') }}"
+            file_id: "{{ __sap_software_download_fact_hana_component_names['server'].split('-')[1].split('.')[0] | d('') }}"
+
+    # Update the file list with resolved filename if alternative was found from wildcard
+    - name: SAP Software Download - Relationship Validation - Update file list with resolved IMDB_SERVER filename
+      ansible.builtin.set_fact:
+        __sap_software_download_files: >-
+          {{ __sap_software_download_files
+          | map('replace', __sap_software_download_fact_hana_server_original, __sap_software_download_register_imdb_server_dry_run.filename)
+          | list }}
+
+
+- name: Block for download of upgrade candidate for IMDB_SERVER
+  when:
+    - sap_software_download_upgrade_relationships | d(false)
+    - __sap_software_download_register_imdb_server_dry_run is failed
+  block:
+    # Search is using 'search_upgrades', which handles stripping filename to its base.
+    # Example: IMDB_SERVER20_067_4-80002046.SAR searches for: IMDB_SERVER20_067, IMDB_SERVER20_068, IMDB_SERVER20_
+    - name: SAP Software Download - Relationship Validation - Retry failed IMDB_SERVER with search_upgrades
+      community.sap_launchpad.software_center_download:
+        suser_id: "{{ sap_software_download_suser_id }}"
+        suser_password: "{{ sap_software_download_suser_password }}"
+        search_query: "{{ __sap_software_download_fact_hana_server_original }}"
+        dest: "{{ sap_software_download_directory }}"
+        search_alternatives: true
+        search_upgrades: true  # New parameter that allows broader search using IMDB_SERVER1* or IMDB_SERVER2*
+        deduplicate: "last"  # We search for latest upgrade.
+        dry_run: true
+      register: __sap_software_download_register_imdb_server_retry
+      retries: 1
+      until: __sap_software_download_register_imdb_server_retry is not failed
+      environment: "{{ __venv_environment if sap_software_download_use_venv | d(true) else {} }}"
+      vars:
+        ansible_python_interpreter: "{{ __sap_software_download_fact_python_interpreter_path }}"
+        __venv_environment:
+          PATH: "{{ __sap_software_download_fact_venv_path }}"
+          PYTHONPATH: "{{ __sap_software_download_fact_venv_pythonpath }}"
+          VIRTUAL_ENV: "{{ __sap_software_download_register_temp_venv.path }}"
+      ignore_errors: true
+
+    - name: SAP Software Download - Relationship Validation - Fail if upgrade candidate for IMDB_SERVER file was not found
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Relationship validation failed because no upgrade candidate for IMDB_SERVER file was found.
+          Original file: {{ __sap_software_download_fact_hana_server_original }}
+          Upgrade candidate searched with query: {{ __sap_software_download_register_imdb_server_retry.original_query }}
+          No upgrade candidate found with 'search_upgrades' enabled.
+      when: __sap_software_download_register_imdb_server_retry.failed
+
+
+    # Update existing fact dictionary with new file name details.
+    # This replaces filename and we use '__sap_software_download_fact_hana_server_original' when required.
+    - name: SAP Software Download - Relationship Validation - Set fact with parsed IMDB_SERVER file version details after upgrade search
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_hana_components:
+          server:
+            filename: "{{ __sap_software_download_register_imdb_server_retry['filename'] }}"
+
+            # Extract HANA version from file name based on prefix, e.g. 1 or 2
+            version:
+              "{{ '1' if __sap_software_download_register_imdb_server_retry['filename'].startswith('IMDB_SERVER1')
+                else '2' }}"
+
+            # Extract revision from file name, e.g. IMDB_SERVER20_084_0-80002031.SAR -> 084
+            revision: "{{ __sap_software_download_register_imdb_server_retry['filename'].split('_')[2] }}"
+
+            # Extract patch level from file name, e.g. IMDB_SERVER20_089_3-80002031.SAR -> 3
+            patch: "{{ __sap_software_download_register_imdb_server_retry['filename'].split('_')[3].split('-')[0] }}"
+
+            # Extract File ID from file name, e.g. IMDB_SERVER20_089_3-80002031.SAR -> 80002031
+            file_id: "{{ __sap_software_download_register_imdb_server_retry['filename'].split('-')[1].split('.')[0] }}"
+      when: not __sap_software_download_register_imdb_server_retry.failed
+
+    - name: SAP Software Download - Relationship Validation - Set fact with update name of IMDB_SERVER
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_hana_component_names: >-
+          {{ __sap_software_download_fact_hana_component_names
+            | combine({'server': __sap_software_download_register_imdb_server_retry['filename']}) }}
+
+    - name: SAP Software Download - Relationship Validation - Set fact with updated software list with new IMDB_SERVER file name after upgrade search
+      ansible.builtin.set_fact:
+        __sap_software_download_files: >-
+          {{ __sap_software_download_files
+          | map('replace', __sap_software_download_fact_hana_server_original, __sap_software_download_register_imdb_server_retry['filename'])
+          | list }}
+      when: not __sap_software_download_register_imdb_server_retry.failed
+
+
+- name: SAP Software Download - Relationship Validation - Show summary of IMDB_SERVER validation
+  ansible.builtin.debug:
+    msg: |
+      {% if __sap_software_download_register_imdb_server_dry_run is failed %}
+      Original IMDB_SERVER file '{{ __sap_software_download_fact_hana_server_original }}' was not found,
+      but alternative file '{{ __sap_software_download_fact_hana_components['server']['filename'] }}' was found.
+      {% else %}
+      Original IMDB_SERVER file '{{ __sap_software_download_fact_hana_server_original }}' was found.
+      {% endif %}
+
+      {{ __sap_software_download_fact_hana_component_names['server'] }} details:
+      Revision: {{ __sap_software_download_fact_hana_components['server']['revision'] }}
+      Patch: {{ __sap_software_download_fact_hana_components['server']['patch'] }}
+
+      {% if __sap_software_download_fact_hana_component_counts['afl'] | int > 0 %}
+      Validation of IMDB_AFL file will be executed against this version.
+      {% endif %}
+      {% if __sap_software_download_fact_hana_component_counts['lcapps'] | int > 0 %}
+      Validation of IMDB_LCAPPS file will be executed against this version.
+      {% endif %}
+      {% if __sap_software_download_fact_hana_component_counts['client'] | int > 0 %}
+      Validation of IMDB_CLIENT file will be executed against this version.
+      {% endif %}
+
+
+# Execute component validations only when corresponding component file is found in the input list.
+- name: SAP Software Download - Relationship Validation - Include tasks for IMDB_AFL relationship validation
+  ansible.builtin.include_tasks:
+    file: imdb_afl.yml
+  when: __sap_software_download_fact_hana_component_counts['afl'] | int > 0
+
+- name: SAP Software Download - Relationship Validation - Include tasks for IMDB_LCAPPS relationship validation
+  ansible.builtin.include_tasks:
+    file: imdb_lcapps.yml
+  when: __sap_software_download_fact_hana_component_counts['lcapps'] | int > 0
+
+- name: SAP Software Download - Relationship Validation - Include tasks for IMDB_CLIENT relationship validation
+  ansible.builtin.include_tasks:
+    file: imdb_client.yml
+  when: __sap_software_download_fact_hana_component_counts['client'] | int > 0
