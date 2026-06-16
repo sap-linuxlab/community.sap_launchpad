@@ -91,6 +91,14 @@
           The variable 'sap_software_download_find_alternatives' is not defined as boolean.
       when: sap_software_download_find_alternatives is defined
 
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_find_upgrades' is defined as boolean
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_find_upgrades is boolean
+        fail_msg: |
+          The variable 'sap_software_download_find_upgrades' is not defined as boolean.
+      when: sap_software_download_find_upgrades is defined
+
     - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_ignore_file_not_found' is defined as boolean
       ansible.builtin.assert:
         that:

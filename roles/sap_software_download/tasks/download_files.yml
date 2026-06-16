@@ -1,6 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+- name: SAP Software Download - Download - SAP Software Files - Notice before download
+  ansible.builtin.debug:
+    msg: |
+      INFO: Download will be started for {{ __sap_software_download_files | d([]) | length }} file(s).
+      Large files (Media CD/DVD, Exports, Databases, etc.) may take considerably longer to download.
+      Following task might appear unresponsive during download,
+      but it is working in the background. Please wait for results.
+
 - name: SAP Software Download - Download - SAP Software Files - Get files
   community.sap_launchpad.software_center_download:
     suser_id: "{{ sap_software_download_suser_id }}"
@@ -8,6 +16,7 @@
     search_query: "{{ item }}"
     dest: "{{ sap_software_download_directory }}"
     search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
+    search_upgrades: "{{ sap_software_download_find_upgrades | d(false) }}"
     deduplicate: "{{ sap_software_download_deduplicate }}"
     validate_checksum: "{{ sap_software_download_validate_checksum | d(false) }}"
   # Loop condition acts as when conditional

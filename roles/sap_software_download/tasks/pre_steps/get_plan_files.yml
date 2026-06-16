@@ -1,45 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: SAP Software Download - Maintenance Plan - Python venv - Get list of files
-  when: sap_software_download_use_venv | d(true)
+- name: SAP Software Download - Maintenance Plan - Get list of files
   community.sap_launchpad.maintenance_planner_files:
     suser_id: "{{ sap_software_download_suser_id }}"
     suser_password: "{{ sap_software_download_suser_password }}"
     transaction_name: "{{ sap_software_download_mp_transaction }}"
-  register: __sap_software_download_register_mp_files_venv
+  register: __sap_software_download_register_mp_files
   retries: 1
-  environment:
-    PATH: "{{ __sap_software_download_fact_venv_path }}"
-    PYTHONPATH: "{{ __sap_software_download_fact_venv_pythonpath }}"
-    VIRTUAL_ENV: "{{ __sap_software_download_register_temp_venv.path }}"
+  environment: "{{ __venv_environment if sap_software_download_use_venv | d(true) else {} }}"
   vars:
     ansible_python_interpreter: "{{ __sap_software_download_fact_python_interpreter_path }}"
+    __venv_environment:
+      PATH: "{{ __sap_software_download_fact_venv_path }}"
+      PYTHONPATH: "{{ __sap_software_download_fact_venv_pythonpath }}"
+      VIRTUAL_ENV: "{{ __sap_software_download_register_temp_venv.path }}"
   changed_when: false  # Getting list of files does not change anything
   ignore_errors: true  # Errors are ignored and validated afterwards
-
-
-- name: SAP Software Download - Maintenance Plan - Default Python - Get list of files
-  when: not sap_software_download_use_venv | d(true)
-  community.sap_launchpad.maintenance_planner_files:
-    suser_id: "{{ sap_software_download_suser_id }}"
-    suser_password: "{{ sap_software_download_suser_password }}"
-    transaction_name: "{{ sap_software_download_mp_transaction }}"
-  register: __sap_software_download_register_mp_files_default
-  retries: 1
-  vars:
-    ansible_python_interpreter: "{{ __sap_software_download_fact_python_interpreter_path }}"
-  changed_when: false  # Getting list of files does not change anything
-  ignore_errors: true  # Errors are ignored and validated afterwards
-
-
-- name: SAP Software Download - Maintenance Plan - Set fact with list of files
-  ansible.builtin.set_fact:
-    __sap_software_download_fact_mp_files:
-      "{{ __sap_software_download_register_mp_files_venv
-        if sap_software_download_use_venv | d(true)
-        else __sap_software_download_register_mp_files_default }}"
-
 
 - name: SAP Software Download - Maintenance Plan - Fail if Maintenance Plan was not found
   ansible.builtin.fail:
@@ -49,7 +26,7 @@
       or ignore this error with 'sap_software_download_ignore_plan_not_found' set to 'true'.
   when:
     - not sap_software_download_ignore_plan_not_found | d(false)
-    - __sap_software_download_fact_mp_files.failed
+    - __sap_software_download_register_mp_files.failed
 
 - name: SAP Software Download - Maintenance Plan - Inform that Maintenance Plan was not found but error is ignored
   ansible.builtin.debug:
@@ -58,4 +35,4 @@
       Error was ignored with 'sap_software_download_ignore_plan_not_found' set to 'true'.
   when:
     - sap_software_download_ignore_plan_not_found | d(false)
-    - __sap_software_download_fact_mp_files.failed
+    - __sap_software_download_register_mp_files.failed

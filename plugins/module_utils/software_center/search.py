@@ -135,8 +135,8 @@ def find_file(client, name, deduplicate, search_alternatives, search_upgrades=Fa
             last_option = software_search_alternatives_filtered[-1]['Title']
 
             raise FileNotFoundError(
-                f'More than one alternative was found: '
-                f'{", ".join(names)}.\n'
+                f'More than one alternative was found: {alternatives_count} files\n'
+                f'Files: {", ".join(names)}\n'
                 f'Please use a more specific filename '
                 f'or set deduplicate parameter.\n'
                 f'Options for deduplicate:\n'
@@ -164,7 +164,8 @@ def find_file(client, name, deduplicate, search_alternatives, search_upgrades=Fa
         last_option = software_filtered[-1]['Title']
 
         raise FileNotFoundError(
-            f'More than one result was found: {", ".join(names)}.\n'
+            f'More than one result was found: {files_count} files\n'
+            f'Files: {", ".join(names)}\n'
             f'Please use the correct full filename '
             f'or set deduplicate parameter.\n'
             f'Options for deduplicate:\n'
@@ -235,8 +236,12 @@ def _search_software_fuzzy(client, query, search_upgrades=False):
             if f'-{filename_id}' in r.get('Title', ''):
                 fuzzy_results.append(_remove_useless_keys(r))
 
+        # Check if prefix search hit the 50-result limit (may have missed results)
+        # If yes, fallback to paginated ID search to ensure completeness
+        if len(results) >= 50:
+            fuzzy_results = []  # Clear partial results, will use paginated ID search below
         # If empty and suggested_filename_next exists, try incremented version
-        if len(fuzzy_results) == 0 and suggested_filename_next:
+        elif len(fuzzy_results) == 0 and suggested_filename_next:
             results = _search_software(client, suggested_filename_next)
             for r in results:
                 if f'-{filename_id}' in r.get('Title', ''):

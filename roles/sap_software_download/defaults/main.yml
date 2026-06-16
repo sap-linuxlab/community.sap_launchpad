@@ -9,6 +9,10 @@ sap_software_download_suser_id: ''
 # The password for the SAP S-User specified in 'sap_software_download_suser_id' (String).
 sap_software_download_suser_password: ''
 
+# The directory where downloaded SAP software files will be stored (String).
+# It will be created if it does not exist. Must be an absolute path.
+sap_software_download_directory: '/software'
+
 # A list of SAP software file names to download (List of Strings).
 sap_software_download_files: []
 
@@ -25,13 +29,18 @@ sap_software_download_mp_stack_xml: true
 ### Optional variables for controlling the download process
 
 # Enables searching for alternative files if the requested file is not found (Boolean).
-# Only applies to files specified in 'sap_software_download_files'.
+# Only applies to files specified in 'sap_software_download_files', not Maintenance Plan files.
 # If set to 'false', the role will not search for alternatives.
+# NOTE: Files like IMDB_SERVER have strict naming and the variable 'sap_software_download_find_upgrades' for broader search.
+# Example: IMDB_SERVER20_067_4-80002046.SAR searches for: IMDB_SERVER20_067
 sap_software_download_find_alternatives: true
 
-# The directory where downloaded SAP software files will be stored (String).
-# It will be created if it does not exist. Must be an absolute path.
-sap_software_download_directory: '/software'
+# Enables broader searching for alternative files if the requested file is not found (Boolean).
+# Only applies to files specified in 'sap_software_download_files', not Maintenance Plan files.
+# Only applies when file was not found with 'sap_software_download_find_alternatives set to 'true'.
+# If set to 'false', the role will not search for upgrade candidates.
+# Example: IMDB_SERVER20_067_4-80002046.SAR searches for: IMDB_SERVER20_067, IMDB_SERVER20_068, IMDB_SERVER20_
+sap_software_download_find_upgrades: false
 
 # Determines whether to ignore errors when a requested file is not found (Boolean).
 # If set to 'true', the role will continue execution and download other files, even if some files are not found.
@@ -44,24 +53,19 @@ sap_software_download_ignore_file_not_found: false
 # If set to 'false', the role will fail if the specified Maintenance Plan is not found.
 sap_software_download_ignore_plan_not_found: false
 
-# Enables validation of relationships between SAP software files (Boolean).
+# Enables validation of relationships between known combinations of SAP files (Boolean).
 # Only applies to files specified in 'sap_software_download_files', not Maintenance Plan files.
 # If set to 'false', no relationship validation will be performed.
-# Example: Verify version of IMDB_LCAPPS against IMDB_SERVER if IMDB_SERVER was found.
-# NOTE: This option will result in longer execution time
-# when 'sap_software_download_find_alternatives' is set to 'true',
-# because it attempts download in Dry run to gather list of alternative files for validation.
+# See section 'Explanation of relationship validation logic' in README.md for more information.
 sap_software_download_validate_relationships: true
 
-# Enables automatic upgrade of related HANA components when SERVER version changes.
-# Only applies when 'sap_software_download_validate_relationships: true'.
-# If IMDB_SERVER is not found and 'search_upgrades' finds a newer revision,
-# all related components (AFL, LCAPPS) will be searched with matching revision.
-# Example: If SERVER 084 is removed and only available revision is 089,
-# then AFL/LCAPPS will search for 089* revisions.
-# WARNING: This does not guarantee installation compatibility due to SAP's
-# inconsistent versioning (filename vs. actual package version).
-# Recommended to test before production use.
+# Enables automatic upgrade of related known combinations of SAP files when leading component version changes.
+# Only applies when 'sap_software_download_validate_relationships' is set to 'true'.
+# If set to 'false', no search for upgrade candidates before validation will be performed.
+# See section 'Explanation of relationship validation logic' in README.md for more information.
+# NOTE: Important for when SAP releases new patch for SAP HANA Revision, because:
+# - Previous patch of 'IMDB_SERVER' will be removed and only new patch will be available to download.
+# - Previous patch for other components like 'IMDB_AFL' will remain available to download as well as new patch.
 sap_software_download_upgrade_relationships: false
 
 # Determines whether to ignore warnings during file relationship validation (Boolean).
@@ -80,6 +84,7 @@ sap_software_download_ignore_validate_credentials: false
 # - 'first': Download the first file found (generally oldest).
 # - 'last': Download the last file found (generally newest).
 # - '': No deduplication, will cause an error if multiple files with the same name are found.
+#       Can be used to find list of all available files without downloading them.
 sap_software_download_deduplicate: last
 
 # Enables checksum validation of existing files present in 'sap_software_download_directory' (Boolean).
@@ -112,7 +117,7 @@ sap_software_download_use_venv: true
 # sap_software_download_python_package: ''
 
 # The list of the OS packages that provide modules for the desired Python version (List of Strings).
-# Required modules: wheel, urllib3, requests, beautifulsoup4, lxml
+# Required modules: 'wheel', 'urllib3', 'requests', 'beautifulsoup4', 'lxml'
 # The listed package versions must match the Python version specified by 'sap_software_download_python_interpreter'.
 # The default value is determined by the operating system and is set in the corresponding OS-specific variables file.
 # Examples:

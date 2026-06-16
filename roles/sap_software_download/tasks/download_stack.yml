@@ -2,7 +2,6 @@
 ---
 
 - name: SAP Software Download - Download - Maintenance Plan Stack XML - Get file
-  when: sap_software_download_use_venv | d(true)
   community.sap_launchpad.maintenance_planner_stack_xml_download:
     suser_id: "{{ sap_software_download_suser_id }}"
     suser_password: "{{ sap_software_download_suser_password }}"

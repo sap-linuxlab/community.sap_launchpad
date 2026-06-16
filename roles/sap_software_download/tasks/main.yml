@@ -73,8 +73,8 @@
         file: download_plan.yml
       when:
         - sap_software_download_mp_transaction | length > 0
-        - __sap_software_download_fact_mp_files.download_basket is defined
-          and __sap_software_download_fact_mp_files.download_basket | length > 0
+        - __sap_software_download_register_mp_files.download_basket is defined
+          and __sap_software_download_register_mp_files.download_basket | length > 0
 
     - name: SAP Software Download - Include tasks to download files in the variable 'sap_software_download_files'
       ansible.builtin.include_tasks:
