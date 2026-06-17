@@ -91,6 +91,9 @@ sap_software_download_deduplicate: last
 # This does not affect automatic checksum validation of downloaded files.
 sap_software_download_validate_checksum: false
 
+# Enables 'dry_run' mode in download tasks instead of actual download (Boolean).
+sap_software_download_dry_run: false
+
 
 ### Python environment variables
 

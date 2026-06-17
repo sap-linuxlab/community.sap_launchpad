@@ -17,6 +17,7 @@
     download_filename: "{{ item.Filename }}"
     dest: "{{ sap_software_download_directory }}"
     validate_checksum: "{{ sap_software_download_validate_checksum | d(false) }}"
+    dry_run: "{{ sap_software_download_dry_run | d(false) }}"
   # Loop condition acts as when conditional
   loop: "{{ __sap_software_download_register_mp_files.download_basket | d([]) }}"
   loop_control:

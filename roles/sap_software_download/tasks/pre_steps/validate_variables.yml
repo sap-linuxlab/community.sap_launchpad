@@ -158,6 +158,14 @@
           The variable 'sap_software_download_validate_checksum' is not defined as boolean.
       when: sap_software_download_validate_checksum is defined
 
+    - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_dry_run' is defined as boolean
+      ansible.builtin.assert:
+        that:
+          - sap_software_download_dry_run is boolean
+        fail_msg: |
+          The variable 'sap_software_download_dry_run' is not defined as boolean.
+      when: sap_software_download_dry_run is defined
+
 
     - name: SAP Software Download - Validate Variables - Assert that the variable 'sap_software_download_use_venv' is defined as boolean
       ansible.builtin.assert:

@@ -358,9 +358,9 @@ def _prepare_search_filename(filename, search_upgrades=False):
 
     # Revision version will be kept to ensure correct component versions.
     # Example: IMDB_SERVER20_067_4-80002046.SAR returns (IMDB_SERVER20_067, None, None)
-    #   With search_upgrades: (IMDB_SERVER20_067, IMDB_SERVER20_068, IMDB_SERVER20_)
+    #   With search_upgrades: (IMDB_SERVER20_067, IMDB_SERVER20_06, IMDB_SERVER20_)
     # Example: IMDB_AFL20_077_0-80002045.SAR returns (IMDB_AFL20_077, None, None)
-    #   With search_upgrades: (IMDB_AFL20_077, IMDB_AFL20_078, IMDB_AFL20_)
+    #   With search_upgrades: (IMDB_AFL20_077, IMDB_AFL20_07, IMDB_AFL20_)
     elif filename_base.startswith(('IMDB_SERVER', 'IMDB_AFL', 'IMDB_LCAPPS_1', 'IMDB_LCAPPS_2')):
         # Remove P from the 3rd element (index 2) to improve fuzzy search.
         if len(filename_parts) > 2:
@@ -370,7 +370,12 @@ def _prepare_search_filename(filename, search_upgrades=False):
         if search_upgrades:
             # Extract base prefix (e.g., IMDB_SERVER20_)
             suggested_base = "_".join(filename_parts[:2]) + '_'
-            return suggested, _increment_last_digits(suggested), suggested_base
+            # For 3-digit revisions, return prefix without last digit to find closest revision
+            # Example: IMDB_SERVER20_077 → IMDB_SERVER20_07 catches 070-079 within same SPS 07.
+            suggested_next = _increment_last_digits(suggested)
+            if len(filename_parts) > 2 and len(filename_parts[2]) >= 3:
+                suggested_next = "_".join(filename_parts[:2]) + '_' + filename_parts[2][:2]
+            return suggested, suggested_next, suggested_base
         return suggested, None, None
 
     # Example: IMDB_CLIENT20_021_31-80002082.SAR returns (IMDB_CLIENT20_021, IMDB_CLIENT20_022, None)

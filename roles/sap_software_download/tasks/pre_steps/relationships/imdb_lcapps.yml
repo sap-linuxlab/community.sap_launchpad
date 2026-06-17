@@ -12,7 +12,9 @@
 # - IMDB_LCAPPS2 - HANA 2.0 identifier
 # - 2089 - Revision 89 (contains SPS level, e.g. SPS08)
 # - 300 - Patch level 3
-
+#
+# NOTE: IMDB_LCAPPS does share FILE_ID between HANA 1.0 and 2.0 so upgrade search is possible!
+#
 ### Relationship validation workflow for IMDB_LCAPPS:
 # 1. Parse file name to extract version details.
 # 2. Attempt search in dry_run mode if 'sap_software_download_find_alternatives' is true and fail if file is not found.
@@ -22,6 +24,36 @@
 # 6. Parse file name if upgrade file was found and update facts.
 # 7. Show summary message and inform about validation result.
 
+
+# Validate wildcard format if wildcard is present in filename.
+# This is validated inside of module, but we do it here to fail faster and avoid unnecessary API calls.
+- name: SAP Software Download - Relationship Validation - Validate wildcard format in IMDB_LCAPPS filename
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Invalid wildcard format in IMDB_LCAPPS filename.
+
+      Filename: {{ __sap_software_download_fact_hana_component_names['lcapps'] }}
+
+      Wildcard queries must follow specific format:
+      Format: "PREFIX*-ID.EXT" where:
+       - PREFIX must have at least one character before wildcard
+       - Wildcard (*) must be in PREFIX position only
+       - Single dash (-) separates prefix and ID
+       - ID must be exactly 8 digits
+       - Extension must be letters only
+
+      Valid examples:
+       - "IMDB_LCAPPS*-20010426.SAR"
+       - "IMDB_LCAPPS_2*-20010426.SAR"
+
+      Invalid examples:
+       - "*-20010426.SAR" (no prefix - too broad)
+       - "IMDB_LCAPPS-*.SAR" (wildcard in ID position)
+       - "IMDB_LCAPPS*X-20010426.SAR" (extra characters after wildcard)
+       - "IMDB_LCAPPS*-7000.SAR" (ID must be 8 digits, not 4)
+  when:
+    - "'*' in __sap_software_download_fact_hana_component_names['lcapps']"
+    - __sap_software_download_fact_hana_component_names['lcapps'] is not match('^[^-]+\\*-\\d{8}\\.[a-zA-Z]+$')
 
 # Update existing fact dictionary with component details appending to 'server' details.
 # '__sap_software_download_fact_hana_lcapps_original' is set for later reuse, when we update this dictionary.
@@ -55,37 +87,6 @@
       # Defines search type. Updated if alternative or update search is successful.
       source: exact
 
-# Validate wildcard format if wildcard is present in filename.
-# This is validated inside of module, but we do it here to fail faster and avoid unnecessary API calls.
-- name: SAP Software Download - Relationship Validation - Validate wildcard format in IMDB_LCAPPS filename
-  ansible.builtin.fail:
-    msg: |
-      FAIL: Invalid wildcard format in IMDB_LCAPPS filename.
-
-      Filename: {{ __sap_software_download_fact_hana_component_names['lcapps'] }}
-
-      Wildcard queries must follow specific format:
-      Format: "PREFIX*-ID.EXT" where:
-       - PREFIX must have at least one character before wildcard
-       - Wildcard (*) must be in PREFIX position only
-       - Single dash (-) separates prefix and ID
-       - ID must be exactly 8 digits
-       - Extension must be letters only
-
-      Valid examples:
-       - "IMDB_LCAPPS*-20010426.SAR"
-       - "IMDB_LCAPPS_2*-20010426.SAR"
-
-      Invalid examples:
-       - "*-20010426.SAR" (no prefix - too broad)
-       - "IMDB_LCAPPS-*.SAR" (wildcard in ID position)
-       - "IMDB_LCAPPS*X-20010426.SAR" (extra characters after wildcard)
-       - "IMDB_LCAPPS*-7000.SAR" (ID must be 8 digits, not 4)
-  when:
-    - "'*' in __sap_software_download_fact_hana_component_names['lcapps']"
-    - __sap_software_download_fact_hana_component_names['lcapps'] is not match('^[^-]+\\*-\\d{8}\\.[a-zA-Z]+$')
-
-# NOTE: IMDB_LCAPPS does share FILE_ID between HANA 1.0 and 2.0 so upgrade search is possible!
 - name: SAP Software Download - Relationship Validation - Fail if IMDB_LCAPPS is for wrong HANA version
   ansible.builtin.fail:
     msg: |
@@ -97,12 +98,20 @@
       {{ __sap_software_download_fact_hana_component_names['lcapps'] }} details:
       Version: {{ __sap_software_download_fact_hana_components['lcapps']['version'] }}
 
-      Please provide correct IMDB_LCAPPS file for the detected IMDB_SERVER version,
-      or set the variable 'sap_software_download_upgrade_relationships' to 'true' to allow searching for upgrade candidate.
-  when:
-    - __sap_software_download_fact_hana_components['server']['version']
-        != __sap_software_download_fact_hana_components['lcapps']['version']
-    - not sap_software_download_upgrade_relationships | d(false)
+      Please provide correct IMDB_LCAPPS file for the detected IMDB_SERVER version.
+      {% if '*' in __sap_software_download_fact_hana_component_names['lcapps'] %}
+      Wildcard prefixes must contain identifier for HANA version to avoid mismatch. Examples:
+      - HANA 1.0: 'IMDB_LCAPPS_1*-{{ __file_id_ext }}', 'IMDB_LCAPPS_122*-{{ __file_id_ext }}'
+      - HANA 2.0: 'IMDB_LCAPPS_2*-{{ __file_id_ext }}', 'IMDB_LCAPPS_2089*-{{ __file_id_ext }}'
+      {% else %}
+      Expected prefixes:
+      - HANA 1.0: 'IMDB_LCAPPS_1'
+      - HANA 2.0: 'IMDB_LCAPPS_2'
+      {% endif %}
+  vars:
+    __file_id_ext: "{{ __sap_software_download_fact_hana_components['lcapps']['file_id'] ~ '.SAR' }}"
+  when: __sap_software_download_fact_hana_components['server']['version']
+          != __sap_software_download_fact_hana_components['lcapps']['version']
 
 
 - name: SAP Software Download - Relationship Validation - Check availability of IMDB_LCAPPS file using dry run

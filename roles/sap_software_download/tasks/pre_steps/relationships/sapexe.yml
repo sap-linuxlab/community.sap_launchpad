@@ -45,26 +45,6 @@
       sapexe: "{{ __sap_software_download_files | select('match', '^SAPEXE_.*') | list | first | d('') }}"
       sapexedb: "{{ __sap_software_download_files | select('match', '^SAPEXEDB_.*') | list | first | d('') }}"
 
-
-# Extract kernel details based on file name structure and enter into dictionary.
-- name: SAP Software Download - Relationship Validation - Set fact with parsed SAPEXE file version details
-  ansible.builtin.set_fact:
-    __sap_software_download_fact_kernel_components:
-      sapexe:
-        filename: "{{ __sap_software_download_fact_kernel_component_names['sapexe'] }}"
-
-        # Extract patch level from file name, e.g. SAPEXE_1500-70000596.SAR -> 1500
-        patch: "{{ __sap_software_download_fact_kernel_component_names['sapexe'].split('_')[1].split('-')[0] | d('') }}"
-
-        # Extract File ID from file name, e.g. SAPEXE_1500-70000596.SAR -> 70000596
-        file_id: "{{ __sap_software_download_fact_kernel_component_names['sapexe'].split('-')[1].split('.')[0] | d('') }}"
-
-        # Defines search type. Updated if alternative or update search is successful.
-        source: exact
-
-    # Save original file name to use when replacing in the list.
-    __sap_software_download_fact_kernel_sapexe_original: "{{ __sap_software_download_fact_kernel_component_names['sapexe'] }}"
-
 # Validate wildcard format if wildcard is present in filename.
 # This is validated inside of module, but we do it here to fail faster and avoid unnecessary API calls.
 - name: SAP Software Download - Relationship Validation - Validate wildcard format in SAPEXE filename
@@ -94,6 +74,25 @@
   when:
     - "'*' in __sap_software_download_fact_kernel_component_names['sapexe']"
     - __sap_software_download_fact_kernel_component_names['sapexe'] is not match('^[^-]+\\*-\\d{8}\\.[a-zA-Z]+$')
+
+# Extract kernel details based on file name structure and enter into dictionary.
+- name: SAP Software Download - Relationship Validation - Set fact with parsed SAPEXE file version details
+  ansible.builtin.set_fact:
+    __sap_software_download_fact_kernel_components:
+      sapexe:
+        filename: "{{ __sap_software_download_fact_kernel_component_names['sapexe'] }}"
+
+        # Extract patch level from file name, e.g. SAPEXE_1500-70000596.SAR -> 1500
+        patch: "{{ __sap_software_download_fact_kernel_component_names['sapexe'].split('_')[1].split('-')[0] | d('') }}"
+
+        # Extract File ID from file name, e.g. SAPEXE_1500-70000596.SAR -> 70000596
+        file_id: "{{ __sap_software_download_fact_kernel_component_names['sapexe'].split('-')[1].split('.')[0] | d('') }}"
+
+        # Defines search type. Updated if alternative or update search is successful.
+        source: exact
+
+    # Save original file name to use when replacing in the list.
+    __sap_software_download_fact_kernel_sapexe_original: "{{ __sap_software_download_fact_kernel_component_names['sapexe'] }}"
 
 
 # Combines both Python venv and default Python using environment variable.
@@ -248,6 +247,8 @@
       Patch: {{ __sap_software_download_fact_kernel_components['sapexe']['patch'] }}
 
       Validation of SAPEXEDB file will be executed against this version.
+
+      NOTE: See README.md for scope and limitations of relationship validation.
 
 
 - name: SAP Software Download - Relationship Validation - Include tasks for SAPEXEDB relationship validation

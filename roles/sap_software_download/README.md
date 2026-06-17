@@ -397,6 +397,12 @@ If multiple files with the same name are found, this setting determines which on
 Enables checksum validation of existing files present in `sap_software_download_directory`.<br>
 This does not affect automatic checksum validation of downloaded files.<br>
 
+### sap_software_download_dry_run
+- _Type:_ `bool`<br>
+- _Default:_ `false`<br>
+
+Enables `dry_run` mode in download tasks instead of actual download.<br>
+
 
 ### sap_software_download_use_venv
 - _Type:_ `boolean`<br>

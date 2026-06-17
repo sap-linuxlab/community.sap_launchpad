@@ -12,7 +12,9 @@
 # - IMDB_AFL20 - HANA 2.0 identifier
 # - 089 - Revision 89 (contains SPS level, e.g. SPS08)
 # - 300 - Patch level 3
-
+#
+# NOTE: IMDB_AFL does not share FILE_ID between HANA 1.0 and 2.0 so upgrade search is not possible!
+#
 ### Relationship validation workflow for IMDB_AFL:
 # 1. Parse file name to extract version details.
 # 2. Attempt search in dry_run mode if 'sap_software_download_find_alternatives' is true and fail if file is not found.
@@ -22,6 +24,36 @@
 # 6. Parse file name if upgrade file was found and update facts.
 # 7. Show summary message and inform about validation result.
 
+
+# Validate wildcard format if wildcard is present in filename.
+# This is validated inside of module, but we do it here to fail faster and avoid unnecessary API calls.
+- name: SAP Software Download - Relationship Validation - Validate wildcard format in IMDB_AFL filename
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Invalid wildcard format in IMDB_AFL filename.
+
+      Filename: {{ __sap_software_download_fact_hana_component_names['afl'] }}
+
+      Wildcard queries must follow specific format:
+      Format: "PREFIX*-ID.EXT" where:
+       - PREFIX must have at least one character before wildcard
+       - Wildcard (*) must be in PREFIX position only
+       - Single dash (-) separates prefix and ID
+       - ID must be exactly 8 digits
+       - Extension must be letters only
+
+      Valid examples:
+       - "IMDB_AFL20*-80001894.SAR"
+       - "IMDB_AFL100*-10012328.SAR"
+
+      Invalid examples:
+       - "*-80001894.SAR" (no prefix - too broad)
+       - "IMDB_AFL20-*.SAR" (wildcard in ID position)
+       - "IMDB_AFL20*X-80001894.SAR" (extra characters after wildcard)
+       - "IMDB_AFL20*-7000.SAR" (ID must be 8 digits, not 4)
+  when:
+    - "'*' in __sap_software_download_fact_hana_component_names['afl']"
+    - __sap_software_download_fact_hana_component_names['afl'] is not match('^[^-]+\\*-\\d{8}\\.[a-zA-Z]+$')
 
 # Update existing fact dictionary with component details appending to 'server' details.
 # '__sap_software_download_fact_hana_afl_original' is set for later reuse, when we update this dictionary.
@@ -55,37 +87,6 @@
       # Defines search type. Updated if alternative or update search is successful.
       source: exact
 
-# Validate wildcard format if wildcard is present in filename.
-# This is validated inside of module, but we do it here to fail faster and avoid unnecessary API calls.
-- name: SAP Software Download - Relationship Validation - Validate wildcard format in IMDB_AFL filename
-  ansible.builtin.fail:
-    msg: |
-      FAIL: Invalid wildcard format in IMDB_AFL filename.
-
-      Filename: {{ __sap_software_download_fact_hana_component_names['afl'] }}
-
-      Wildcard queries must follow specific format:
-      Format: "PREFIX*-ID.EXT" where:
-       - PREFIX must have at least one character before wildcard
-       - Wildcard (*) must be in PREFIX position only
-       - Single dash (-) separates prefix and ID
-       - ID must be exactly 8 digits
-       - Extension must be letters only
-
-      Valid examples:
-       - "IMDB_AFL20*-80001894.SAR"
-       - "IMDB_AFL100*-10012328.SAR"
-
-      Invalid examples:
-       - "*-80001894.SAR" (no prefix - too broad)
-       - "IMDB_AFL20-*.SAR" (wildcard in ID position)
-       - "IMDB_AFL20*X-80001894.SAR" (extra characters after wildcard)
-       - "IMDB_AFL20*-7000.SAR" (ID must be 8 digits, not 4)
-  when:
-    - "'*' in __sap_software_download_fact_hana_component_names['afl']"
-    - __sap_software_download_fact_hana_component_names['afl'] is not match('^[^-]+\\*-\\d{8}\\.[a-zA-Z]+$')
-
-# NOTE: IMDB_AFL does not share FILE_ID between HANA 1.0 and 2.0 so upgrade search is not possible!
 - name: SAP Software Download - Relationship Validation - Fail if IMDB_AFL is for wrong HANA version
   ansible.builtin.fail:
     msg: |
@@ -98,8 +99,19 @@
       Version: {{ __sap_software_download_fact_hana_components['afl']['version'] }}
 
       Please provide correct IMDB_AFL file for the detected IMDB_SERVER version.
+      {% if '*' in __sap_software_download_fact_hana_component_names['afl'] %}
+      Wildcard prefixes must contain identifier for HANA version to avoid mismatch. Examples:
+      - HANA 1.0: 'IMDB_AFL1*-{{ __file_id_ext }}', 'IMDB_AFL100*-{{ __file_id_ext }}', 'IMDB_AFL100_*-{{ __file_id_ext }}'
+      - HANA 2.0: 'IMDB_AFL2*-{{ __file_id_ext }}', 'IMDB_AFL20*-{{ __file_id_ext }}', 'IMDB_AFL20_*-{{ __file_id_ext }}'
+      {% else %}
+      Expected prefixes:
+      - HANA 1.0: 'IMDB_AFL100_'
+      - HANA 2.0: 'IMDB_AFL20_'
+      {% endif %}
+  vars:
+    __file_id_ext: "{{ __sap_software_download_fact_hana_components['afl']['file_id'] ~ '.SAR' }}"
   when: __sap_software_download_fact_hana_components['server']['version']
-        != __sap_software_download_fact_hana_components['afl']['version']
+          != __sap_software_download_fact_hana_components['afl']['version']
 
 
 - name: SAP Software Download - Relationship Validation - Check availability of IMDB_AFL file using dry run
