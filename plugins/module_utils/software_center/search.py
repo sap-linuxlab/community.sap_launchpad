@@ -10,11 +10,12 @@ from .. import constants as C
 from ..exceptions import FileNotFoundError
 
 
-def find_file(client, name, deduplicate, search_alternatives):
+def find_file(client, name, deduplicate, search_alternatives, search_upgrades=False):
     # Main search function to find a software file.
     # It performs a direct search and, if requested, a fuzzy search for alternatives.
     # Returns a dictionary with file details.
     alternative_found = False
+    search_method = 'exact'
 
     # First, attempt a direct search for the exact filename.
     software_search = _search_software(client, name)
@@ -89,7 +90,7 @@ def find_file(client, name, deduplicate, search_alternatives):
                 )
 
         try:
-            software_fuzzy_found = _search_software_fuzzy(client, name)
+            software_fuzzy_found = _search_software_fuzzy(client, name, search_upgrades)
         except Exception as e:
             # Handle cases where API returns errors due to overly broad queries
             if 'RetryError' in str(type(e).__name__) or '500 error' in str(e):
@@ -105,7 +106,7 @@ def find_file(client, name, deduplicate, search_alternatives):
             # Re-raise other exceptions
             raise
 
-        software_fuzzy_filtered, suggested_filename = _filter_fuzzy_search(software_fuzzy_found, name)
+        software_fuzzy_filtered, suggested_filename, search_method = _filter_fuzzy_search(software_fuzzy_found, name, search_upgrades)
         if len(software_fuzzy_filtered) == 0:
             raise FileNotFoundError(
                 f'File "{name}" is not available '
@@ -134,8 +135,8 @@ def find_file(client, name, deduplicate, search_alternatives):
             last_option = software_search_alternatives_filtered[-1]['Title']
 
             raise FileNotFoundError(
-                f'More than one alternative was found: '
-                f'{", ".join(names)}.\n'
+                f'More than one alternative was found: {alternatives_count} files\n'
+                f'Files: {", ".join(names)}\n'
                 f'Please use a more specific filename '
                 f'or set deduplicate parameter.\n'
                 f'Options for deduplicate:\n'
@@ -163,7 +164,8 @@ def find_file(client, name, deduplicate, search_alternatives):
         last_option = software_filtered[-1]['Title']
 
         raise FileNotFoundError(
-            f'More than one result was found: {", ".join(names)}.\n'
+            f'More than one result was found: {files_count} files\n'
+            f'Files: {", ".join(names)}\n'
             f'Please use the correct full filename '
             f'or set deduplicate parameter.\n'
             f'Options for deduplicate:\n'
@@ -181,7 +183,8 @@ def find_file(client, name, deduplicate, search_alternatives):
     return {
         'download_link': software_found['DownloadDirectLink'],
         'filename': _get_valid_filename(software_found),
-        'alternative_found': alternative_found
+        'alternative_found': alternative_found,
+        'search_method': search_method
     }
 
 
@@ -207,7 +210,7 @@ def _search_software(client, keyword):
     return results
 
 
-def _search_software_fuzzy(client, query):
+def _search_software_fuzzy(client, query, search_upgrades=False):
     # Executes a fuzzy search to find alternative versions.
     # Strategy: Try prefix search first (more specific), fallback to ID search if needed.
     filename_base = os.path.splitext(query)[0]
@@ -218,7 +221,7 @@ def _search_software_fuzzy(client, query):
 
     # Extract ID and prepare suggested filename prefix
     filename_id = filename_base.split('-')[-1]
-    suggested_filename, suggested_filename_next, suggested_filename_base = _prepare_search_filename(query)
+    suggested_filename, suggested_filename_next, suggested_filename_base = _prepare_search_filename(query, search_upgrades)
     has_wildcard = '*' in query
 
     fuzzy_results = []
@@ -233,8 +236,12 @@ def _search_software_fuzzy(client, query):
             if f'-{filename_id}' in r.get('Title', ''):
                 fuzzy_results.append(_remove_useless_keys(r))
 
+        # Check if prefix search hit the 50-result limit (may have missed results)
+        # If yes, fallback to paginated ID search to ensure completeness
+        if len(results) >= 50:
+            fuzzy_results = []  # Clear partial results, will use paginated ID search below
         # If empty and suggested_filename_next exists, try incremented version
-        if len(fuzzy_results) == 0 and suggested_filename_next:
+        elif len(fuzzy_results) == 0 and suggested_filename_next:
             results = _search_software(client, suggested_filename_next)
             for r in results:
                 if f'-{filename_id}' in r.get('Title', ''):
@@ -266,8 +273,11 @@ def _search_software_fuzzy(client, query):
     return fuzzy_results
 
 
-def _filter_fuzzy_search(fuzzy_results, filename):
+def _filter_fuzzy_search(fuzzy_results, filename, search_upgrades=False):
     # Filters fuzzy search output using the original filename.
+    # Returns: (sorted_results, suggested_filename, search_method)
+    search_method = 'alternative_default'  # Default assumption
+
     if '*' in filename:
         prefix, suffix = filename.split('*')
         suffix_base = os.path.splitext(suffix)[0]
@@ -277,7 +287,7 @@ def _filter_fuzzy_search(fuzzy_results, filename):
         ]
         suggested_filename = prefix
     else:
-        suggested_filename, suggested_filename_next, suggested_filename_base = _prepare_search_filename(filename)
+        suggested_filename, suggested_filename_next, suggested_filename_base = _prepare_search_filename(filename, search_upgrades)
 
         # Create result list with same version if available.
         fuzzy_results_filtered = [
@@ -294,6 +304,7 @@ def _filter_fuzzy_search(fuzzy_results, filename):
             # Update return suggested filename to incremented version if alternatives are found with it.
             if len(fuzzy_results_filtered) > 0:
                 suggested_filename = suggested_filename_next
+                search_method = 'alternative_increment'
 
         # Attempt to create result list with broader base prefix.
         if len(fuzzy_results_filtered) == 0 and suggested_filename_base:
@@ -304,17 +315,18 @@ def _filter_fuzzy_search(fuzzy_results, filename):
             # Update return suggested filename to base if alternatives are found with it.
             if len(fuzzy_results_filtered) > 0:
                 suggested_filename = suggested_filename_base
+                search_method = 'alternative_base'
 
     fuzzy_results_sorted = _sort_fuzzy_results(fuzzy_results_filtered)
-    return fuzzy_results_sorted, suggested_filename
+    return fuzzy_results_sorted, suggested_filename, search_method
 
 
-def _prepare_search_filename(filename):
+def _prepare_search_filename(filename, search_upgrades=False):
     # Prepares suggested search keywords for known products.
     # Returns triplet: (suggested, suggested_next, suggested_base)
     # - suggested: exact version match
     # - suggested_next: incremented version (safe)
-    # - suggested_base: broader prefix (only for known safe files)
+    # - suggested_base: broader prefix (only for known safe files or when search_upgrades=True)
 
     # Filename without extension.
     filename_base = os.path.splitext(filename)[0]
@@ -345,29 +357,44 @@ def _prepare_search_filename(filename):
         return suggested, _increment_last_digits(suggested), None
 
     # Revision version will be kept to ensure correct component versions.
-    # Example: IMDB_SERVER20_067_4-80002046.SAR (Rev 67) returns (IMDB_SERVER20_067, None, None)
-    # Example: IMDB_AFL20_077_0-80002045.SAR (Rev 77) returns (IMDB_AFL20_077, None, None)
-    # Example: IMDB_AFL100_102P_41-10012328.SAR (Rev 102) returns (IMDB_AFL100_102, None, None)
-    # Example: IMDB_LCAPPS_122P_3300-20010426.SAR (Rev 122) returns (IMDB_LCAPPS_122, None, None)
-    # Example: IMDB_LCAPPS_2067P_400-80002183.SAR (Rev 67) returns (IMDB_LCAPPS_2067, None, None)
+    # Example: IMDB_SERVER20_067_4-80002046.SAR returns (IMDB_SERVER20_067, None, None)
+    #   With search_upgrades: (IMDB_SERVER20_067, IMDB_SERVER20_06, IMDB_SERVER20_)
+    # Example: IMDB_AFL20_077_0-80002045.SAR returns (IMDB_AFL20_077, None, None)
+    #   With search_upgrades: (IMDB_AFL20_077, IMDB_AFL20_07, IMDB_AFL20_)
     elif filename_base.startswith(('IMDB_SERVER', 'IMDB_AFL', 'IMDB_LCAPPS_1', 'IMDB_LCAPPS_2')):
         # Remove P from the 3rd element (index 2) to improve fuzzy search.
         if len(filename_parts) > 2:
             filename_parts[2] = filename_parts[2].rstrip('Pp')
         # Re-join the first three elements -> "IMDB_AFL100_102"
         suggested = "_".join(filename_parts[:3])
+        if search_upgrades:
+            # Extract base prefix (e.g., IMDB_SERVER20_)
+            suggested_base = "_".join(filename_parts[:2]) + '_'
+            # For 3-digit revisions, return prefix without last digit to find closest revision
+            # Example: IMDB_SERVER20_077 → IMDB_SERVER20_07 catches 070-079 within same SPS 07.
+            suggested_next = _increment_last_digits(suggested)
+            if len(filename_parts) > 2 and len(filename_parts[2]) >= 3:
+                suggested_next = "_".join(filename_parts[:2]) + '_' + filename_parts[2][:2]
+            return suggested, suggested_next, suggested_base
         return suggested, None, None
 
     # Example: IMDB_CLIENT20_021_31-80002082.SAR returns (IMDB_CLIENT20_021, IMDB_CLIENT20_022, None)
+    #   With search_upgrades: (IMDB_CLIENT20_021, IMDB_CLIENT20_022, IMDB_CLIENT20_)
     elif filename_base.startswith('IMDB_CLIENT'):
         if len(filename_parts) > 2:
             filename_parts[2] = filename_parts[2].rstrip('Pp')
         suggested = "_".join(filename_parts[:3])
+        if search_upgrades:
+            suggested_base = "_".join(filename_parts[:2]) + '_'
+            return suggested, _increment_last_digits(suggested), suggested_base
         return suggested, _increment_last_digits(suggested), None
 
     # Example: SAPEXE_100-80005374.SAR returns (SAPEXE_100, SAPEXE_101, None)
+    #   With search_upgrades: (SAPEXE_100, SAPEXE_101, SAPEXE_)
     elif filename_base.startswith('SAPEXE'):
         suggested = filename_main
+        if search_upgrades:
+            return suggested, _increment_last_digits(suggested), 'SAPEXE_'
         return suggested, _increment_last_digits(suggested), None
 
     # Example: SAPHANACOCKPIT02_0-70002300.SAR returns (SAPHANACOCKPIT02, SAPHANACOCKPIT03, None)

@@ -21,7 +21,9 @@ def run_software_download(params):
         'failed': False,
         'msg': '',
         'filename': '',
+        'original_query': '',
         'alternative': False,
+        'search_method': 'exact',
         'warnings': []
     }
 
@@ -33,6 +35,7 @@ def run_software_download(params):
     dry_run = params.get('dry_run')
     deduplicate = params.get('deduplicate')
     search_alternatives = params.get('search_alternatives')
+    search_upgrades = params.get('search_upgrades')
     validate_checksum = params.get('validate_checksum')
 
     if params['search_query']:
@@ -50,6 +53,11 @@ def run_software_download(params):
 
     filename = query if query else download_filename
     result['filename'] = filename
+    result['original_query'] = query if query else download_filename
+
+    # Set search_method for direct_link usage
+    if download_link and download_filename:
+        result['search_method'] = 'direct_link'
 
     filepath = os.path.join(dest, filename)
 
@@ -83,7 +91,8 @@ def run_software_download(params):
                 query=query,
                 download_link=download_link,
                 deduplicate=deduplicate,
-                search_alternatives=search_alternatives
+                search_alternatives=search_alternatives,
+                search_upgrades=search_upgrades
             )
 
             is_valid = validation_result['validated']
@@ -108,13 +117,14 @@ def run_software_download(params):
 
         alternative_found = False
         if query:
-            file_details = search.find_file(client, query, deduplicate, search_alternatives)
+            file_details = search.find_file(client, query, deduplicate, search_alternatives, search_upgrades)
             download_link = file_details['download_link']
             download_filename = file_details['filename']
             alternative_found = file_details['alternative_found']
 
             result['filename'] = download_filename
             result['alternative'] = alternative_found
+            result['search_method'] = file_details.get('search_method', 'exact')
 
             alt_filepath = os.path.join(dest, download_filename)
             if filename != download_filename and os.path.exists(alt_filepath):

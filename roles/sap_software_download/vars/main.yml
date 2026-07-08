@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
+# This is list of internal variables used in the role.
+# These variables are not intended to be set by the user and are used for internal processing within the role.
+# They are defined here with default values and can be overridden by OS specific variable files if needed.
+
 # The list of required Python Modules for download module
 __sap_software_download_python_modules:
   - wheel
@@ -18,3 +22,6 @@ __sap_software_download_python_module_packages:
   - python3-requests
   - python3-beautifulsoup4
   - python3-lxml
+
+# Internal list of software used for manipulation during relationship validation and searching for upgrade candidates.
+__sap_software_download_files: "{{ sap_software_download_files | d([]) }}"

@@ -1,0 +1,256 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+### SAP Kernel versioning:
+# SAPEXE (e.g SAPEXE_1500-70000596.SAR - SAP Support Package Stack Kernel 7.22 (EXT,EX2) Patch Level 1500)
+# - 1500 - Patch level 1500
+# - 70000596 - File ID unique for this component and operating system.
+#
+# NOTE: Since kernel files do not contain version, we can do only comparison of patch level!
+#       Patch level can be identical across different Kernels, where kernel version is hidden in FILE ID.
+
+
+# Create dictionary with counts of both database dependent and independent kernel files.
+- name: SAP Software Download - Relationship Validation - Set fact with count of SAP Kernel files in the file list
+  ansible.builtin.set_fact:
+    __sap_software_download_fact_kernel_counts:
+      sapexe: "{{ sap_software_download_files | select('match', '^SAPEXE_.*') | list | length }}"
+      sapexedb: "{{ sap_software_download_files | select('match', '^SAPEXEDB_.*') | list | length }}"
+
+# Relationship validation is designed for single SAP System installation,
+# so we fail if multiple files for same component are found.
+- name: SAP Software Download - Relationship Validation - Fail if multiple SAP Kernel files are detected
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Multiple SAP Kernel files detected in input list.
+      Relationship validation of SAP Kernel is designed for single SAP System installation.
+      Set 'sap_software_download_validate_relationships: false' to disable this validation.
+
+      {% if __sap_software_download_fact_kernel_counts['sapexe'] | int > 1 %}
+      Found multiple SAPEXE files:
+      {{ sap_software_download_files | select('match', '^SAPEXE.*') | list | join(', ') }}
+      {% endif %}
+      {% if __sap_software_download_fact_kernel_counts['sapexedb'] | int > 1 %}
+      Found multiple SAPEXEDB files:
+      {{ sap_software_download_files | select('match', '^SAPEXEDB.*') | list | join(', ') }}
+      {% endif %}
+  when:
+    - __sap_software_download_fact_kernel_counts['sapexe'] | int > 1
+      or __sap_software_download_fact_kernel_counts['sapexedb'] | int > 1
+
+# Create dictionary with file names from software file list.
+- name: SAP Software Download - Relationship Validation - Set fact with names of SAP Kernel files in the file list
+  ansible.builtin.set_fact:
+    __sap_software_download_fact_kernel_component_names:
+      sapexe: "{{ __sap_software_download_files | select('match', '^SAPEXE_.*') | list | first | d('') }}"
+      sapexedb: "{{ __sap_software_download_files | select('match', '^SAPEXEDB_.*') | list | first | d('') }}"
+
+# Validate wildcard format if wildcard is present in filename.
+# This is validated inside of module, but we do it here to fail faster and avoid unnecessary API calls.
+- name: SAP Software Download - Relationship Validation - Validate wildcard format in SAPEXE filename
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Invalid wildcard format in SAPEXE filename.
+
+      Filename: {{ __sap_software_download_fact_kernel_component_names['sapexe'] }}
+
+      Wildcard queries must follow specific format:
+      Format: "PREFIX*-ID.EXT" where:
+       - PREFIX must have at least one character before wildcard
+       - Wildcard (*) must be in PREFIX position only
+       - Single dash (-) separates prefix and ID
+       - ID must be exactly 8 digits
+       - Extension must be letters only
+
+      Valid examples:
+       - "IMDB_AFL20*-80001894.SAR"
+       - "IMDB_AFL100*-10012328.SAR"
+
+      Invalid examples:
+       - "*-80001894.SAR" (no prefix - too broad)
+       - "IMDB_AFL20-*.SAR" (wildcard in ID position)
+       - "IMDB_AFL20*X-80001894.SAR" (extra characters after wildcard)
+       - "IMDB_AFL20*-7000.SAR" (ID must be 8 digits, not 4)
+  when:
+    - "'*' in __sap_software_download_fact_kernel_component_names['sapexe']"
+    - __sap_software_download_fact_kernel_component_names['sapexe'] is not match('^[^-]+\\*-\\d{8}\\.[a-zA-Z]+$')
+
+# Extract kernel details based on file name structure and enter into dictionary.
+- name: SAP Software Download - Relationship Validation - Set fact with parsed SAPEXE file version details
+  ansible.builtin.set_fact:
+    __sap_software_download_fact_kernel_components:
+      sapexe:
+        filename: "{{ __sap_software_download_fact_kernel_component_names['sapexe'] }}"
+
+        # Extract patch level from file name, e.g. SAPEXE_1500-70000596.SAR -> 1500
+        patch: "{{ __sap_software_download_fact_kernel_component_names['sapexe'].split('_')[1].split('-')[0] | d('') }}"
+
+        # Extract File ID from file name, e.g. SAPEXE_1500-70000596.SAR -> 70000596
+        file_id: "{{ __sap_software_download_fact_kernel_component_names['sapexe'].split('-')[1].split('.')[0] | d('') }}"
+
+        # Defines search type. Updated if alternative or update search is successful.
+        source: exact
+
+    # Save original file name to use when replacing in the list.
+    __sap_software_download_fact_kernel_sapexe_original: "{{ __sap_software_download_fact_kernel_component_names['sapexe'] }}"
+
+
+# Combines both Python venv and default Python using environment variable.
+# Alternative search without 'search_upgrades' results in very strict search.
+# If this search fails, we fall back to broader search with 'search_upgrades' if enabled.
+# Example: SAPEXE_1500-70000596.SAR searches for: SAPEXE_1500, SAPEXE_1501
+- name: SAP Software Download - Relationship Validation - Check availability of SAPEXE file using dry run
+  community.sap_launchpad.software_center_download:
+    suser_id: "{{ sap_software_download_suser_id }}"
+    suser_password: "{{ sap_software_download_suser_password }}"
+    search_query: "{{ __sap_software_download_fact_kernel_component_names['sapexe'] }}"
+    dest: "{{ sap_software_download_directory }}"
+    search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
+    search_upgrades: false
+    deduplicate: "{{ sap_software_download_deduplicate }}"
+    dry_run: true
+  register: __sap_software_download_register_sapexe_dry_run
+  retries: 1
+  until: __sap_software_download_register_sapexe_dry_run is not failed
+  environment: "{{ __venv_environment if sap_software_download_use_venv | d(true) else {} }}"
+  vars:
+    ansible_python_interpreter: "{{ __sap_software_download_fact_python_interpreter_path }}"
+    __venv_environment:
+      PATH: "{{ __sap_software_download_fact_venv_path }}"
+      PYTHONPATH: "{{ __sap_software_download_fact_venv_pythonpath }}"
+      VIRTUAL_ENV: "{{ __sap_software_download_register_temp_venv.path }}"
+  ignore_errors: true  # Errors are ignored and validated afterwards
+
+# Fail if file cannot be found even with alternative search.
+- name: SAP Software Download - Relationship Validation - Fail if SAPEXE file was not found
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Relationship validation failed because SAPEXE file was not found.
+      Original file: {{ __sap_software_download_fact_kernel_sapexe_original }}
+      Set the variable 'sap_software_download_upgrade_relationships' to 'true',
+      to allow searching for upgrade candidate if original file was not found.
+  when:
+    - __sap_software_download_register_sapexe_dry_run is failed
+    - not sap_software_download_upgrade_relationships | d(false)
+
+
+# Alternative file was found so we have to update component dictionary and file name list.
+# This can happen only if wildcard was used, as otherwise search is strict and looks for exact file name.
+- name: Block for successful dry run with alternative suggesting it uses wildcards
+  when:
+    - __sap_software_download_register_sapexe_dry_run is not failed
+    - __sap_software_download_register_sapexe_dry_run.alternative | d(false)
+  block:
+    - name: SAP Software Download - Relationship Validation - Set fact with updated SAPEXE name if alternative was found
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_kernel_component_names: >-
+          {{ __sap_software_download_fact_kernel_component_names
+            | combine({'sapexe': __sap_software_download_register_sapexe_dry_run['filename']}) }}
+
+    - name: SAP Software Download - Relationship Validation - Set fact with re-parsed SAPEXE details after alternative search
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_kernel_components:
+          sapexe:
+            filename: "{{ __sap_software_download_fact_kernel_component_names['sapexe'] }}"
+            patch: "{{ __sap_software_download_fact_kernel_component_names['sapexe'].split('_')[1].split('-')[0] | d('') }}"
+            file_id: "{{ __sap_software_download_fact_kernel_component_names['sapexe'].split('-')[1].split('.')[0] | d('') }}"
+            source: alternative
+
+    - name: SAP Software Download - Relationship Validation - Set fact with updated file list with resolved SAPEXE filename
+      ansible.builtin.set_fact:
+        __sap_software_download_files: >-
+          {{ __sap_software_download_files
+            | map('replace', __sap_software_download_fact_kernel_sapexe_original, __sap_software_download_fact_kernel_component_names['sapexe'])
+            | list }}
+
+
+- name: Block for download of upgrade candidate for SAPEXE
+  when:
+    - sap_software_download_upgrade_relationships | d(false)
+    - __sap_software_download_register_sapexe_dry_run is failed
+  block:
+    # Search is using 'search_upgrades', which handles stripping filename to its base.
+    # Example: SAPEXE_1500-70000596.SAR searches for: SAPEXE_1500, SAPEXE_1501, SAPEXE_
+    - name: SAP Software Download - Relationship Validation - Retry failed SAPEXE with search_upgrades
+      community.sap_launchpad.software_center_download:
+        suser_id: "{{ sap_software_download_suser_id }}"
+        suser_password: "{{ sap_software_download_suser_password }}"
+        search_query: "{{ __sap_software_download_fact_kernel_sapexe_original }}"
+        dest: "{{ sap_software_download_directory }}"
+        search_alternatives: true
+        search_upgrades: true  # New parameter that allows broader search using IMDB_SERVER1* or IMDB_SERVER2*
+        deduplicate: "last"  # We search for latest upgrade.
+        dry_run: true
+      register: __sap_software_download_register_sapexe_retry
+      retries: 1
+      until: __sap_software_download_register_sapexe_retry is not failed
+      environment: "{{ __venv_environment if sap_software_download_use_venv | d(true) else {} }}"
+      vars:
+        ansible_python_interpreter: "{{ __sap_software_download_fact_python_interpreter_path }}"
+        __venv_environment:
+          PATH: "{{ __sap_software_download_fact_venv_path }}"
+          PYTHONPATH: "{{ __sap_software_download_fact_venv_pythonpath }}"
+          VIRTUAL_ENV: "{{ __sap_software_download_register_temp_venv.path }}"
+      ignore_errors: true
+
+    - name: SAP Software Download - Relationship Validation - Fail if upgrade candidate for SAPEXE file was not found
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Relationship validation failed because no upgrade candidate for SAPEXE file was found.
+          Original file: {{ __sap_software_download_fact_kernel_sapexe_original }}
+          Upgrade candidate searched with query: {{ __sap_software_download_register_sapexe_retry.original_query }}
+          No upgrade candidate found with 'search_upgrades' enabled.
+      when: __sap_software_download_register_sapexe_retry.failed
+
+
+    - name: SAP Software Download - Relationship Validation - Set fact with parsed SAPEXE file version details after retry
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_kernel_components: >-
+          {{ __sap_software_download_fact_kernel_components | combine({
+            'sapexe': __sapexe_details
+          }, recursive=True) }}
+      vars:
+        __sapexe_details:
+          filename: "{{ __sap_software_download_register_sapexe_retry['filename'] }}"
+          patch: "{{ __sap_software_download_register_sapexe_retry['filename'].split('_')[1].split('-')[0] | d('') }}"
+          file_id: "{{ __sap_software_download_register_sapexe_retry['filename'].split('-')[1].split('.')[0] | d('') }}"
+          source: alternative
+
+    - name: SAP Software Download - Relationship Validation - Set fact with updated software list with new SAPEXE file name after upgrade search
+      ansible.builtin.set_fact:
+        __sap_software_download_files: >-
+          {{ __sap_software_download_files
+            | map('replace', __sap_software_download_fact_kernel_sapexe_original, __sap_software_download_register_sapexe_retry['filename'])
+            | list }}
+
+    - name: SAP Software Download - Relationship Validation - Set fact with updated SAPEXE name if upgrade was found
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_kernel_component_names: >-
+          {{ __sap_software_download_fact_kernel_component_names
+            | combine({'sapexe': __sap_software_download_register_sapexe_retry['filename']}) }}
+
+
+- name: SAP Software Download - Relationship Validation - Show summary of SAPEXE validation
+  ansible.builtin.debug:
+    msg: |
+      {% if __sap_software_download_fact_kernel_components['sapexe']['source'] == 'alternative' %}
+      Original SAPEXE file '{{ __sap_software_download_fact_kernel_sapexe_original }}' was not found,
+      but alternative file '{{ __sap_software_download_fact_kernel_components['sapexe']['filename'] }}' was found.
+      {% elif __sap_software_download_fact_kernel_components['sapexe']['source'] == 'upgrade' %}
+      Original SAPEXE file '{{ __sap_software_download_fact_kernel_sapexe_original }}' was not found,
+      but an upgrade file '{{ __sap_software_download_fact_kernel_components['sapexe']['filename'] }}' was found.
+      {% else %}
+      Original SAPEXE file '{{ __sap_software_download_fact_kernel_sapexe_original }}' was found.
+      {% endif %}
+
+      {{ __sap_software_download_fact_kernel_component_names['sapexe'] }} details:
+      Patch: {{ __sap_software_download_fact_kernel_components['sapexe']['patch'] }}
+
+      Validation of SAPEXEDB file will be executed against this version.
+
+      NOTE: See README.md for scope and limitations of relationship validation.
+
+
+- name: SAP Software Download - Relationship Validation - Include tasks for SAPEXEDB relationship validation
+  ansible.builtin.include_tasks:
+    file: sapexedb.yml

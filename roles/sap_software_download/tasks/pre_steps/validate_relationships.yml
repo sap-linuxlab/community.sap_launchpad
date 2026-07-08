@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# NOTE: This functionality is reserved only for valid installations
+# and it does not accept having multiple files with same component name in the file list.
+
+- name: SAP Software Download - Relationship Validation - Include tasks for IMDB_SERVER relationship validation
+  ansible.builtin.include_tasks:
+    file: relationships/imdb_server.yml
+  when: sap_software_download_files | select('match', '^IMDB_SERVER.*') | list | length > 0
+
+- name: SAP Software Download - Relationship Validation - Include tasks for SAPEXE relationship validation
+  ansible.builtin.include_tasks:
+    file: relationships/sapexe.yml
+  when:
+    - sap_software_download_files | select('match', '^SAPEXE.*') | list | length > 0
+    - sap_software_download_files | select('match', '^SAPEXEDB.*') | list | length > 0
