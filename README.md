@@ -20,7 +20,7 @@ Included role and modules cover range of options:
 
 | Component | Control Node | Managed Node |
 | :--- | :--- | :--- |
-| Operating System | Any OS | [See supported OS versions](#supported-operating-system-versions) |
+| Operating System | Any OS | [See compatible OS versions](#compatible-operating-system-versions) |
 | Python | 3.11 or higher | 3.9 or higher |
 | Ansible-Core | 2.18 or higher | N/A |
 
@@ -30,7 +30,7 @@ Included role and modules cover range of options:
 - **Control Node Permissions:** Ensure the user executing the playbooks has the necessary SSH keys and sudo privileges configured for the target environment.
 - **Managed Node Registration:** Operating system needs to have access to required package repositories either directly or via subscription registration.
 
-### Supported Operating System Versions
+### Compatible Operating System Versions
 
 - Red Hat Enterprise Linux for SAP Solutions: 8.x, 9.x, 10.x
 - SUSE Linux Enterprise Server for SAP applications: 15 SP5, 15 SP6, 15 SP7, 16
