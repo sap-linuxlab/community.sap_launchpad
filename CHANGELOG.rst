@@ -4,6 +4,25 @@ community.sap\_launchpad Release Notes
 
 .. contents:: Topics
 
+v1.4.0
+======
+
+Release Summary
+---------------
+
+New search for upgrades, enhanced relationship validation and fixes for deduplication and sorting.
+
+Minor Changes
+-------------
+- software_center_download - Refactor and overhauled relationship validation (https://github.com/sap-linuxlab/community.sap_launchpad/pull/68)
+- software_center_download - Update fuzzy search logic and deduplicate sorting (https://github.com/sap-linuxlab/community.sap_launchpad/pull/65)
+- collection - Update workflow with max parallel limit to reduce API issues (https://github.com/sap-linuxlab/community.sap_launchpad/pull/66)
+- collection - Add workflow to enforce branch policies (https://github.com/sap-linuxlab/community.sap_launchpad/pull/67)
+
+Bugfixes
+--------
+- all - Update auth module plugin with expected auth message list and add retry fail catch (https://github.com/sap-linuxlab/community.sap_launchpad/pull/63)
+
 v1.3.2
 ======
 

@@ -1,5 +1,17 @@
 ancestor: null
 releases:
+  1.4.0:
+    release_date: '2026-07-13'
+    changes:
+      release_summary: New search for upgrades, enhanced relationship validation and fixes for deduplication and sorting.
+      minor_changes:
+        - software_center_download - Refactor and overhauled relationship validation (https://github.com/sap-linuxlab/community.sap_launchpad/pull/68)
+        - software_center_download - Update fuzzy search logic and deduplicate sorting (https://github.com/sap-linuxlab/community.sap_launchpad/pull/65)
+        - collection - Update workflow with max parallel limit to reduce API issues (https://github.com/sap-linuxlab/community.sap_launchpad/pull/66)
+        - collection - Add workflow to enforce branch policies (https://github.com/sap-linuxlab/community.sap_launchpad/pull/67)
+      bugfixes:
+        - all - Update auth module plugin with expected auth message list and add retry fail catch (https://github.com/sap-linuxlab/community.sap_launchpad/pull/63)
+
   1.3.2:
     release_date: '2026-03-24'
     changes:
