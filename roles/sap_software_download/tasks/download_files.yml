@@ -1,59 +1,55 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 
-- name: Download - SAP Software Files - Get files with Python venv
+- name: SAP Software Download - Download - SAP Software Files - Notice before download
+  ansible.builtin.debug:
+    msg: |
+      INFO: Download will be started for {{ __sap_software_download_files | d([]) | length }} file(s).
+      Large files (Media CD/DVD, Exports, Databases, etc.) may take considerably longer to download.
+      Following task might appear unresponsive during download,
+      but it is working in the background. Please wait for results.
+
+- name: SAP Software Download - Download - SAP Software Files - Get files
   community.sap_launchpad.software_center_download:
     suser_id: "{{ sap_software_download_suser_id }}"
     suser_password: "{{ sap_software_download_suser_password }}"
     search_query: "{{ item }}"
     dest: "{{ sap_software_download_directory }}"
     search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
-    deduplicate: "{{ sap_software_download_deduplicate | d('') }}"
+    search_upgrades: "{{ sap_software_download_find_upgrades | d(false) }}"
+    deduplicate: "{{ sap_software_download_deduplicate }}"
     validate_checksum: "{{ sap_software_download_validate_checksum | d(false) }}"
+    dry_run: "{{ sap_software_download_dry_run | d(false) }}"
   # Loop condition acts as when conditional
-  loop: "{{ sap_software_download_files if sap_software_download_use_venv | d(true) else [] }}"
+  loop: "{{ __sap_software_download_files | d([]) }}"
   loop_control:
-    label: "{{ item }} : {{ __sap_software_download_files_results_venv.msg | d('') }}"
-  register: __sap_software_download_files_results_venv
-  environment:
-    PATH: "{{ __sap_software_download_venv.path }}/bin:{{ ansible_facts['env'].PATH }}"
-    PYTHONPATH: "{{ __sap_software_download_venv.path }}/lib/{{ sap_software_download_python_interpreter }}/site-packages"
-    VIRTUAL_ENV: "{{ __sap_software_download_venv.path }}"
+    label: "{{ item }} : {{ __sap_software_download_files_results.msg | d('') }}"
+  register: __sap_software_download_files_results
+  environment: "{{ __venv_environment if sap_software_download_use_venv | d(true) else {} }}"
   vars:
-    ansible_python_interpreter: "{{ __sap_software_download_venv.path ~ '/bin/' ~ sap_software_download_python_interpreter }}"
+    ansible_python_interpreter: "{{ __sap_software_download_fact_python_interpreter_path }}"
+    __venv_environment:
+      PATH: "{{ __sap_software_download_fact_venv_path }}"
+      PYTHONPATH: "{{ __sap_software_download_fact_venv_pythonpath }}"
+      VIRTUAL_ENV: "{{ __sap_software_download_register_temp_venv.path }}"
   ignore_errors: true  # Errors are ignored and validated afterwards
 
 
-- name: Download - SAP Software Files - Get files with Python system default
-  community.sap_launchpad.software_center_download:
-    suser_id: "{{ sap_software_download_suser_id }}"
-    suser_password: "{{ sap_software_download_suser_password }}"
-    search_query: "{{ item }}"
-    dest: "{{ sap_software_download_directory }}"
-    search_alternatives: "{{ sap_software_download_find_alternatives | d(true) }}"
-    deduplicate: "{{ sap_software_download_deduplicate | d('') }}"
-    validate_checksum: "{{ sap_software_download_validate_checksum | d(false) }}"
-  # Loop condition acts as when conditional
-  loop: "{{ sap_software_download_files if not sap_software_download_use_venv | d(true) else [] }}"
-  loop_control:
-    label: "{{ item }} : {{ __sap_software_download_files_results_default.msg | d('') }}"
-  register: __sap_software_download_files_results_default
-  vars:
-    ansible_python_interpreter: "{{ '/usr/bin/' ~ sap_software_download_python_interpreter }}"
-  ignore_errors: true  # Errors are ignored and validated afterwards
-
-
-- name: Download - SAP Software Files - Set fact with software_center_download output
-  ansible.builtin.set_fact:
-    __sap_software_download_files_results: "{{ __sap_software_download_files_results_venv
-      if sap_software_download_use_venv | d(true) else __sap_software_download_files_results_default }}"
-
-- name: Download - SAP Software Files - Show failed results
+- name: SAP Software Download - Download - SAP Software Files - Show failed results
   ansible.builtin.fail:
     msg: |
-      Download failed for following files: {{ __failed_items | map(attribute='item') | list | join(', ') }}
+      FAIL: Download failed for following SAP software files:
+      {{ __failed_items | map(attribute='item') | list | join(', ') }}
+
+      {% if not sap_software_download_find_alternatives | d(false) %}
       Either set `sap_software_download_find_alternatives` to `true` to search for alternative files
       or ignore this error with `sap_software_download_ignore_file_not_found` set to `true`.
+
+      {% endif %}
+      {% for failed_item in __failed_items %}
+      {{ failed_item.item }}: {{ failed_item.msg | d('') }}
+
+      {% endfor %}
   vars:
     __failed_items: "{{ __sap_software_download_files_results.results
       | selectattr('failed', 'defined') | selectattr('failed', 'true') }}"

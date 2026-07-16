@@ -1,0 +1,332 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+### IMDB_AFL versioning:
+# HANA 1: IMDB_AFL100_122P_3500-10012328.SAR (SAP HANA AFL 1.0 Revision 122.3500 only for HANA DB 122.35)
+# - IMDB_AFL100 - HANA 1.0 identifier
+# - 122 - Revision 122 (contains SPS level, e.g. SPS12)
+# - 3500 - Patch level 35
+# NOTE: Latest HANA 1.0 revision is 122.35.
+#
+# HANA 2: IMDB_AFL20_089P_300-80001894.SAR (SAP HANA AFL Rev 89.300 only for HANA 2.0 Rev 89.03)
+# - IMDB_AFL20 - HANA 2.0 identifier
+# - 089 - Revision 89 (contains SPS level, e.g. SPS08)
+# - 300 - Patch level 3
+#
+# NOTE: IMDB_AFL does not share FILE_ID between HANA 1.0 and 2.0 so upgrade search is not possible!
+#
+### Relationship validation workflow for IMDB_AFL:
+# 1. Parse file name to extract version details.
+# 2. Attempt search in dry_run mode if 'sap_software_download_find_alternatives' is true and fail if file is not found.
+# 3. Parse file name if alternative file was found and update facts.
+# 4. Prepare regex and search query using IMDB_SERVER version details for component validation.
+# 5. Attempt search for upgrades in dry_run mode if file is not found and 'sap_software_download_upgrade_relationships' is true.
+# 6. Parse file name if upgrade file was found and update facts.
+# 7. Show summary message and inform about validation result.
+
+
+# Validate wildcard format if wildcard is present in filename.
+# This is validated inside of module, but we do it here to fail faster and avoid unnecessary API calls.
+- name: SAP Software Download - Relationship Validation - Validate wildcard format in IMDB_AFL filename
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Invalid wildcard format in IMDB_AFL filename.
+
+      Filename: {{ __sap_software_download_fact_hana_component_names['afl'] }}
+
+      Wildcard queries must follow specific format:
+      Format: "PREFIX*-ID.EXT" where:
+       - PREFIX must have at least one character before wildcard
+       - Wildcard (*) must be in PREFIX position only
+       - Single dash (-) separates prefix and ID
+       - ID must be exactly 8 digits
+       - Extension must be letters only
+
+      Valid examples:
+       - "IMDB_AFL20*-80001894.SAR"
+       - "IMDB_AFL100*-10012328.SAR"
+
+      Invalid examples:
+       - "*-80001894.SAR" (no prefix - too broad)
+       - "IMDB_AFL20-*.SAR" (wildcard in ID position)
+       - "IMDB_AFL20*X-80001894.SAR" (extra characters after wildcard)
+       - "IMDB_AFL20*-7000.SAR" (ID must be 8 digits, not 4)
+  when:
+    - "'*' in __sap_software_download_fact_hana_component_names['afl']"
+    - __sap_software_download_fact_hana_component_names['afl'] is not match('^[^-]+\\*-\\d{8}\\.[a-zA-Z]+$')
+
+# Update existing fact dictionary with component details appending to 'server' details.
+# '__sap_software_download_fact_hana_afl_original' is set for later reuse, when we update this dictionary.
+- name: SAP Software Download - Relationship Validation - Set fact with parsed IMDB_AFL file version details
+  ansible.builtin.set_fact:
+    __sap_software_download_fact_hana_components: >-
+      {{ __sap_software_download_fact_hana_components | combine({
+        'afl': __imdb_afl_details
+      }, recursive=True) }}
+
+    # Save original file name to use when replacing in the list.
+    __sap_software_download_fact_hana_afl_original: "{{ __sap_software_download_fact_hana_component_names['afl'] }}"
+  vars:
+    __imdb_afl_details:
+      filename: "{{ __sap_software_download_fact_hana_component_names['afl'] }}"
+
+      # Extract HANA version from file name based on prefix, e.g. 1 or 2
+      version:
+        "{{ '1' if __sap_software_download_fact_hana_component_names['afl'].startswith('IMDB_AFL1')
+          else ('2' if __sap_software_download_fact_hana_component_names['afl'].startswith('IMDB_AFL2') else '') }}"
+
+      # Extract revision from file name, e.g. IMDB_AFL20_089P_300-80001894.SAR -> 089
+      revision: "{{ __sap_software_download_fact_hana_component_names['afl'].split('_')[2] | d('') }}"
+
+      # Extract patch level from file name, e.g. IMDB_AFL20_089P_300-80001894.SAR -> 300
+      patch: "{{ __sap_software_download_fact_hana_component_names['afl'].split('_')[3].split('-')[0] | d('') }}"
+
+      # Extract File ID from file name, e.g. IMDB_AFL20_089P_300-80001894.SAR -> 80001894
+      file_id: "{{ __sap_software_download_fact_hana_component_names['afl'].split('-')[1].split('.')[0] | d('') }}"
+
+      # Defines search type. Updated if alternative or update search is successful.
+      source: exact
+
+- name: SAP Software Download - Relationship Validation - Fail if IMDB_AFL is for wrong HANA version
+  ansible.builtin.fail:
+    msg: |
+      FAIL: IMDB_AFL file is for different SAP HANA version than IMDB_SERVER.
+
+      {{ __sap_software_download_fact_hana_component_names['server'] }} details:
+      Version: {{ __sap_software_download_fact_hana_components['server']['version'] }}
+
+      {{ __sap_software_download_fact_hana_component_names['afl'] }} details:
+      Version: {{ __sap_software_download_fact_hana_components['afl']['version'] }}
+
+      Please provide correct IMDB_AFL file for the detected IMDB_SERVER version.
+      {% if '*' in __sap_software_download_fact_hana_component_names['afl'] %}
+      Wildcard prefixes must contain identifier for HANA version to avoid mismatch. Examples:
+      - HANA 1.0: 'IMDB_AFL1*-{{ __file_id_ext }}', 'IMDB_AFL100*-{{ __file_id_ext }}', 'IMDB_AFL100_*-{{ __file_id_ext }}'
+      - HANA 2.0: 'IMDB_AFL2*-{{ __file_id_ext }}', 'IMDB_AFL20*-{{ __file_id_ext }}', 'IMDB_AFL20_*-{{ __file_id_ext }}'
+      {% else %}
+      Expected prefixes:
+      - HANA 1.0: 'IMDB_AFL100_'
+      - HANA 2.0: 'IMDB_AFL20_'
+      {% endif %}
+  vars:
+    __file_id_ext: "{{ __sap_software_download_fact_hana_components['afl']['file_id'] ~ '.SAR' }}"
+  when: __sap_software_download_fact_hana_components['server']['version']
+          != __sap_software_download_fact_hana_components['afl']['version']
+
+
+- name: SAP Software Download - Relationship Validation - Check availability of IMDB_AFL file using dry run
+  community.sap_launchpad.software_center_download:
+    suser_id: "{{ sap_software_download_suser_id }}"
+    suser_password: "{{ sap_software_download_suser_password }}"
+    search_query: "{{ __sap_software_download_fact_hana_component_names['afl'] }}"
+    dest: "{{ sap_software_download_directory }}"
+    search_alternatives: true
+    search_upgrades: false
+    deduplicate: "{{ sap_software_download_deduplicate }}"
+    dry_run: true
+  register: __sap_software_download_register_imdb_afl_dry_run
+  retries: 1
+  until: __sap_software_download_register_imdb_afl_dry_run is not failed
+  environment: "{{ __venv_environment if sap_software_download_use_venv | d(true) else {} }}"
+  vars:
+    ansible_python_interpreter: "{{ __sap_software_download_fact_python_interpreter_path }}"
+    __venv_environment:
+      PATH: "{{ __sap_software_download_fact_venv_path }}"
+      PYTHONPATH: "{{ __sap_software_download_fact_venv_pythonpath }}"
+      VIRTUAL_ENV: "{{ __sap_software_download_register_temp_venv.path }}"
+  when: sap_software_download_find_alternatives | d(true)
+  ignore_errors: true  # Errors are ignored and validated afterwards.
+
+# Fail if file cannot be found even with alternative search.
+- name: SAP Software Download - Relationship Validation - Fail if IMDB_AFL file was not found
+  ansible.builtin.fail:
+    msg: |
+      FAIL: Relationship validation failed because IMDB_AFL file was not found.
+      Original file: {{ __sap_software_download_fact_hana_afl_original }}
+      Set the variable 'sap_software_download_upgrade_relationships' to 'true',
+      to allow searching for upgrade candidate if original file was not found.
+  when:
+    - __sap_software_download_register_imdb_afl_dry_run is failed
+    - not sap_software_download_upgrade_relationships | d(false)
+
+
+# Alternative file was found so we have to update component dictionary and file name list.
+# This can happen only if wildcard was used, as otherwise search is strict and looks for exact file name.
+- name: Block for successful dry run with alternative
+  when:
+    - __sap_software_download_register_imdb_afl_dry_run is not failed
+    - __sap_software_download_register_imdb_afl_dry_run.alternative | d(false)
+  block:
+    - name: SAP Software Download - Relationship Validation - Set fact with updated IMDB_AFL name if alternative was found
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_hana_component_names: >-
+          {{ __sap_software_download_fact_hana_component_names
+            | combine({'afl': __sap_software_download_register_imdb_afl_dry_run['filename']}) }}
+
+    - name: SAP Software Download - Relationship Validation - Set fact with re-parsed IMDB_AFL details after alternative search
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_hana_components: >-
+          {{ __sap_software_download_fact_hana_components | combine({
+            'afl': __imdb_afl_details
+          }, recursive=True) }}
+      vars:
+        __imdb_afl_details:
+          filename: "{{ __sap_software_download_fact_hana_component_names['afl'] }}"
+          version:
+            "{{ '1' if __sap_software_download_fact_hana_component_names['afl'].startswith('IMDB_AFL1')
+              else ('2' if __sap_software_download_fact_hana_component_names['afl'].startswith('IMDB_AFL2') else '') }}"
+          revision: "{{ __sap_software_download_fact_hana_component_names['afl'].split('_')[2] }}"
+          patch: "{{ __sap_software_download_fact_hana_component_names['afl'].split('_')[3].split('-')[0] }}"
+          file_id: "{{ __sap_software_download_fact_hana_component_names['afl'].split('-')[1].split('.')[0] }}"
+          source: alternative
+
+    - name: SAP Software Download - Relationship Validation - Set fact with updated file list with resolved IMDB_AFL filename
+      ansible.builtin.set_fact:
+        __sap_software_download_files: >-
+          {{ __sap_software_download_files
+            | map('replace', __sap_software_download_fact_hana_afl_original, __sap_software_download_fact_hana_component_names['afl'])
+            | list }}
+
+
+# Prepare validation regex in following format (e.g. IMDB_AFL20_089P_300-80001894.SAR):
+# - IMDB_AFL100 or IMDB_AFL20 based on HANA version
+# - Revision must match IMDB_SERVER revision (e.g. 089)
+# - Patch level must match IMDB_SERVER patch level (e.g. 3)
+#   and allow for up to two additional digits to cover bugfix patches (e.g. 301, 302 etc.)
+# - File ID must match the one extracted from the file name (e.g. 80001894)
+- name: SAP Software Download - Relationship Validation - Set fact with regex to validate IMDB_AFL file version
+  ansible.builtin.set_fact:
+    __sap_software_download_fact_hana_afl_regex:
+      "(?i)^{{ __prefix }}_{{ __rev }}P?_{{ __patch }}(\\d{2})?-{{ __file_id }}\\.SAR$"
+
+    # Query to be used when regex fails
+    __sap_software_download_fact_hana_afl_search_query:
+      "{{ __prefix }}_{{ __rev }}*-{{ __file_id }}.SAR"
+  vars:
+    __prefix: "IMDB_AFL{{ '100' if __sap_software_download_fact_hana_components['server']['version'] == '1' else '20' }}"
+    __rev: "{{ __sap_software_download_fact_hana_components['server']['revision'] }}"
+    __patch: "{{ __sap_software_download_fact_hana_components['server']['patch'] }}"
+    __file_id: "{{ __sap_software_download_fact_hana_components['afl']['file_id'] }}"
+
+
+- name: Block for download of upgrade candidate for IMDB_AFL
+  when:
+    - sap_software_download_upgrade_relationships | d(false)
+    - __sap_software_download_fact_hana_component_names['afl']
+      is not match(__sap_software_download_fact_hana_afl_regex)
+  block:
+    # Search is not using 'search_upgrades', because we use wildcard regex to get correct revision.
+    # Patch is not included in query because wildcard search will return latest with deduplicate 'last'.
+    - name: SAP Software Download - Relationship Validation - Retry failed IMDB_AFL with IMDB_SERVER revision
+      community.sap_launchpad.software_center_download:
+        suser_id: "{{ sap_software_download_suser_id }}"
+        suser_password: "{{ sap_software_download_suser_password }}"
+        search_query: "{{ __sap_software_download_fact_hana_afl_search_query }}"
+        dest: "{{ sap_software_download_directory }}"
+        search_alternatives: true
+        search_upgrades: false
+        deduplicate: "last"  # We search for latest upgrade.
+        dry_run: true
+      register: __sap_software_download_register_imdb_afl_retry
+      retries: 1
+      until: __sap_software_download_register_imdb_afl_retry is not failed
+      environment: "{{ __venv_environment if sap_software_download_use_venv | d(true) else {} }}"
+      vars:
+        ansible_python_interpreter: "{{ __sap_software_download_fact_python_interpreter_path }}"
+        __venv_environment:
+          PATH: "{{ __sap_software_download_fact_venv_path }}"
+          PYTHONPATH: "{{ __sap_software_download_fact_venv_pythonpath }}"
+          VIRTUAL_ENV: "{{ __sap_software_download_register_temp_venv.path }}"
+      ignore_errors: true
+
+    - name: SAP Software Download - Relationship Validation - Fail if upgrade candidate for IMDB_AFL file was not found
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Relationship validation failed because no upgrade candidate for IMDB_AFL file was found.
+          Original file: {{ __sap_software_download_fact_hana_afl_original }}
+          Upgrade candidate searched with query: {{ __sap_software_download_register_imdb_afl_retry['original_query'] }}
+          No upgrade candidate found with 'search_upgrades' enabled.
+      when: __sap_software_download_register_imdb_afl_retry.failed
+
+
+    # Update existing fact dictionary with new file name details.
+    # This replaces filename and we use '__sap_software_download_fact_hana_afl_original' when required.
+    - name: SAP Software Download - Relationship Validation - Set fact with parsed IMDB_AFL file version details after retry
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_hana_components: >-
+          {{ __sap_software_download_fact_hana_components | combine({
+            'afl': __imdb_afl_details
+          }, recursive=True) }}
+      vars:
+        __imdb_afl_details:
+          filename: "{{ __sap_software_download_register_imdb_afl_retry['filename'] }}"
+          version:
+            "{{ '1' if __sap_software_download_register_imdb_afl_retry['filename'].startswith('IMDB_AFL1')
+              else ('2' if __sap_software_download_register_imdb_afl_retry['filename'].startswith('IMDB_AFL2') else '') }}"
+          revision: "{{ __sap_software_download_register_imdb_afl_retry['filename'].split('_')[2] }}"
+          patch: "{{ __sap_software_download_register_imdb_afl_retry['filename'].split('_')[3].split('-')[0] }}"
+          file_id: "{{ __sap_software_download_register_imdb_afl_retry['filename'].split('-')[1].split('.')[0] }}"
+          source: upgrade
+      when: not __sap_software_download_register_imdb_afl_retry.failed
+
+    - name: SAP Software Download - Relationship Validation - Set fact with updated software list with new IMDB_AFL file name after upgrade search
+      ansible.builtin.set_fact:
+        __sap_software_download_files: >-
+          {{ __sap_software_download_files
+          | map('replace', __sap_software_download_fact_hana_afl_original, __sap_software_download_register_imdb_afl_retry['filename'])
+          | list }}
+      when: not __sap_software_download_register_imdb_afl_retry.failed
+
+    # Must be run last to avoid block conditional skipping tasks.
+    - name: SAP Software Download - Relationship Validation - Set fact with updated IMDB_AFL name if upgrade was found
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_hana_component_names: >-
+          {{ __sap_software_download_fact_hana_component_names
+            | combine({'afl': __sap_software_download_register_imdb_afl_retry['filename']}) }}
+
+
+# This task will validate only if component version exists (dry_run successful) and upgrade is skipped.
+- name: SAP Software Download - Relationship Validation - Fail if IMDB_AFL version is not compatible with IMDB_SERVER version
+  ansible.builtin.fail:
+    msg: |
+      FAIL: IMDB_AFL version is not compatible with IMDB_SERVER version!
+
+      {{ __sap_software_download_fact_hana_component_names['server'] }} details:
+      Revision: {{ __sap_software_download_fact_hana_components['server']['revision'] }}
+      Patch: {{ __sap_software_download_fact_hana_components['server']['patch'] }}
+
+      {{ __sap_software_download_fact_hana_component_names['afl'] }} details:
+      Revision: {{ __sap_software_download_fact_hana_components['afl']['revision'] }}
+      Patch: {{ __sap_software_download_fact_hana_components['afl']['patch'] }}
+
+      Validation was performed using regex: {{ __sap_software_download_fact_hana_afl_regex }}
+
+      {% if not sap_software_download_upgrade_relationships | d(false) %}
+      Set the variable 'sap_software_download_upgrade_relationships' to 'true',
+      to allow searching for upgrade candidate.
+      {% endif %}
+  ignore_errors: "{{ sap_software_download_ignore_relationship_warning | d(false) }}"
+  when: __sap_software_download_fact_hana_component_names['afl'] is not match(__sap_software_download_fact_hana_afl_regex)
+
+
+- name: SAP Software Download - Relationship Validation - Show summary of IMDB_AFL validation
+  ansible.builtin.debug:
+    msg: |
+      IMDB_AFL file successfully validated against IMDB_SERVER.
+      {% if __sap_software_download_fact_hana_components['afl']['source'] == 'alternative' %}
+      Original IMDB_AFL file '{{ __sap_software_download_fact_hana_afl_original }}' was not found,
+      but alternative file '{{ __sap_software_download_fact_hana_components['afl']['filename'] }}' was found.
+      {% elif __sap_software_download_fact_hana_components['afl']['source'] == 'upgrade' %}
+      Original IMDB_AFL file '{{ __sap_software_download_fact_hana_afl_original }}' was not found,
+      but an upgrade file '{{ __sap_software_download_fact_hana_components['afl']['filename'] }}' was found.
+      {% else %}
+      Original IMDB_AFL file '{{ __sap_software_download_fact_hana_afl_original }}' was found.
+      {% endif %}
+
+      {{ __sap_software_download_fact_hana_component_names['server'] }} details:
+      Revision: {{ __sap_software_download_fact_hana_components['server']['revision'] }}
+      Patch: {{ __sap_software_download_fact_hana_components['server']['patch'] }}
+
+      {{ __sap_software_download_fact_hana_component_names['afl'] }} details:
+      Revision: {{ __sap_software_download_fact_hana_components['afl']['revision'] }}
+      Patch: {{ __sap_software_download_fact_hana_components['afl']['patch'] }}

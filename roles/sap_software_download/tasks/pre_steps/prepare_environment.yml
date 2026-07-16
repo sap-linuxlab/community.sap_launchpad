@@ -1,0 +1,95 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP Software Download - Prepare - Install Python and Python package manager pip
+  ansible.builtin.package:
+    name:
+      - "{{ __sap_software_download_fact_python_package }}"
+      - "{{ __sap_software_download_fact_python_package }}-pip"
+    state: present
+
+
+- name: SAP Software Download - Prepare - Create download directory '{{ sap_software_download_directory }}'
+  ansible.builtin.file:
+    path: "{{ sap_software_download_directory }}"
+    state: directory
+    mode: '0755'
+
+
+- name: Block for Python venv preparation
+  when: sap_software_download_use_venv | d(true)
+  block:
+    - name: SAP Software Download - Prepare - Python venv - Create temporary directory
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: __sap_software_download_venv
+      register: __sap_software_download_register_temp_venv
+
+    - name: SAP Software Download - Prepare - Python venv - Install Python modules
+      ansible.builtin.pip:
+        name: "{{ __sap_software_download_python_modules }}"
+        virtualenv: "{{ __sap_software_download_register_temp_venv.path }}"
+        virtualenv_command: "{{ __sap_software_download_fact_python_interpreter }} -m venv"
+
+    - name: SAP Software Download - Prepare - Python venv - Set facts for Python venv
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_venv_path:
+          "{{ __sap_software_download_register_temp_venv.path }}/bin:{{ ansible_facts['env'].PATH }}"
+
+        # Path should be created by previous 'virtualenv_command'.
+        __sap_software_download_fact_venv_pythonpath:
+          "{{ __sap_software_download_register_temp_venv.path }}/lib/{{ __sap_software_download_fact_python_interpreter }}/site-packages"
+
+        __sap_software_download_fact_python_interpreter_path:
+          "{{ __sap_software_download_register_temp_venv.path }}/bin/{{ __sap_software_download_fact_python_interpreter }}"
+
+    - name: SAP Software Download - Prepare - Python venv - Stat the path for PYTHONPATH
+      ansible.builtin.stat:
+        path: "{{ __sap_software_download_fact_venv_pythonpath }}"
+      register: __sap_software_download_register_venv_pythonpath_stat
+
+    - name: SAP Software Download - Prepare - Python venv - Fail if PYTHONPATH path does not exist as a directory
+      ansible.builtin.fail:
+        msg: |
+          FAIL: The path '{{ __sap_software_download_fact_venv_pythonpath }}' does not exist or is not a directory.
+          This directory should have been created during the Python venv preparation step.
+          {% if sap_software_download_python_interpreter is defined %}
+          Ensure that selected Python interpreter creates directory with same name under 'lib' during venv creation or revert back to defaults.
+          {% endif %}
+      when: not (__sap_software_download_register_venv_pythonpath_stat.stat.exists
+              and __sap_software_download_register_venv_pythonpath_stat.stat.isdir)
+
+
+- name: Block for default Python preparation
+  when: not sap_software_download_use_venv | d(true)
+  block:
+    # Packages with python modules are installed instead of modules to avoid error:
+    # `externally-managed-environment` which requires `--break-system-packages`
+    - name: SAP Software Download - Prepare - Default Python - Install Python modules
+      ansible.builtin.package:
+        name: "{{ __sap_software_download_fact_python_module_packages }}"
+        state: present
+
+    - name: SAP Software Download - Prepare - Default Python - Set facts for default Python
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_python_interpreter_path:
+          "{{ '/usr/bin/' ~ __sap_software_download_fact_python_interpreter }}"
+
+
+- name: SAP Software Download - Prepare - Stat the path for Python interpreter
+  ansible.builtin.stat:
+    path: "{{ __sap_software_download_fact_python_interpreter_path }}"
+  register: __sap_software_download_register_python_interpreter_stat
+
+- name: SAP Software Download - Prepare - Fail if Python interpreter path does not exist
+  ansible.builtin.fail:
+    msg: |
+      FAIL: The path '{{ __sap_software_download_fact_python_interpreter_path }}' does not exist or is not a file.
+      {% if sap_software_download_use_venv | d(true) %}
+      This file should have been created during creation of Python venv.
+      Ensure that selected Python interpreter creates directory with same name under 'lib' during venv creation.
+      {% else %}
+      This file should have been created during installation of Python packages.
+      Ensure that selected Python interpreter package provides correct executable.
+      {% endif %}
+  when: not __sap_software_download_register_python_interpreter_stat.stat.exists

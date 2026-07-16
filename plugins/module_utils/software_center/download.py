@@ -35,21 +35,23 @@ def require_requests(func):
 
 
 @require_requests
-def validate_local_file_checksum(client, local_filepath, query=None, download_link=None, deduplicate=None, search_alternatives=False):
+def validate_local_file_checksum(client, local_filepath, query=None, download_link=None, deduplicate=None, search_alternatives=False, search_upgrades=False):
     # Validates a local file against the remote checksum from the server.
     # Returns a dictionary with the validation status and additional context.
     result = {
         'validated': None,
         'message': '',
         'remote_filename': os.path.basename(local_filepath),
-        'alternative_found': False
+        'alternative_found': False,
+        'search_method': 'exact'
     }
     try:
         if query:
-            file_details = search.find_file(client, query, deduplicate, search_alternatives=search_alternatives)
+            file_details = search.find_file(client, query, deduplicate, search_alternatives=search_alternatives, search_upgrades=search_upgrades)
             download_link = file_details['download_link']
             result['remote_filename'] = file_details['filename']
             result['alternative_found'] = file_details['alternative_found']
+            result['search_method'] = file_details.get('search_method', 'exact')
 
         download_link_final = _resolve_download_link(client, download_link)
 

@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+- name: SAP Software Download - Post-Steps - Remove temporary Python venv
+  ansible.builtin.file:
+    path: "{{ __sap_software_download_register_temp_venv.path }}"
+    state: absent
+  when: sap_software_download_use_venv | d(true)
