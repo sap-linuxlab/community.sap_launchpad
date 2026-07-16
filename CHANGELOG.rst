@@ -14,6 +14,7 @@ New search for upgrades, enhanced relationship validation and fixes for deduplic
 
 Minor Changes
 -------------
+- Change minimum Ansible version to 2.18 in alignment with project and update ansible-test sanity workflow.
 - software_center_download - Refactor and overhauled relationship validation (https://github.com/sap-linuxlab/community.sap_launchpad/pull/68)
 - software_center_download - Update fuzzy search logic and deduplicate sorting (https://github.com/sap-linuxlab/community.sap_launchpad/pull/65)
 - collection - Update workflow with max parallel limit to reduce API issues (https://github.com/sap-linuxlab/community.sap_launchpad/pull/66)
