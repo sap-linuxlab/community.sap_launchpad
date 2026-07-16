@@ -18,22 +18,22 @@ Included role and modules cover range of options:
 
 ## Requirements
 
-### Control Nodes
-| Type | Version |
-| :--- | :--- |
-| Operating system | Any operating system with required Python and Ansible versions |
-| Python | 3.11 or higher |
-| Ansible | 9.9 or higher |
-| Ansible-core | 2.16 or higher |
+| Component | Control Node | Managed Node |
+| :--- | :--- | :--- |
+| Operating System | Any OS | [See compatible OS versions](#compatible-operating-system-versions) |
+| Python | 3.11 or higher | 3.9 or higher |
+| Ansible-Core | 2.18 or higher | N/A |
 
+**Additional notes:**
 
-### Managed Nodes
-| Type | Version |
-| :--- | :--- |
-| Operating system | SUSE Linux Enterprise Server 15 SP5+, 16 <br> Red Hat Enterprise Linux 8.x, 9.x, 10.x |
-| Python | 3.11 or higher (SUSE) <br> 3.9 or higher (Red Hat) |
+- **Version Compatibility:** For a detailed mapping of supported Python versions and Ansible-Core lifecycle, refer to the official [Ansible-Core Support Matrix](https://docs.ansible.com/projects/ansible/latest/reference_appendices/release_and_maintenance.html#ansible-core-support-matrix).
+- **Control Node Permissions:** Ensure the user executing the playbooks has the necessary SSH keys and sudo privileges configured for the target environment.
+- **Managed Node Registration:** Operating system needs to have access to required package repositories either directly or via subscription registration.
 
-**NOTE: Operating system needs to have access to required package repositories either directly or via subscription registration.**
+### Compatible Operating System Versions
+
+- Red Hat Enterprise Linux for SAP Solutions: 8.x, 9.x, 10.x
+- SUSE Linux Enterprise Server for SAP applications: 15 SP5, 15 SP6, 15 SP7, 16
 
 
 ## Installation Instructions

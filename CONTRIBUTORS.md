@@ -19,7 +19,7 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Marcel Mamula](https://github.com/marcelmamula) | 47 | 11440 | 2026-03-17 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 67 | 16681 | 2026-06-17 |
 | [Sean Freeman](https://github.com/sean-freeman) | 35 | 2915 | 2025-03-31 |
 | [Matthias Winzeler](https://github.com/MatthiasWinzeler) | 12 | 885 | 2023-11-12 |
 | [Markus Koch](https://github.com/rhmk) | 1 | 32 | 2022-10-21 |
@@ -31,7 +31,7 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Marcel Mamula](https://github.com/marcelmamula) | 16 | 2438 | 2026-03-17 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 21 | 6626 | 2026-06-17 |
 
 ## Contributions by Module
 
@@ -62,7 +62,7 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Marcel Mamula](https://github.com/marcelmamula) | 11 | 627 | 2025-10-08 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 15 | 731 | 2026-06-12 |
 | [Sean Freeman](https://github.com/sean-freeman) | 6 | 189 | 2024-11-09 |
 | [Matthias Winzeler](https://github.com/MatthiasWinzeler) | 1 | 3 | 2023-11-17 |
 | [Markus Koch](https://github.com/rhmk) | 1 | 11 | 2022-10-21 |
@@ -81,7 +81,7 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Marcel Mamula](https://github.com/marcelmamula) | 5 | 348 | 2025-10-08 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 7 | 392 | 2026-05-22 |
 
 ### Utility: client.py
 
