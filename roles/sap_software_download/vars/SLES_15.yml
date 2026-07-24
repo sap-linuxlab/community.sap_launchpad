@@ -23,6 +23,9 @@ __sap_software_download_python_package: >-
     python311
   {%- endif -%}
 
+# Set which additional packages need to be installed.
+__sap_software_download_additional_packages: []
+
 # The list of required Python Modules in packages
 # This is required in order to avoid externally-managed-environment error.
 __sap_software_download_python_module_packages:

@@ -13,6 +13,9 @@ __sap_software_download_python_modules:
   - beautifulsoup4
   - lxml
 
+# Set which additional packages need to be installed.
+__sap_software_download_additional_packages: []
+
 # The list of required Python Modules in packages
 # This is required in order to avoid externally-managed-environment error.
 # Specific packages are available in OS specific var files

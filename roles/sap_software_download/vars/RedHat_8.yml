@@ -11,6 +11,9 @@ __sap_software_download_python_interpreter: 'python3.9'
 # Set which Python package will be installed on destination node.
 __sap_software_download_python_package: 'python39'
 
+# Set which additional packages need to be installed.
+__sap_software_download_additional_packages: []
+
 # The list of required Python Modules in packages
 # This is required in order to avoid externally-managed-environment error.
 __sap_software_download_python_module_packages:
