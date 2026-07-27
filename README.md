@@ -7,6 +7,7 @@
 This Ansible Collection provides roles and modules to automate interaction with SAP Launchpad API, primarily focusing on downloading software and files from the SAP Software Download Center and Maintenance Planner.
 
 Included role and modules cover range of options:
+
 - Preparation of environment before download.
 - Download of specific SAP Software files.
 - Download of alternative SAP Software files if specific was not available. 
@@ -86,14 +87,16 @@ See [Installing collections](https://docs.ansible.com/ansible/latest/collections
 
 
 ## Testing
-This Ansible Collection was tested across different Operating Systems and SAP products.
+This Ansible Collection has been tested across different operating systems, SAP products, and scenarios.
 
-| Type | Version |
-| :--- | :--- |
-| Operating system | SUSE Linux Enterprise Server 15 SP5+, 16 <br> Red Hat Enterprise Linux 8.x, 9.x, 10.x |
-| Python | 3.11, 3.12 |
-| Ansible | 9, 10, 11 |
-| Ansible-core | 2.16, 2.17, 2.18 |
+Operating systems:
+
+- Red Hat Enterprise Linux for SAP Solutions: 8.x, 9.x, 10.x
+- SUSE Linux Enterprise Server for SAP applications: 15 SP5, 15 SP6, 15 SP7, 16
+
+> **Testing Disclaimer**<br>
+> It is not possible to test every Operating System and SAP Product combination with every release.<br>
+> Testing is dependent S-User access and assigned product licenses.**
 
 
 ## Contributing

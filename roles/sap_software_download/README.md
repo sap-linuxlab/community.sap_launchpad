@@ -100,12 +100,14 @@ Download of SAP Software files using Maintenance Plan.
 ```
 
 Combined download of SAP Software files and Maintenance Plan transaction together with settings:
+
 - Use default Python instead of Python virtual environment.
 - No validation of S-User credentials.
 - No validation of relationships.
 - No warnings for unavailable files.
 - No warnings for unavailable Maintenance Plan transaction.
 - Validate checksum of already existing files with same name.
+
 ```yaml
 - name: Ansible Play for downloading SAP Software
   hosts: localhost
@@ -130,6 +132,7 @@ Combined download of SAP Software files and Maintenance Plan transaction togethe
           - 'SAPEXE_100-80005509.SAR'
         sap_software_download_mp_transaction: 'MY-TRANSACTION-NAME'
 ```
+
 Download of SAP Software files using Python version `3.13`.
 ```yaml
 ---
@@ -203,6 +206,7 @@ Supported scenarios:
 
 
 **File name versioning breakdown**
+
 | File name | Version | Revision | Patch | File ID |
 | --- | --- | --- | --- | --- |
 | IMDB_SERVER100_122_35-10009569.SAR | 1.0 | 122 | 35 | 10009569 |
@@ -242,6 +246,7 @@ Supported scenarios:
 
 
 **File name versioning breakdown**
+
 | File name  | Patch | File ID |
 | --- | --- | --- |
 | SAPEXE_1500-70000596.SAR | 1500 | 70000596 |
@@ -439,7 +444,8 @@ The list of the OS packages that provide modules for the desired Python version.
 Required modules are `wheel`, `urllib3`, `requests`, `beautifulsoup4`, `lxml`<br>
 The listed package versions must match the Python version specified by `sap_software_download_python_interpreter`.<br>
 The default value is determined by the operating system and is set in the corresponding OS-specific variables file.<br>
-Examples:<br>
+Examples:
+
 - `['python311-wheel', 'python311-urllib3', 'python311-requests', 'python311-beautifulsoup4', 'python311-lxml']` (SLES 15 SP7)<br>
 - `['python3.9-wheel', 'python3.9-urllib3', 'python3.9-requests', 'python3.9-beautifulsoup4', 'python3.9-lxml']` (RHEL 8)<br>
 <!-- END Role Variables -->
