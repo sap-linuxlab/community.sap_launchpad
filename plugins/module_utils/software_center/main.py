@@ -24,6 +24,7 @@ def run_software_download(params):
         'original_query': '',
         'alternative': False,
         'search_method': 'exact',
+        'similar_files': [],
         'warnings': []
     }
 
@@ -72,6 +73,9 @@ def run_software_download(params):
 
         filename_similar_exists, filename_similar_names = download.check_similar_files(dest, filename)
         if filename_similar_exists:
+            # Expose matches so callers can pick the correct file when
+            # 'filename' is a wildcard query and not a real file name.
+            result['similar_files'] = sorted(filename_similar_names)
             result['skipped'] = True
             result['msg'] = f"Similar file(s) already exist: {', '.join(filename_similar_names)}"
             return result
