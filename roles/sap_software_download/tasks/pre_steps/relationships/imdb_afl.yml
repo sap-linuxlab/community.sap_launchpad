@@ -155,7 +155,7 @@
 - name: Block for successful dry run with alternative
   when:
     - __sap_software_download_register_imdb_afl_dry_run is not failed
-    - __sap_software_download_register_imdb_afl_dry_run.alternative | d(false)
+    - __sap_software_download_register_imdb_afl_dry_run['alternative'] | d(false)
   block:
     - name: SAP Software Download - Relationship Validation - Set fact with updated IMDB_AFL name if alternative was found
       ansible.builtin.set_fact:
@@ -186,6 +186,14 @@
           {{ __sap_software_download_files
             | map('replace', __sap_software_download_fact_hana_afl_original, __sap_software_download_fact_hana_component_names['afl'])
             | list }}
+
+    - name: SAP Software Download - Relationship Validation - Show results of availability check of IMDB_AFL file
+      ansible.builtin.debug:
+        msg: |
+          IMDB_AFL availability check results:
+          Search query: {{ __sap_software_download_register_imdb_afl_dry_run['original_query'] | d('N/A') }}
+          Alternative:  {{ __sap_software_download_register_imdb_afl_dry_run['filename'] | d('N/A') }}
+          Message:      {{ __sap_software_download_register_imdb_afl_dry_run['msg'] | d('N/A') }}
 
 
 # Prepare validation regex in following format (e.g. IMDB_AFL20_089P_300-80001894.SAR):
@@ -249,6 +257,47 @@
       when: __sap_software_download_register_imdb_afl_retry.failed
 
 
+    # Edge case scenario requires handling of similar files, because the 'filename' can contain wildcards.
+    # The existing files are returned in 'similar_files' key, so parsing of 'message' is not needed.
+    # Returned wildcard would cause index errors during accessing 3rd element of the filename split by '_'.
+    #
+    # Regex is applied against the list of similar files, so sorting can be string based and still yield correct latest file.
+    # NOTE: Sort must stay case insensitive (default) and must not be removed.
+    #       Module returns case sensitive order where 'P' revision (e.g. 079P_1100)
+    #       sorts before non-P revision (e.g. 079_1100), but P is always the higher one.
+    - name: SAP Software Download - Relationship Validation - Set fact with resolved IMDB_AFL file name after retry
+      ansible.builtin.set_fact:
+        __sap_software_download_fact_hana_afl_retry_filename: >-
+          {{ (__sap_software_download_register_imdb_afl_retry['similar_files']
+              | select('match', __sap_software_download_fact_hana_afl_regex)
+              | list | sort | last | d(''))
+            if __sap_software_download_register_imdb_afl_retry['similar_files'] | d([]) | length > 0
+            else __sap_software_download_register_imdb_afl_retry['filename'] | d('') }}
+
+    - name: SAP Software Download - Relationship Validation - Show results of upgrade availability check of IMDB_AFL file
+      ansible.builtin.debug:
+        msg: |
+          IMDB_AFL upgrade availability check results:
+          Search query:   {{ __sap_software_download_register_imdb_afl_retry['original_query'] | d('N/A') }}
+          {% if __sap_software_download_register_imdb_afl_retry['alternative'] | d(false) %}
+          Alternative:    {{ __sap_software_download_register_imdb_afl_retry['filename'] | d('N/A') }}
+          {% endif %}
+          Message:        {{ __sap_software_download_register_imdb_afl_retry['msg'] | d('N/A') }}
+          {% if __sap_software_download_register_imdb_afl_retry['similar_files'] | d([]) | length > 0 %}
+          Selected file:  {{ __sap_software_download_fact_hana_afl_retry_filename | d('N/A', true) }}
+          {% endif %}
+
+    - name: SAP Software Download - Relationship Validation - Fail if existing IMDB_AFL files do not match IMDB_SERVER
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Relationship validation failed because existing IMDB_AFL files are not compatible with IMDB_SERVER.
+          Original file: {{ __sap_software_download_fact_hana_afl_original }}
+          Existing files: {{ __sap_software_download_register_imdb_afl_retry['similar_files'] | d([]) | join(', ') }}
+          Validation was performed using regex: {{ __sap_software_download_fact_hana_afl_regex }}
+          Remove or rename incompatible files in '{{ sap_software_download_directory }}' to allow search for upgrade candidate,
+          or provide exact IMDB_AFL file name.
+      when: __sap_software_download_fact_hana_afl_retry_filename == ''
+
     # Update existing fact dictionary with new file name details.
     # This replaces filename and we use '__sap_software_download_fact_hana_afl_original' when required.
     - name: SAP Software Download - Relationship Validation - Set fact with parsed IMDB_AFL file version details after retry
@@ -259,30 +308,28 @@
           }, recursive=True) }}
       vars:
         __imdb_afl_details:
-          filename: "{{ __sap_software_download_register_imdb_afl_retry['filename'] }}"
+          filename: "{{ __sap_software_download_fact_hana_afl_retry_filename }}"
           version:
-            "{{ '1' if __sap_software_download_register_imdb_afl_retry['filename'].startswith('IMDB_AFL1')
-              else ('2' if __sap_software_download_register_imdb_afl_retry['filename'].startswith('IMDB_AFL2') else '') }}"
-          revision: "{{ __sap_software_download_register_imdb_afl_retry['filename'].split('_')[2] }}"
-          patch: "{{ __sap_software_download_register_imdb_afl_retry['filename'].split('_')[3].split('-')[0] }}"
-          file_id: "{{ __sap_software_download_register_imdb_afl_retry['filename'].split('-')[1].split('.')[0] }}"
+            "{{ '1' if __sap_software_download_fact_hana_afl_retry_filename.startswith('IMDB_AFL1')
+              else ('2' if __sap_software_download_fact_hana_afl_retry_filename.startswith('IMDB_AFL2') else '') }}"
+          revision: "{{ __sap_software_download_fact_hana_afl_retry_filename.split('_')[2] }}"
+          patch: "{{ __sap_software_download_fact_hana_afl_retry_filename.split('_')[3].split('-')[0] }}"
+          file_id: "{{ __sap_software_download_fact_hana_afl_retry_filename.split('-')[1].split('.')[0] }}"
           source: upgrade
-      when: not __sap_software_download_register_imdb_afl_retry.failed
 
     - name: SAP Software Download - Relationship Validation - Set fact with updated software list with new IMDB_AFL file name after upgrade search
       ansible.builtin.set_fact:
         __sap_software_download_files: >-
           {{ __sap_software_download_files
-          | map('replace', __sap_software_download_fact_hana_afl_original, __sap_software_download_register_imdb_afl_retry['filename'])
+          | map('replace', __sap_software_download_fact_hana_afl_original, __sap_software_download_fact_hana_afl_retry_filename)
           | list }}
-      when: not __sap_software_download_register_imdb_afl_retry.failed
 
     # Must be run last to avoid block conditional skipping tasks.
     - name: SAP Software Download - Relationship Validation - Set fact with updated IMDB_AFL name if upgrade was found
       ansible.builtin.set_fact:
         __sap_software_download_fact_hana_component_names: >-
           {{ __sap_software_download_fact_hana_component_names
-            | combine({'afl': __sap_software_download_register_imdb_afl_retry['filename']}) }}
+            | combine({'afl': __sap_software_download_fact_hana_afl_retry_filename}) }}
 
 
 # This task will validate only if component version exists (dry_run successful) and upgrade is skipped.

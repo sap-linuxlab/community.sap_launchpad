@@ -128,7 +128,7 @@
 - name: Block for successful dry run with alternative
   when:
     - __sap_software_download_register_imdb_client_dry_run is not failed
-    - __sap_software_download_register_imdb_client_dry_run.alternative | d(false)
+    - __sap_software_download_register_imdb_client_dry_run['alternative'] | d(false)
   block:
     - name: SAP Software Download - Relationship Validation - Set fact with updated IMDB_CLIENT name if alternative was found
       ansible.builtin.set_fact:
@@ -152,7 +152,6 @@
           patch: "{{ __sap_software_download_fact_hana_component_names['client'].split('_')[3].split('-')[0] }}"
           file_id: "{{ __sap_software_download_fact_hana_component_names['client'].split('-')[1].split('.')[0] }}"
           source: alternative
-      when: not __sap_software_download_register_imdb_client_dry_run.failed
 
     - name: SAP Software Download - Relationship Validation - Set fact with updated file list with resolved IMDB_CLIENT filename
       ansible.builtin.set_fact:
@@ -160,6 +159,14 @@
           {{ __sap_software_download_files
             | map('replace', __sap_software_download_fact_hana_client_original, __sap_software_download_fact_hana_component_names['client'])
             | list }}
+
+    - name: SAP Software Download - Relationship Validation - Show results of availability check of IMDB_CLIENT file
+      ansible.builtin.debug:
+        msg: |
+          IMDB_CLIENT availability check results:
+          Search query: {{ __sap_software_download_register_imdb_client_dry_run['original_query'] | d('N/A') }}
+          Alternative:  {{ __sap_software_download_register_imdb_client_dry_run['filename'] | d('N/A') }}
+          Message:      {{ __sap_software_download_register_imdb_client_dry_run['msg'] | d('N/A') }}
 
 
 # Prepare validation regex in following format (e.g. IMDB_CLIENT20_028_22-80002082.SAR):
@@ -216,8 +223,80 @@
       when: __sap_software_download_register_imdb_client_retry.failed
 
 
+    # Edge case scenario requires handling of similar files, because the 'filename' can contain wildcards.
+    # The existing files are returned in 'similar_files' key, so parsing of 'message' is not needed.
+    # Returned wildcard would cause index errors during accessing 3rd element of the filename split by '_'.
+    #
+    # IMDB_CLIENT file format does not suggest that 'P' pattern is used as for IMDB_AFL and IMDB_LCAPPS.
+    # Therefore, we only need to pad the patch (numeric section between '_' and '-') for correct sorting.
+    # Revision does not need padding, because:
+    # - HANA 2 revision is always 3 digits (e.g. 028).
+    # - HANA 1 has no competing revisions of different length within one file ID
+    #   (e.g. 97, 102, 112 and 120 each have their own file ID).
+    # Patch length varies (e.g. 22, 100, 140), so plain text sorting would place 100 before 22.
+    - name: SAP Software Download - Relationship Validation - Set fact with resolved IMDB_CLIENT file name after retry
+      ansible.builtin.set_fact:
+        # Zip padded names with original names to allow mapping back after sorting.
+        # There are three possible results:
+        # - Similar files in expected format exist: latest file is selected.
+        # - Similar files exist, but none in expected format: empty string, which triggers fail task.
+        # - No similar files exist: 'filename' returned by the module.
+        __sap_software_download_fact_hana_client_retry_filename: >-
+          {{ dict(__padded | zip(__files))[__padded | sort | last]
+            if __similar_files | length > 0 and __files | length > 0
+            else ('' if __similar_files | length > 0
+              else __sap_software_download_register_imdb_client_retry['filename'] | d('')) }}
+      vars:
+        # Prepare dictionary with similar files categorized by HANA version specific IMDB_CLIENT format.
+        __similar_files: "{{ __sap_software_download_register_imdb_client_retry['similar_files'] | d([]) }}"
+        __client_files:
+          '1': "{{ __similar_files | select('match', '(?i)^IMDB_CLIENT100_\\d{2,3}_\\d{1,4}-\\d{8}\\.SAR$') | list }}"
+          '2': "{{ __similar_files | select('match', '(?i)^IMDB_CLIENT20_\\d{3}_\\d{1,4}-\\d{8}\\.SAR$') | list }}"
+
+        # Select only files matching the HANA version specific IMDB_CLIENT format.
+        __files: "{{ __client_files[__sap_software_download_fact_hana_components['server']['version']] }}"
+
+        # Pad the patch number to allow correct text sorting, without need to convert it to integer.
+        # - Prepend '0000' to the number between '_' and '-'.
+        # - Keep only the last 4 digits before '-', stripping excess leading zeros.
+        # Format regex above allows only 1 to 4 digit patch, so nothing is truncated.
+        # Example: IMDB_CLIENT20_028_22-80002082.SAR -> IMDB_CLIENT20_028_0022-80002082.SAR
+        __padded: >-
+          {{ __files
+            | map('regex_replace', '_(\d+)-', '_0000\1-')
+            | map('regex_replace', '_0*(\d{4})-', '_\1-')
+            | list }}
+
+    - name: SAP Software Download - Relationship Validation - Show results of upgrade availability check of IMDB_CLIENT file
+      ansible.builtin.debug:
+        msg: |
+          IMDB_CLIENT upgrade availability check results:
+          Search query:   {{ __sap_software_download_register_imdb_client_retry['original_query'] | d('N/A') }}
+          {% if __sap_software_download_register_imdb_client_retry['alternative'] | d(false) %}
+          Alternative:    {{ __sap_software_download_register_imdb_client_retry['filename'] | d('N/A') }}
+          {% endif %}
+          Message:        {{ __sap_software_download_register_imdb_client_retry['msg'] | d('N/A') }}
+          {% if __sap_software_download_register_imdb_client_retry['similar_files'] | d([]) | length > 0 %}
+          Selected file:  {{ __sap_software_download_fact_hana_client_retry_filename | d('N/A', true) }}
+          {% endif %}
+
+    - name: SAP Software Download - Relationship Validation - Fail if existing IMDB_CLIENT files are not usable for IMDB_SERVER version
+      ansible.builtin.fail:
+        msg: |
+          FAIL: Relationship validation failed because no existing IMDB_CLIENT file has expected format for IMDB_SERVER HANA version.
+          Original file: {{ __sap_software_download_fact_hana_client_original }}
+          Existing files: {{ __sap_software_download_register_imdb_client_retry['similar_files'] | d([]) | join(', ') }}
+          IMDB_SERVER version: {{ __sap_software_download_fact_hana_components['server']['version'] }}
+          Expected format: IMDB_CLIENT{{ __prefix_version }}_<revision>_<patch>-<file_id>.SAR
+          Remove or rename incompatible files in '{{ sap_software_download_directory }}' to allow search for upgrade candidate,
+          or provide exact IMDB_CLIENT file name.
+      vars:
+        __prefix_version: "{{ '100' if __sap_software_download_fact_hana_components['server']['version'] == '1' else '20' }}"
+      when: __sap_software_download_fact_hana_client_retry_filename == ''
+
     # Update existing fact dictionary with new file name details.
     # This replaces filename and we use '__sap_software_download_fact_hana_client_original' when required.
+    # Revision and patch are not set, because IMDB_CLIENT does not use them.
     - name: SAP Software Download - Relationship Validation - Set fact with parsed IMDB_CLIENT file version details after retry
       ansible.builtin.set_fact:
         __sap_software_download_fact_hana_components: >-
@@ -226,30 +305,26 @@
           }, recursive=True) }}
       vars:
         __imdb_client_details:
-          filename: "{{ __sap_software_download_register_imdb_client_retry['filename'] }}"
+          filename: "{{ __sap_software_download_fact_hana_client_retry_filename }}"
           version:
-            "{{ '1' if __sap_software_download_register_imdb_client_retry['filename'].startswith('IMDB_CLIENT100')
+            "{{ '1' if __sap_software_download_fact_hana_client_retry_filename.startswith('IMDB_CLIENT100')
               else '2' }}"
-          revision: "{{ __sap_software_download_register_imdb_client_retry['filename'].split('_')[2] }}"
-          patch: "{{ __sap_software_download_register_imdb_client_retry['filename'].split('_')[3].split('-')[0] }}"
-          file_id: "{{ __sap_software_download_register_imdb_client_retry['filename'].split('-')[1].split('.')[0] }}"
+          file_id: "{{ __sap_software_download_fact_hana_client_retry_filename.split('-')[1].split('.')[0] }}"
           source: upgrade
-      when: not __sap_software_download_register_imdb_client_retry.failed
 
     - name: SAP Software Download - Relationship Validation - Set fact with updated software list with new IMDB_CLIENT file name after upgrade search
       ansible.builtin.set_fact:
         __sap_software_download_files: >-
           {{ __sap_software_download_files
-          | map('replace', __sap_software_download_fact_hana_client_original, __sap_software_download_register_imdb_client_retry['filename'])
+          | map('replace', __sap_software_download_fact_hana_client_original, __sap_software_download_fact_hana_client_retry_filename)
           | list }}
-      when: not __sap_software_download_register_imdb_client_retry.failed
 
     # Must be run last to avoid block conditional skipping tasks.
     - name: SAP Software Download - Relationship Validation - Set fact with updated IMDB_CLIENT name if upgrade was found
       ansible.builtin.set_fact:
         __sap_software_download_fact_hana_component_names: >-
           {{ __sap_software_download_fact_hana_component_names
-            | combine({'client': __sap_software_download_register_imdb_client_retry['filename']}) }}
+            | combine({'client': __sap_software_download_fact_hana_client_retry_filename}) }}
 
 # NOTE: Task to compare revision and patch is not required for client because,
 # wrong HANA version would fail already and upgrade uses preset prefix forcing correct HANA version.
