@@ -4,6 +4,19 @@ community.sap\_launchpad Release Notes
 
 .. contents:: Topics
 
+v1.4.1
+======
+
+Release Summary
+---------------
+
+Fixes for similar files edge case and RHEL 10 package installation.
+
+Bugfixes
+--------
+- sap_software_download - Add handling for similar files to fix index 3 failure (https://github.com/sap-linuxlab/community.sap_launchpad/pull/80)
+- sap_software_download - Install required package on RHEL 10 (https://github.com/sap-linuxlab/community.sap_launchpad/pull/79)
+
 v1.4.0
 ======
 

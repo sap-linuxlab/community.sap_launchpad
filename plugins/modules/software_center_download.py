@@ -216,6 +216,16 @@ skipped:
   description: A boolean indicating if the download was skipped (e.g., file already exists and checksum is valid).
   returned: always
   type: bool
+similar_files:
+  description:
+    - Sorted list of file names found in C(dest) (including subdirectories) that match C(search_query) without the extension.
+    - Populated only when the download was skipped because similar file(s) already exist, otherwise empty.
+    - If C(search_query) contains a wildcard, C(filename) still holds the query and not a real file name.
+      Use this list to determine which existing file to use.
+  returned: always
+  type: list
+  elements: str
+  sample: ["IMDB_AFL20_079P_1000-80001894.SAR", "IMDB_AFL20_079P_1100-80001894.SAR"]
 '''
 
 from ansible.module_utils.basic import AnsibleModule, missing_required_lib

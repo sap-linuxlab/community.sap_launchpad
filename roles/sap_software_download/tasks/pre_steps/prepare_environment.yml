@@ -9,6 +9,13 @@
     state: present
 
 
+- name: SAP Software Download - Prepare - Install additional required packages
+  ansible.builtin.package:
+    name: "{{ __sap_software_download_additional_packages }}"
+    state: present
+  when: __sap_software_download_additional_packages | length > 0
+
+
 - name: SAP Software Download - Prepare - Create download directory '{{ sap_software_download_directory }}'
   ansible.builtin.file:
     path: "{{ sap_software_download_directory }}"

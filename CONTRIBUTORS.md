@@ -19,9 +19,10 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Marcel Mamula](https://github.com/marcelmamula) | 67 | 16681 | 2026-06-17 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 74 | 17214 | 2026-11-09 |
 | [Sean Freeman](https://github.com/sean-freeman) | 35 | 2915 | 2025-03-31 |
 | [Matthias Winzeler](https://github.com/MatthiasWinzeler) | 12 | 885 | 2023-11-12 |
+| [Bernd Finger](https://github.com/berndfinger) | 1 | 14 | 2026-07-27 |
 | [Markus Koch](https://github.com/rhmk) | 1 | 32 | 2022-10-21 |
 | 朱聖黎 Zhu Sheng Li | 1 | 209 | 2022-04-11 |
 
@@ -31,7 +32,8 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Marcel Mamula](https://github.com/marcelmamula) | 21 | 6626 | 2026-06-17 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 24 | 6911 | 2026-11-09 |
+| [Bernd Finger](https://github.com/berndfinger) | 1 | 14 | 2026-07-27 |
 
 ## Contributions by Module
 
@@ -62,7 +64,7 @@ For specific role maintainers, see the `README.md` file in the corresponding rol
 
 | Name | Commits | Lines Changed | Last Commit |
 | ---- | ------- | ------------- | ----------- |
-| [Marcel Mamula](https://github.com/marcelmamula) | 15 | 731 | 2026-06-12 |
+| [Marcel Mamula](https://github.com/marcelmamula) | 16 | 741 | 2026-11-09 |
 | [Sean Freeman](https://github.com/sean-freeman) | 6 | 189 | 2024-11-09 |
 | [Matthias Winzeler](https://github.com/MatthiasWinzeler) | 1 | 3 | 2023-11-17 |
 | [Markus Koch](https://github.com/rhmk) | 1 | 11 | 2022-10-21 |
