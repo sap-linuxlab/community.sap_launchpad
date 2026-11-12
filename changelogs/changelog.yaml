@@ -1,5 +1,13 @@
 ancestor: null
 releases:
+  1.4.1:
+    release_date: '2026-11-12'
+    changes:
+      release_summary: Fixes for similar files edge case and RHEL 10 package installation
+      bugfixes:
+        - sap_software_download - Add handling for similar files to fix index 3 failure (https://github.com/sap-linuxlab/community.sap_launchpad/pull/80)
+        - sap_software_download - Install required package on RHEL 10 (https://github.com/sap-linuxlab/community.sap_launchpad/pull/79)
+
   1.4.0:
     release_date: '2026-07-13'
     changes:
